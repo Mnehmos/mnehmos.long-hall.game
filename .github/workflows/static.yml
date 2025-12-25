@@ -35,9 +35,7 @@ jobs:
         env:
           VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
           VITE_API_URL: https://the-long-hall-production.up.railway.app
-        env:
-          VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
-          VITE_API_URL: https://the-long-hall-production.up.railway.app
+
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
