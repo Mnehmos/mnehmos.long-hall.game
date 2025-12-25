@@ -1,0 +1,829 @@
+import type { RunState, Item } from '../engine/types';
+import { getAbilityById } from '../content/abilities';
+import { getEnemyArt, getHeroArt, renderHpBar, renderStatBar, EQUIPMENT_ICONS } from '../content/art';
+import { RECRUITS, ITEMS } from '../content/tables';
+import { calculateEscapeDC } from '../engine/generateRoom';
+
+function formatItemStats(item: Item, showMastery: boolean = false): string {
+    let parts = [`Cost: ${item.cost}g`];
+    if (item.baseStats.attackBonus) parts.push(`ATK +${item.baseStats.attackBonus}`);
+    if (item.baseStats.damageBonus) parts.push(`DMG +${item.baseStats.damageBonus}`);
+    if (item.baseStats.acBonus) parts.push(`AC +${item.baseStats.acBonus}`);
+    if (item.baseStats.maxHpBonus) parts.push(`HP +${item.baseStats.maxHpBonus}`);
+
+    // Enchantment
+    if (item.enchantment) {
+        const e = item.enchantment.effect;
+        if (e.attackBonus) parts.push(`✨+${e.attackBonus} Hit`);
+        if (e.damageBonus) parts.push(`✨+${e.damageBonus} Dmg`);
+        if (e.acBonus) parts.push(`✨+${e.acBonus} AC`);
+        if (e.maxHpBonus) parts.push(`✨+${e.maxHpBonus} HP`);
+    }
+
+    // Mastery stats (for tooltips)
+    if (showMastery && item.stats) {
+        parts.push(`\n━━ Mastery ━━`);
+        parts.push(`⚔️ Kills: ${item.stats.kills}`);
+        parts.push(`💥 Damage: ${item.stats.damageDealt}`);
+        parts.push(`🎯 Best Hit: ${item.stats.highestHit}`);
+        if (item.stats.criticalHits > 0) parts.push(`💫 Crits: ${item.stats.criticalHits}`);
+        parts.push(`📊 Battles: ${item.stats.encountersUsed}`);
+    }
+
+    return parts.join(showMastery ? '\n' : ', ') || 'No stats';
+}
+
+function formatItemHistory(item: Item): string {
+    if (!item.history || item.history.length === 0) return '';
+    return '\n━━ History ━━\n' + item.history.slice(-5).join('\n');
+}
+
+function renderShopSection(state: RunState): string {
+    // Use room's pre-generated shop items or fallback to random
+    const room = state.currentRoom;
+    const forSale = room?.shopItems || [...ITEMS].sort(() => Math.random() - 0.5).slice(0, 4);
+    
+    if (forSale.length === 0) {
+        return `<div class="shop-section"><h4>🛒 Shop</h4><p>Sold out!</p></div>`;
+    }
+    
+    let html = `<div class="shop-section">
+        <h4>🛒 Shop</h4>
+        <div class="shop-list">`;
+    
+    for (const item of forSale) {
+        const cost = item.cost || 20;
+        const canAfford = state.party.gold >= cost;
+        const disabled = !canAfford ? 'disabled' : '';
+        const rarity = item.rarity;
+        
+        html += `
+        <div class="shop-item ${rarity} ${disabled}">
+            <div class="item-name">${item.name}</div>
+            <div class="item-slot">${item.type.toUpperCase()}</div>
+            <div class="item-stats">${formatItemStats(item)}</div>
+            <div class="item-cost">💰 ${cost} gold</div>
+            <button class="btn-buy" data-item="${item.id}" ${disabled}>Buy</button>
+        </div>`;
+    }
+    
+    html += `</div></div>`;
+    return html;
+}
+
+function renderRecruitSection(state: RunState): string {
+    // Pick 2 random recruits
+    const shuffled = [...RECRUITS].sort(() => Math.random() - 0.5);
+    const available = shuffled.slice(0, 2);
+    
+    let html = `<div class="recruit-section">
+        <h4>🧑‍🤝‍🧑 Recruits Available</h4>
+        <div class="recruit-list">`;
+    
+    for (const recruit of available) {
+        const canAfford = state.party.gold >= recruit.cost;
+        const partyFull = state.party.members.length >= 4;
+        const disabled = !canAfford || partyFull ? 'disabled' : '';
+        
+        html += `
+        <div class="recruit-card ${disabled}">
+            <div class="recruit-name">${recruit.name}</div>
+            <div class="recruit-role">${recruit.role.toUpperCase()}</div>
+            <div class="recruit-desc">${recruit.description}</div>
+            <div class="recruit-cost">💰 ${recruit.cost} gold</div>
+            <button class="btn-hire" data-recruit="${recruit.id}" ${disabled}>Hire</button>
+        </div>`;
+    }
+    
+    html += `</div></div>`;
+    return html;
+}
+
+function renderItemStats(item: Item): string {
+    const s = item.baseStats;
+    const parts = [];
+    if (s.attackBonus) parts.push(`ATK+${s.attackBonus}`);
+    if (s.damageBonus) parts.push(`DMG+${s.damageBonus}`);
+    if (s.acBonus) parts.push(`AC+${s.acBonus}`);
+    if (s.maxHpBonus) parts.push(`HP+${s.maxHpBonus}`);
+    return parts.join(', ');
+}
+
+function renderSidebar(state: RunState): string {
+    let html = `<div class="sidebar-left">`;
+    
+    // ASCII Header
+    html += `
+    <div class="sidebar-header">
+      <pre class="ascii-art" style="color:red; margin:0; padding:0; background:none;">
+ ╔═════════════╗
+ ║ PARTY STATUS║
+ ╚═════════════╝
+      </pre>
+    </div>`;
+
+    for (const member of state.party.members) {
+
+        // XP Bar
+        // We need lookup for accurate bar? Re-use logic.
+        const XP_THRESHOLDS = [0, 50, 150, 300, 500, 800, 1200];
+        const nextXp = member.level < XP_THRESHOLDS.length - 1 ? XP_THRESHOLDS[member.level] : XP_THRESHOLDS[XP_THRESHOLDS.length - 1];
+        
+        const hpBar = renderStatBar(member.hp.current, member.hp.max, 10, '█', '░');
+        const xpBar = renderStatBar(member.xp, nextXp, 10, '▒', '░');
+        
+        const statusIcons = member.statuses?.map(s => {
+            if (s === 'hidden') return '👁️‍🗨️';
+            return '•';
+        }).join('') || '';
+
+        html += `
+        <div class="sidebar-member ${!member.isAlive ? 'dead' : ''}">
+            <div class="sidebar-name">${member.name} <span style="float:right">${member.isAlive ? 'Lv.'+member.level : 'DEAD'}</span></div>
+            <div class="sidebar-status-ascii">
+ HP [${hpBar}]
+ XP [${xpBar}]
+ ${statusIcons}
+            </div>
+        </div>`;
+    }
+    
+    html += `</div>`;
+    return html;
+}
+
+export function renderGame(state: RunState): string {
+  const room = state.currentRoom;
+  
+  // Check for Game Over overlay
+  if (state.gameOver) {
+    return renderGameOver(state);
+  }
+  
+  // Check for Victory popup
+  if (state.victory) {
+    return renderVictoryPopup(state);
+  }
+
+  // Check for Shrine Blessing popup
+  if (state.shrineBoon) {
+    return renderShrineBlessingPopup(state);
+  }
+  
+  // Header
+  let html = `
+    <div class="header">
+      <h1>The Long Hall</h1>
+      <div class="stats">
+        <span class="stat-depth">🗺️ Depth: ${state.depth}</span>
+        <span class="stat-gold">💰 Gold: ${state.party.gold}</span>
+        <span class="stat-rests">⛺ Rests: ${state.shortRestsRemaining}</span>
+      </div>
+    </div>
+  `;
+
+  // Sidebar (Left)
+  html += renderSidebar(state);
+
+  // Main content area (center)
+  html += `<div class="main-content">`;  
+
+  // Room Area
+  html += `<div class="room-container">`;
+  
+  
+  if (state.depth === 0) {
+      html += `
+        <div class="room-desc">
+          <h2>⚔️ The Entrance</h2>
+          <p>You stand at the entrance of the Long Hall. Darkness stretches ahead.</p>
+          <pre class="ascii-art">
+    ╔════════════════════════╗
+    ║ THE LONG HALL          ║
+    ║    ⬇️ ENTER ⬇️          ║
+    ╚════════════════════════╝
+          </pre>
+        </div>
+      `;
+  } else if (room) {
+      html += `
+        <div class="room-desc">
+          <h2>Room ${state.depth}: ${room.type.toUpperCase()}</h2>
+          ${renderRoomContent(room, state)}
+        </div>
+      `;
+  }
+  
+  html += `</div>`; // End room-container
+
+  // Actions
+  html += `<div class="actions">`;
+  
+  // Intermission always shows its own UI
+  if (room?.type === 'intermission') {
+      // Intermission - long rest, shop, recruits
+      html += `<button id="btn-long-rest" class="btn-success">🛏️ Take Long Rest</button>`;
+      html += renderShopSection(state);
+      html += renderRecruitSection(state);
+      html += `<div class="intermission-advance"><button id="btn-advance-confirm" class="btn-warning">⚔️ Continue to Next Segment</button></div>`;
+  } else if (state.roomResolved) {
+      html += `<button id="btn-advance">Advance →</button>`;
+      if (state.shortRestsRemaining > 0) {
+           html += `<button id="btn-rest" class="secondary">Short Rest</button>`;
+      }
+  } else if (room) {
+      if ((room.type === 'combat' || room.type === 'elite') && room.enemies.length > 0) {
+          // Combat in progress - show each party member's actions
+          html += `<div class="combat-panel">`;
+          
+          // Show attack options for each alive party member
+          const aliveMembers = state.party.members.filter(m => m.isAlive);
+          for (const member of aliveMembers) {
+              html += `<div class="member-actions">`;
+              const statusText = member.statuses?.includes('hidden') ? ' <span class="status-hidden">(Hidden)</span>' : '';
+              html += `<div class="member-name">${member.name} (${member.role})${statusText}</div>`;
+              
+              // Attack buttons
+              html += `<div class="member-targets">`;
+              room.enemies.forEach((e) => {
+                  html += `<button class="btn-attack" data-attacker="${member.id}" data-target="${e.id}">⚔️ Attack ${e.name}</button>`;
+              });
+              html += `</div>`;
+              
+              // Ability buttons
+              if (member.abilities && member.abilities.length > 0) {
+                  html += `<div class="member-abilities">`;
+                  for (const abilityState of member.abilities) {
+                      const ability = getAbilityById(abilityState.abilityId);
+                      if (!ability) continue;
+                      
+                      const isReady = abilityState.currentCooldown === 0;
+                      // Special check for Sneak Attack
+                      let isUsable = isReady;
+                      let extraText = '';
+                      if (ability.id === 'sneak_attack' && !member.statuses?.includes('hidden')) {
+                           isUsable = false;
+                           extraText = ' (Needs Hidden)';
+                      }
+
+                      // Show "Rest" for rest-cooldown abilities (999), otherwise show turn count
+                      const cooldownText = isReady ? '' : (abilityState.currentCooldown >= 999 ? ' (Rest)' : ` (${abilityState.currentCooldown})`);
+                      const disabled = isUsable ? '' : 'disabled';
+                      const btnClass = isUsable ? 'btn-ability' : 'btn-ability cooldown';
+                      
+                      // For abilities that target enemies, show enemy selector
+                      if (ability.effect.target === 'enemy') {
+                          room.enemies.forEach((e) => {
+                              html += `<button class="${btnClass}" data-actor="${member.id}" data-ability="${ability.id}" data-target="${e.id}" ${disabled} title="${ability.description}">✨ ${ability.name}${cooldownText}${extraText} → ${e.name}</button>`;
+                          });
+                      } else if (ability.effect.target === 'ally') {
+                          // For ally-targeting abilities (like heals), show party member selector
+                          state.party.members.filter(m => m.isAlive).forEach((ally) => {
+                              const hpInfo = ally.hp.current < ally.hp.max ? ` (${ally.hp.current}/${ally.hp.max})` : '';
+                              html += `<button class="${btnClass}" data-actor="${member.id}" data-ability="${ability.id}" data-target="${ally.id}" ${disabled} title="${ability.description}">✨ ${ability.name}${cooldownText} → ${ally.name}${hpInfo}</button>`;
+                          });
+                      } else {
+                          html += `<button class="${btnClass}" data-actor="${member.id}" data-ability="${ability.id}" ${disabled} title="${ability.description}">✨ ${ability.name}${cooldownText}${extraText}</button>`;
+                      }
+                  }
+                  html += `</div>`;
+              }
+              
+              html += `</div>`;
+          }
+          
+          html += `</div>`;
+          // Calculate dynamic escape DC
+          const escapeAliveMembers = state.party.members.filter(m => m.isAlive);
+          const partyAgility = Math.max(...escapeAliveMembers.map(m => m.skills.agility), 0);
+          const hasRogue = escapeAliveMembers.some(m => m.role === 'rogue');
+          const aliveEnemyCount = room.enemies.filter(e => e.hp > 0).length;
+          const isEliteRoom = room.type === 'elite';
+          const { dc: escapeDC } = calculateEscapeDC(state.depth, aliveEnemyCount, isEliteRoom, partyAgility, hasRogue);
+          html += `<button id="btn-escape" class="btn-danger">🏃 Escape (DC ${escapeDC})</button>`;
+      } else if (room.type === 'hazard') {
+          // Trap room - choice
+          html += `<button id="btn-disarm" class="btn-success">🔧 Attempt to Disarm (DC 12)</button>`;
+          html += `<button id="btn-trigger" class="btn-danger">💥 Trigger Trap</button>`;
+      } else if (room.type === 'shrine') {
+          // Shrine - pray button
+          html += `<button id="btn-pray" class="btn-shrine">🙏 Pray at Shrine</button>`;
+      } else if (room.type === 'trader') {
+          // Trader - show shop + advance
+          html += renderShopSection(state);
+          html += `<button id="btn-advance" class="btn-primary">Advance →</button>`;
+      }
+  }
+  html += `</div>`;
+
+  // Panels: Hero & Info
+  html += `<div class="panels">`;
+  
+  // Hero Panel - render all party members
+  for (const member of state.party.members) {
+    const aliveClass = member.isAlive ? '' : 'dead';
+    const XP_THRESHOLDS = [0, 50, 150, 300, 500, 800, 1200];
+    const nextLevelXp = member.level < XP_THRESHOLDS.length - 1 ? XP_THRESHOLDS[member.level] : XP_THRESHOLDS[XP_THRESHOLDS.length - 1];
+    // const prevLevelXp = member.level > 1 ? XP_THRESHOLDS[member.level - 1] : 0;
+    // const xpProgress = nextLevelXp > prevLevelXp ? Math.floor(((member.xp - prevLevelXp) / (nextLevelXp - prevLevelXp)) * 100) : 100;
+    
+    // Calculate combat stats from equipment + level bonus
+    // Calculate aggregate stats
+    // Calculate combat stats from Skills + Equipment
+    const skills = member.skills || { strength: 0, attack: 0, defense: 0, magic: 0, ranged: 0, faith: 0, agility: 0 };
+    
+    // Determine primary weapon type for display
+    const weapon = member.equipment.main_hand;
+    const weaponName = weapon?.name.toLowerCase() || '';
+    let type: 'melee' | 'ranged' | 'magic' = 'melee';
+    if (weaponName.includes('bow') || weaponName.includes('crossbow') || weaponName.includes('sling')) type = 'ranged';
+    else if (weaponName.includes('staff') || weaponName.includes('wand') || weaponName.includes('tome')) type = 'magic';
+    
+    // Track bonuses from skills vs equipment separately
+    let skillAtkBonus = 0;
+    let skillDmgBonus = 0;
+    let skillAtkName = 'ATK';
+    let skillDmgName = 'STR';
+
+    switch (type) {
+        case 'melee':
+            skillAtkBonus = skills.attack;
+            skillDmgBonus = skills.strength;
+            skillAtkName = 'ATK';
+            skillDmgName = 'STR';
+            break;
+        case 'ranged':
+            skillAtkBonus = skills.ranged;
+            skillDmgBonus = skills.ranged;
+            skillAtkName = 'RNG';
+            skillDmgName = 'RNG';
+            break;
+        case 'magic':
+            skillAtkBonus = skills.magic;
+            skillDmgBonus = skills.magic;
+            skillAtkName = 'MAG';
+            skillDmgName = 'MAG';
+            break;
+    }
+
+    // Sum stats from all equipped items and track per-item contributions
+    let equipAtkBonus = 0;
+    let equipDmgBonus = 0;
+    let equipAcBonus = 0;
+    const atkItemParts: string[] = [];
+    const dmgItemParts: string[] = [];
+    const acItemParts: string[] = [];
+
+    Object.entries(member.equipment).forEach(([_slot, item]) => {
+        if (!item) return;
+        const itemAtk = (item.baseStats.attackBonus || 0) + (item.enchantment?.effect?.attackBonus || 0);
+        const itemDmg = (item.baseStats.damageBonus || 0) + (item.enchantment?.effect?.damageBonus || 0);
+        const itemAc = (item.baseStats.acBonus || 0) + (item.enchantment?.effect?.acBonus || 0);
+
+        equipAtkBonus += itemAtk;
+        equipDmgBonus += itemDmg;
+        equipAcBonus += itemAc;
+
+        // Get short item name for tooltip
+        const shortName = (item.customName || item.name).split(' ')[0];
+        if (itemAtk > 0) atkItemParts.push(`+${itemAtk} ${shortName}`);
+        if (itemDmg > 0) dmgItemParts.push(`+${itemDmg} ${shortName}`);
+        if (itemAc > 0) acItemParts.push(`+${itemAc} ${shortName}`);
+    });
+
+    // Total stats
+    const atkBonus = skillAtkBonus + equipAtkBonus;
+    const dmgBonus = skillDmgBonus + equipDmgBonus;
+    const ac = 10 + skills.defense + equipAcBonus;
+
+    // Build breakdown tooltips with per-item details
+    const atkBreakdown = `+${skillAtkBonus} ${skillAtkName}${atkItemParts.length > 0 ? ' ' + atkItemParts.join(' ') : ''}`;
+    const dmgBreakdown = `+${skillDmgBonus} ${skillDmgName}${dmgItemParts.length > 0 ? ' ' + dmgItemParts.join(' ') : ''}`;
+    const acBreakdown = `10 Base +${skills.defense} DEF${acItemParts.length > 0 ? ' ' + acItemParts.join(' ') : ''}`;
+
+    const typeIcon = type === 'ranged' ? '🏹' : type === 'magic' ? '✨' : '⚔️';
+    
+    // Skills Grid
+    let skillsHtml = '<div class="skills-grid">';
+    const skillKeys: (keyof typeof skills)[] = ['strength', 'attack', 'defense', 'magic', 'ranged', 'faith', 'agility'];
+    const shortNames = { strength: 'STR', attack: 'ATK', defense: 'DEF', magic: 'MAG', ranged: 'RNG', faith: 'FTH', agility: 'AGI' };
+    
+    skillKeys.forEach(key => {
+        const val = skills[key];
+        let btn = '';
+        if ((member.statPoints || 0) > 0) {
+            btn = `<button class="btn-stat-up" data-actor="${member.id}" data-stat="${key}" title="Spend Stat Point">+</button>`;
+        }
+        skillsHtml += `<div class="skill-item"><span class="skill-label">${shortNames[key]}</span> <span class="skill-val">${val}</span> ${btn}</div>`;
+    });
+    skillsHtml += '</div>';
+    
+    if ((member.statPoints || 0) > 0) {
+        skillsHtml += `<div class="stat-points-avail">Points Available: ${member.statPoints}</div>`;
+    }
+
+    // Helper to render a slot with ASCII art icon
+    const renderSlot = (slotKey: string, label: string, item?: Item) => {
+        const itemClass = item ? 'equipped' : 'empty';
+        const icon = EQUIPMENT_ICONS[slotKey] || '?';
+        const displayName = item ? (item.customName || item.name) : 'Empty';
+        // Show mastery stats and history in tooltip for equipped items
+        const tooltip = item
+            ? `${displayName}\n${item.name !== displayName ? '('+item.name+')\n' : ''}${formatItemStats(item, true)}${formatItemHistory(item)}`
+            : label;
+
+        let actionsBtn = '';
+        if (item) {
+             // Rename button
+             actionsBtn += `<button class="btn-icon btn-rename" data-rename="${item.id}" title="Rename Item">✎</button>`;
+             // Unequip button
+             actionsBtn += `<button class="btn-icon btn-unequip" data-actor="${member.id}" data-slot="${slotKey}" title="Unequip Item">✕</button>`;
+        }
+
+        return `<div class="equipment-slot ${itemClass}" title="${tooltip}">
+            <pre class="slot-icon">${icon}</pre>
+            <span class="slot-label">${displayName}</span>
+            <div class="slot-actions">${actionsBtn}</div>
+        </div>`;
+    };
+
+    html += `
+    <div class="panel hero-panel ${member.role} ${aliveClass}">
+      <div class="hero-header">
+          <div class="hero-title-border">╔════════════════════╗</div>
+          <h3>${member.name} ${!member.isAlive ? '☠️' : ''}</h3>
+          <div class="member-level">Lv.${member.level} ${member.role.toUpperCase()}</div>
+          <div class="hero-title-border">╚════════════════════╝</div>
+      </div>
+      <pre class="ascii-art">${getHeroArt(member.role)}</pre>
+
+      <div class="hero-stats-bar">
+         <div class="stat-group hp">❤️ [${renderStatBar(member.hp.current, member.hp.max, 8)}] ${member.hp.current}/${member.hp.max}</div>
+         <div class="stat-group xp">✨ [${renderStatBar(member.xp, nextLevelXp, 8, '▓', '░')}] ${member.xp}/${nextLevelXp}</div>
+      </div>
+
+      <div class="combat-stats-row">
+        <div class="c-stat" title="Attack Bonus: ${atkBreakdown}">${typeIcon} +${atkBonus}</div>
+        <div class="c-stat" title="Damage Bonus: ${dmgBreakdown}">💥 +${dmgBonus}</div>
+        <div class="c-stat" title="Armor Class: ${acBreakdown}">🛡️ ${ac}</div>
+      </div>
+      ${skillsHtml}
+
+      <div class="paper-doll-grid">
+         <div class="pd-row">
+            ${renderSlot('head', 'Head', member.equipment.head)}
+         </div>
+         <div class="pd-row">
+            ${renderSlot('ring1', 'Ring', member.equipment.ring1)}
+            ${renderSlot('neck', 'Neck', member.equipment.neck)}
+            ${renderSlot('ring2', 'Ring', member.equipment.ring2)}
+         </div>
+         <div class="pd-row">
+            ${renderSlot('main_hand', 'Main', member.equipment.main_hand)}
+            ${renderSlot('chest', 'Chest', member.equipment.chest)}
+            ${renderSlot('off_hand', 'Off', member.equipment.off_hand)}
+         </div>
+         <div class="pd-row">
+            ${renderSlot('legs', 'Legs', member.equipment.legs)}
+         </div>
+         <div class="pd-row">
+            ${renderSlot('feet', 'Feet', member.equipment.feet)}
+         </div>
+      </div>
+    </div>
+  `;
+  }
+
+  // Inventory Panel - show in resolved rooms, trader, or intermission
+  const showInventory = state.roomResolved || room?.type === 'trader' || room?.type === 'intermission';
+  if (showInventory) {
+    html += `
+      <div class="panel inventory-panel">
+        <h3>Inventory</h3>
+        <ul>
+          ${state.inventory.items.length === 0 ? '<li class="empty">Empty</li>' : 
+            state.inventory.items.map(i => {
+              // Show equip buttons for each alive party member
+              const equipButtons = state.party.members
+                .filter(m => m.isAlive)
+                .map(m => {
+                    // Special buttons for rings? For now just generic Equip which auto-slots
+                    let btns = `<button class="btn-equip-to" data-equip="${i.id}" data-actor="${m.id}">${m.name}</button>`;
+                    if (i.type === 'ring') {
+                        // Optional: explicit buttons for Ring 1 / Ring 2?
+                        // btns = `<button ... data-slot="ring1">R1</button> <button ... data-slot="ring2">R2</button>`;
+                        // Sticking to auto-slot for MVP to save space
+                    }
+                    return btns;
+                })
+                .join('');
+              return `
+              <li class="item-row">
+                <span class="item-info">
+                    <span class="item-name ${i.rarity}">${i.name}</span> 
+                    <span class="item-type-tag">${i.type}</span>
+                    <span class="item-stats-preview">${renderItemStats(i)}</span>
+                </span>
+                <div class="equip-buttons">
+                  <span class="equip-label">Equip:</span>
+                  ${equipButtons}
+                </div>
+              </li>
+            `;}).join('')}
+        </ul>
+      </div>
+    `;
+  }
+  
+  html += `</div>`; // End panels
+  
+  html += `</div>`; // End main-content
+
+  // Activity Log (right side) - formatted with colors
+  const formatLogEntry = (text: string): string => {
+    // Round separators
+    if (text.includes('━━━ ROUND')) {
+      return `<div class="log-round">⚔️ ${text} ⚔️</div>`;
+    }
+    // Room entries - separators
+    if (text.startsWith('Entered room')) {
+      return `<div class="log-room">━━━ ${text} ━━━</div>`;
+    }
+    // Hero hits (green)
+    if (text.includes('Hero attacks') && text.includes('HIT!')) {
+      return `<div class="log-hero-hit">⚔️ ${text}</div>`;
+    }
+    // Hero misses (blue/purple)
+    if (text.includes('Hero attacks') && text.includes('MISS!')) {
+      return `<div class="log-hero-miss">💨 ${text}</div>`;
+    }
+    // Enemy hits (red)
+    if (text.includes('HIT!')) {
+      return `<div class="log-hit">💥 ${text}</div>`;
+    }
+    // Enemy misses (gray)
+    if (text.includes('MISS!')) {
+      return `<div class="log-miss">💨 ${text}</div>`;
+    }
+    // Damage to hero
+    if (text.includes('has fallen') || text.includes('Game Over')) {
+      return `<div class="log-death">☠️ ${text}</div>`;
+    }
+    // Victory/rewards
+    if (text.includes('Victory') || text.includes('defeated') || text.includes('gold') || text.includes('XP')) {
+      return `<div class="log-reward">✨ ${text}</div>`;
+    }
+    // Level up
+    if (text.includes('leveled up')) {
+      return `<div class="log-levelup">🎉 ${text}</div>`;
+    }
+    // Enchantment
+    if (text.includes('Enchantment')) {
+      return `<div class="log-enchant">✨ ${text}</div>`;
+    }
+    // Healing
+    if (text.includes('Heal') || text.includes('restored') || text.includes('rest')) {
+      return `<div class="log-heal">💚 ${text}</div>`;
+    }
+    // Default
+    return `<div class="log-default">› ${text}</div>`;
+  };
+  
+  html += `
+    <div class="history terminal">
+      <div class="terminal-header">📜 Combat Log</div>
+      <div class="log-content" id="log-content">
+        ${state.history.slice(-20).map(l => formatLogEntry(l)).join('')}
+      </div>
+    </div>
+  `;
+
+  return html;
+}
+
+function renderRoomContent(room: any, state: RunState): string {
+    // Combat rooms - show cleared state or active enemies
+    if (room.type === 'combat' || room.type === 'elite') {
+        if (state.roomResolved || room.enemies.length === 0) {
+            // Room cleared - victory state
+            return `
+            <div class="room-cleared">
+              <pre class="ascii-art victory-art">
+    ╔═══════════════════════════════╗
+    ║     ⚔️  ROOM CLEARED  ⚔️       ║
+    ╠═══════════════════════════════╣
+    ║                               ║
+    ║   ░░░░░░░░░░░░░░░░░░░░░░░     ║
+    ║   All enemies defeated!       ║
+    ║   ░░░░░░░░░░░░░░░░░░░░░░░     ║
+    ║                               ║
+    ╚═══════════════════════════════╝
+              </pre>
+              <p>The room is safe. You may rest or continue forward.</p>
+            </div>`;
+        }
+        
+        // Active combat
+        let enemyHtml = '<div class="enemy-display">';
+        for (const enemy of room.enemies) {
+            enemyHtml += `
+              <div class="enemy-card">
+                <pre class="ascii-art">${getEnemyArt(enemy.id)}</pre>
+                <div class="enemy-name">${enemy.name}</div>
+                <div class="enemy-hp">${renderHpBar(enemy.hp, enemy.maxHp, 8)} ${enemy.hp}/${enemy.maxHp}</div>
+              </div>
+            `;
+        }
+        enemyHtml += '</div>';
+        return enemyHtml;
+    }
+    
+    if (room.type === 'hazard') {
+        // Check if trap was already resolved (disarmed or triggered)
+        if (state.roomResolved) {
+            return `
+            <div class="trap-display disarmed">
+              <pre class="ascii-art trap-art-safe">
+    ╔═══════════════════════════════╗
+    ║     ✅  TRAP DISARMED  ✅      ║
+    ╠═══════════════════════════════╣
+    ║                               ║
+    ║   ░░░░░░░░░░░░░░░░░░░░░░░     ║
+    ║     SAFE TO PROCEED           ║
+    ║   ░░░░░░░░░░░░░░░░░░░░░░░     ║
+    ║                               ║
+    ╚═══════════════════════════════╝
+              </pre>
+              <p>The trap has been neutralized. You may proceed.</p>
+            </div>`;
+        }
+        
+        return `
+        <div class="trap-display">
+          <pre class="ascii-art trap-art">
+    ╔═══════════════════════════════╗
+    ║     ⚠️  DANGER  ⚠️             ║
+    ╠═══════════════════════════════╣
+    ║                               ║
+    ║   ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲     ║
+    ║   ▼ SPIKE TRAP DETECTED ▼     ║
+    ║   ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲     ║
+    ║                               ║
+    ╚═══════════════════════════════╝
+          </pre>
+          <p>A deadly trap blocks your path!</p>
+          <p class="hint">Disarm (DC 12): Success = safe passage. Fail = 1d6 damage.</p>
+          <p class="hint">Trigger: Take 2d6 damage but proceed.</p>
+        </div>`;
+    }
+    
+    if (room.type === 'shrine') {
+        if (state.roomResolved) {
+            return `
+            <div class="shrine-display blessed">
+              <pre class="ascii-art shrine-art-blessed">
+    ╔═══════════════════════════════╗
+    ║     ✨  SHRINE BLESSED  ✨     ║
+    ╠═══════════════════════════════╣
+    ║           ╱╲                  ║
+    ║          ╱  ╲                 ║
+    ║         ╱ ⊕ ╲                ║
+    ║        ╱____╲               ║
+    ║                               ║
+    ╚═══════════════════════════════╝
+              </pre>
+              <p>You have received the shrine's blessing.</p>
+            </div>`;
+        }
+        
+        return `
+        <div class="shrine-display">
+          <pre class="ascii-art shrine-art">
+    ╔═══════════════════════════════╗
+    ║     🙏  ANCIENT SHRINE  🙏    ║
+    ╠═══════════════════════════════╣
+    ║           ╱╲                  ║
+    ║          ╱  ╲                 ║
+    ║         ╱ ◇ ╲                ║
+    ║        ╱____╲               ║
+    ║                               ║
+    ╚═══════════════════════════════╝
+          </pre>
+          <p>A mystical shrine radiates ancient power.</p>
+          <p class="hint">Pray to receive a random blessing.</p>
+        </div>`;
+    }
+    
+    if (room.type === 'trader') {
+        return `<pre class="ascii-art">
+     _______
+    |TRADER|
+    |  $$$  |
+    |_______|
+        </pre>
+        <p>A wandering merchant offers their wares.</p>`;
+    }
+    
+    if (room.type === 'intermission') {
+        const segment = Math.floor((state.depth - 1) / 10) + 1;
+        return `
+        <div class="intermission-display">
+          <pre class="ascii-art intermission-art">
+    ╔═══════════════════════════════════════╗
+    ║     🏕️  SEGMENT ${segment} COMPLETE  🏕️      ║
+    ╠═══════════════════════════════════════╣
+    ║                                       ║
+    ║   A safe haven between segments.      ║
+    ║   Rest, resupply, and recruit.        ║
+    ║                                       ║
+    ║   🛏️ Long Rest Available              ║
+    ║   🛒 Shop & Recruits Below            ║
+    ║                                       ║
+    ╚═══════════════════════════════════════╝
+          </pre>
+          <p>You've reached a waystation. Prepare for the next segment!</p>
+        </div>`;
+    }
+    
+    return `<p>The hallway stretches on in silence...</p>`;
+}
+
+function renderGameOver(state: RunState): string {
+    // Get last 15 log entries for death recap
+    const deathLog = state.history.slice(-15).map(l => `<div class="death-log-entry">${l}</div>`).join('');
+    
+    return `
+    <div class="overlay game-over-overlay">
+      <div class="popup game-over-popup">
+        <pre class="ascii-art game-over-art">
+   ╔═══════════════════════════════════╗
+   ║                                   ║
+   ║     ☠️  GAME OVER  ☠️              ║
+   ║                                   ║
+   ║   You have fallen in the          ║
+   ║   depths of the Long Hall.        ║
+   ║                                   ║
+   ║   Final Depth: ${String(state.depth).padStart(3, ' ')}                 ║
+   ║   Gold: ${String(state.party.gold).padStart(4, ' ')}                   ║
+   ║                                   ║
+   ╚═══════════════════════════════════╝
+        </pre>
+        <div class="death-log">
+          <h4>💀 Death Recap</h4>
+          <div class="death-log-content">${deathLog}</div>
+        </div>
+        <p class="death-final-message">Refresh the page to start a new run.</p>
+      </div>
+    </div>
+    `;
+}
+
+function renderVictoryPopup(state: RunState): string {
+    const room = state.currentRoom;
+    
+    return `
+    <div class="overlay victory-overlay">
+      <div class="popup victory-popup">
+        <pre class="ascii-art victory-art">
+   ╔═══════════════════════════════════╗
+   ║                                   ║
+   ║     ⚔️  VICTORY!  ⚔️               ║
+   ║                                   ║
+   ║   You have cleared Room ${String(state.depth).padStart(2, ' ')}!      ║
+   ║                                   ║
+   ║   ${room?.type === 'hazard' ? 'Trap Disarmed!' : 'All enemies defeated!'}      ║
+   ║                                   ║
+   ║   Total Gold: ${String(state.party.gold).padStart(4, ' ')}              ║
+   ║                                   ║
+   ╚═══════════════════════════════════╝
+        </pre>
+        <button id="btn-continue" class="btn-continue">Continue →</button>
+      </div>
+    </div>
+    `;
+}
+
+function renderShrineBlessingPopup(state: RunState): string {
+    const boonMessage = state.shrineBoon || 'The shrine remains silent...';
+    const isStartingShrine = state.depth === 0;
+
+    return `
+    <div class="overlay shrine-overlay">
+      <div class="popup shrine-popup">
+        <pre class="ascii-art shrine-art">
+   ╔═══════════════════════════════════╗
+   ║                                   ║
+   ║     🙏  SHRINE BLESSING  🙏       ║
+   ║                                   ║
+   ║${isStartingShrine ? '   The ancient shrine welcomes you  ' : '   You kneel before the shrine...   '}║
+   ║                                   ║
+   ╚═══════════════════════════════════╝
+        </pre>
+        <div class="shrine-boon-message">
+          ${boonMessage}
+        </div>
+        <button id="btn-continue" class="btn-continue">Continue →</button>
+      </div>
+    </div>
+    `;
+}
