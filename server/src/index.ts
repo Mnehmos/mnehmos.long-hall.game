@@ -13,7 +13,14 @@ const app = express();
 const port = process.env.PORT || 3000;
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'http://localhost:3000',
+    'https://mnehmos.github.io',
+  ],
+  credentials: true,
+}));
 app.use(express.json());
 app.use(clerkMiddleware());
 
