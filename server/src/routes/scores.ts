@@ -29,26 +29,33 @@ router.get('/', async (req, res) => {
 // POST /api/scores - Submit score
 router.post('/', async (req, res) => {
   const { userId } = req.auth;
-  const { score, runData } = req.body;
+  const { runData } = req.body;
 
   if (!userId) {
      res.status(401).json({ error: 'Unauthorized' });
      return;
   }
 
-  if (typeof score !== 'number') {
-     res.status(400).json({ error: 'Invalid score' });
-     return;
+  if (!runData) {
+      res.status(400).json({ error: 'Missing run data' });
+      return;
   }
 
   try {
+    // Anti-Cheat: Calculate score from runData on server
+    // We import this dynamically or assume it's available from the shared engine code
+    // Since we copied it to ../engine/score.js (transpiled), we can use it.
+    // Note: We need to use dynamic import or ensure paths are correct.
+    const { calculateScore } = await import('../engine/score.js');
+    const calculatedScore = calculateScore(runData);
+
     await pool.query(
       `INSERT INTO scores (user_id, score, run_data)
        VALUES ($1, $2, $3)`,
-      [userId, score, runData]
+      [userId, calculatedScore, runData]
     );
 
-    res.json({ success: true });
+    res.json({ success: true, score: calculatedScore });
   } catch (error) {
     console.error('Error submitting score:', error);
     res.status(500).json({ error: 'Internal server error' });

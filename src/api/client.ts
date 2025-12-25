@@ -48,7 +48,7 @@ export const apiClient = {
     }
   },
 
-  async submitScore(token: string, score: number, stateHash: string): Promise<boolean> {
+  async submitScore(token: string, state: RunState): Promise<boolean> {
     try {
       const response = await fetch(`${API_URL}/scores`, {
         method: 'POST',
@@ -56,7 +56,7 @@ export const apiClient = {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ score, stateHash })
+        body: JSON.stringify({ runData: state })
       });
       
       return response.ok;
