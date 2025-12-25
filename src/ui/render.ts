@@ -23,7 +23,7 @@ function renderHighScoresPanel(): string {
     html += `<ul class="highscores-list">`;
     cachedHighScores.slice(0, 10).forEach((score, i) => {
       const rankClass = i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : '';
-      const displayName = `User ${score.user_id.slice(-4)}`;
+      const displayName = score.display_name || 'Anonymous';
       html += `
         <li class="highscore-entry">
           <span class="highscore-rank ${rankClass}">#${i + 1}</span>
