@@ -20,10 +20,24 @@ export async function initializeDatabase() {
       CREATE TABLE IF NOT EXISTS scores (
         id SERIAL PRIMARY KEY,
         user_id VARCHAR(255) NOT NULL UNIQUE,
+        display_name VARCHAR(255),
         score INTEGER NOT NULL,
         run_data JSONB,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       )
+    `);
+
+    // Add display_name column if it doesn't exist (migration for existing tables)
+    await pool.query(`
+      DO $$
+      BEGIN
+        IF NOT EXISTS (
+          SELECT 1 FROM information_schema.columns
+          WHERE table_name = 'scores' AND column_name = 'display_name'
+        ) THEN
+          ALTER TABLE scores ADD COLUMN display_name VARCHAR(255);
+        END IF;
+      END $$;
     `);
 
     // Create indexes

@@ -16,7 +16,7 @@ export function renderLeaderboard(scores: ScoreEntry[]): string {
   const rows = scores.map((s, i) => `
     <tr>
       <td>${i + 1}</td>
-      <td>User ${s.user_id.slice(-4)}</td>
+      <td>${s.display_name || 'Anonymous'}</td>
       <td>${s.score}</td>
       <td>${new Date(s.created_at).toLocaleDateString()}</td>
     </tr>

@@ -10,15 +10,13 @@ router.get('/', async (req, res) => {
 
   try {
     const result = await pool.query(
-      `SELECT user_id, score, run_data, created_at 
-       FROM scores 
-       ORDER BY score DESC 
+      `SELECT user_id, display_name, score, run_data, created_at
+       FROM scores
+       ORDER BY score DESC
        LIMIT $1`,
       [limit]
     );
 
-    // In a real app, you might want to join with a users table or fetch user names from Clerk
-    // For now, returning user_id is fine, or we can resolve it on the client
     res.json(result.rows);
   } catch (error) {
     console.error('Error fetching scores:', error);
@@ -29,7 +27,7 @@ router.get('/', async (req, res) => {
 // POST /api/scores - Submit score (protected)
 router.post('/', requireAuth(), async (req, res) => {
   const { userId } = req.auth;
-  const { runData } = req.body;
+  const { runData, displayName } = req.body;
 
   if (!userId) {
      res.status(401).json({ error: 'Unauthorized' });
@@ -40,6 +38,11 @@ router.post('/', requireAuth(), async (req, res) => {
       res.status(400).json({ error: 'Missing run data' });
       return;
   }
+
+  // Sanitize display name (limit length, remove dangerous chars)
+  const sanitizedName = displayName
+    ? String(displayName).slice(0, 50).replace(/[<>]/g, '')
+    : null;
 
   try {
     // Anti-Cheat: Calculate score from runData on server
@@ -56,20 +59,26 @@ router.post('/', requireAuth(), async (req, res) => {
       // Only update if new score is higher
       if (calculatedScore > existing.rows[0].score) {
         await pool.query(
-          `UPDATE scores SET score = $1, run_data = $2, created_at = CURRENT_TIMESTAMP WHERE user_id = $3`,
-          [calculatedScore, runData, userId]
+          `UPDATE scores SET score = $1, run_data = $2, display_name = $3, created_at = CURRENT_TIMESTAMP WHERE user_id = $4`,
+          [calculatedScore, runData, sanitizedName, userId]
         );
         res.json({ success: true, score: calculatedScore, newHighScore: true });
       } else {
-        // Score not higher, don't update
+        // Score not higher, don't update but still update display name if provided
+        if (sanitizedName) {
+          await pool.query(
+            `UPDATE scores SET display_name = $1 WHERE user_id = $2`,
+            [sanitizedName, userId]
+          );
+        }
         res.json({ success: true, score: calculatedScore, newHighScore: false, currentBest: existing.rows[0].score });
       }
     } else {
       // First score for this user
       await pool.query(
-        `INSERT INTO scores (user_id, score, run_data)
-         VALUES ($1, $2, $3)`,
-        [userId, calculatedScore, runData]
+        `INSERT INTO scores (user_id, display_name, score, run_data)
+         VALUES ($1, $2, $3, $4)`,
+        [userId, sanitizedName, calculatedScore, runData]
       );
       res.json({ success: true, score: calculatedScore, newHighScore: true });
     }

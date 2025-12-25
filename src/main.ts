@@ -9,7 +9,7 @@ import { renderLeaderboard } from './ui/leaderboard';
 let state = loadGameState() || createInitialRunState(Date.now().toString());
 
 // Auth
-import { initAuth, clerk, getToken } from './auth';
+import { initAuth, clerk, getToken, getDisplayName } from './auth';
 
 // App Element
 const app = document.getElementById('app');
@@ -52,8 +52,9 @@ function dispatch(action: Action) {
     (async () => {
         const token = await getToken();
         if (token) {
-            console.log('Submitting score... Depth:', state.depth, 'Gold:', state.party.gold);
-            const success = await apiClient.submitScore(token, state);
+            const displayName = getDisplayName();
+            console.log('Submitting score... Depth:', state.depth, 'Gold:', state.party.gold, 'Name:', displayName);
+            const success = await apiClient.submitScore(token, state, displayName);
             console.log('Score submission:', success ? 'SUCCESS' : 'FAILED');
         } else {
             console.log('Not logged in - score not submitted');

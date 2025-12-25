@@ -20,3 +20,10 @@ export async function initAuth() {
 export function getToken() {
   return clerk.session?.getToken();
 }
+
+export function getDisplayName(): string | undefined {
+  const user = clerk.user;
+  if (!user) return undefined;
+  // Prefer fullName, then firstName, then username, then email
+  return user.fullName || user.firstName || user.username || user.primaryEmailAddress?.emailAddress?.split('@')[0];
+}

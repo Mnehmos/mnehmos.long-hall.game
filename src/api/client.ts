@@ -6,6 +6,7 @@ const API_BASE = `${API_URL}/api`; // All routes are under /api
 
 export interface ScoreEntry {
   user_id: string;
+  display_name: string | null;
   score: number;
   run_data: any;
   created_at: string;
@@ -50,7 +51,7 @@ export const apiClient = {
     }
   },
 
-  async submitScore(token: string, state: RunState): Promise<boolean> {
+  async submitScore(token: string, state: RunState, displayName?: string): Promise<boolean> {
     try {
       const response = await fetch(`${API_BASE}/scores`, {
         method: 'POST',
@@ -58,9 +59,9 @@ export const apiClient = {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ runData: state })
+        body: JSON.stringify({ runData: state, displayName })
       });
-      
+
       return response.ok;
     } catch (error) {
       console.error('Score submission error:', error);
