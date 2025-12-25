@@ -1,4 +1,4 @@
-import { ScoreEntry } from '../api/client';
+import type { ScoreEntry } from '../api/client';
 
 export function renderLeaderboard(scores: ScoreEntry[]): string {
   if (scores.length === 0) {
