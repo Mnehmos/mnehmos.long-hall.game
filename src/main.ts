@@ -203,7 +203,7 @@ document.addEventListener('click', (e) => {
     if (target.id === 'btn-login') {
         clerk.openSignIn();
     } else if (target.id === 'btn-logout') {
-        clerk.signOut();
+        clerk.signOut({ redirectUrl: window.location.href });
     }
 });
 
