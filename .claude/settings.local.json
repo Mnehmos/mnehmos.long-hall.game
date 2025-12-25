@@ -5,7 +5,18 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push)",
-      "Bash(npm run build:*)"
+      "Bash(npm run build:*)",
+      "Bash(railway --version:*)",
+      "Bash(railway status:*)",
+      "Bash(railway variables:*)",
+      "Bash(railway service)",
+      "Bash(railway service:*)",
+      "Bash(railway --help:*)",
+      "Bash(railway add:*)",
+      "Bash(railway open:*)",
+      "Bash(railway logs:*)",
+      "Bash(railway redeploy:*)",
+      "Bash(curl:*)"
     ]
   }
 }

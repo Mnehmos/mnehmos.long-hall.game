@@ -22,12 +22,13 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json());
-app.use(clerkMiddleware());
 
-// Public health check
+// Public health check (before auth middleware)
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
+
+app.use(clerkMiddleware());
 
 // Protected routes
 declare global {
