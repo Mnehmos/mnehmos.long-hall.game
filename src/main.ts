@@ -6,8 +6,16 @@ import type { Action } from './engine/types';
 // State - load from localStorage or create new
 let state = loadGameState() || createInitialRunState(Date.now().toString());
 
+// Auth
+import { initAuth, clerk } from './auth';
+
 // App Element
 const app = document.getElementById('app');
+
+async function start() {
+    await initAuth();
+    update();
+}
 
 function update() {
   if (app) {
@@ -189,5 +197,15 @@ function attachEvents() {
   
 }
 
+// Auth Events
+document.addEventListener('click', (e) => {
+    const target = e.target as HTMLElement;
+    if (target.id === 'btn-login') {
+        clerk.openSignIn();
+    } else if (target.id === 'btn-logout') {
+        clerk.signOut();
+    }
+});
+
 // Start
-update();
+start();

@@ -1,4 +1,5 @@
 import type { RunState, Item } from '../engine/types';
+import { clerk } from '../auth';
 import { getAbilityById } from '../content/abilities';
 import { getEnemyArt, getHeroArt, renderHpBar, renderStatBar, EQUIPMENT_ICONS } from '../content/art';
 import { RECRUITS, ITEMS } from '../content/tables';
@@ -173,13 +174,22 @@ export function renderGame(state: RunState): string {
   // Header
   let html = `
     <div class="header">
-      <h1>The Long Hall</h1>
+      <div class="header-top">
+         <h1>The Long Hall</h1>
+         <div class="auth-controls">
+            ${clerk.user 
+                ? `<span class="user-tag">👤 ${clerk.user.firstName}</span> <button id="btn-logout" class="btn-sm">Logout</button>`
+                : `<button id="btn-login" class="btn-sm btn-primary">Login / Sign Up</button>`
+            }
+         </div>
+      </div>
       <div class="stats">
         <span class="stat-depth">🗺️ Depth: ${state.depth}</span>
         <span class="stat-gold">💰 Gold: ${state.party.gold}</span>
         <span class="stat-rests">⛺ Rests: ${state.shortRestsRemaining}</span>
       </div>
     </div>
+
   `;
 
   // Sidebar (Left)
