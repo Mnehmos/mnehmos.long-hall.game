@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { pool } from '../db';
 import { generateSaveHash } from '../utils/hash';
-import { requireAuth } from '@clerk/clerk-sdk-node';
+import { requireAuth } from '@clerk/express';
 
 const router = Router();
 

@@ -1,7 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import { ClerkExpressRequireAuth, StrictAuthProp } from '@clerk/clerk-sdk-node';
+import { clerkMiddleware, requireAuth } from '@clerk/express';
 import { pool } from './db';
 import savesRouter from './routes/saves';
 import scoresRouter from './routes/scores';
@@ -21,16 +21,21 @@ app.get('/health', (req, res) => {
 });
 
 // Protected routes
-// Note: StrictAuthProp is a type helper, but actual protection is done by the middleware
 declare global {
   namespace Express {
-    interface Request extends StrictAuthProp {}
+    interface Request {
+      auth: {
+        userId: string | null;
+        sessionId: string | null;
+        getToken: () => Promise<string | null>;
+      };
+    }
   }
 }
 
 // Routes
-app.use('/api/saves', ClerkExpressRequireAuth(), savesRouter);
-app.use('/api/scores', ClerkExpressRequireAuth(), scoresRouter);
+app.use('/api/saves', requireAuth(), savesRouter);
+app.use('/api/scores', requireAuth(), scoresRouter);
 
 // Error handling middleware
 app.use((err: any, req: Request, res: Response, next: express.NextFunction) => {
