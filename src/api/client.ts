@@ -4,9 +4,10 @@ import type { RunState } from '../engine/types';
 const API_URL = import.meta.env.VITE_API_URL || 'https://the-long-hall-production.up.railway.app';
 
 export interface ScoreEntry {
-  username: string;
+  user_id: string;
   score: number;
-  run_date: string;
+  run_data: any;
+  created_at: string;
 }
 
 export const apiClient = {

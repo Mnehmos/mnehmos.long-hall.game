@@ -37,8 +37,10 @@ function dispatch(action: Action) {
   // Clear save on game over (party death)
   if (state.gameOver) {
     clearGameState();
+    // TODO: Clear remote save?
   } else {
     saveGameState(state);
+    syncSave(); // Fire and forget
   }
 
   update();
@@ -204,8 +206,35 @@ document.addEventListener('click', (e) => {
         clerk.openSignIn();
     } else if (target.id === 'btn-logout') {
         clerk.signOut({ redirectUrl: window.location.href });
+    } else if (target.id === 'btn-leaderboard') {
+        showLeaderboard();
+    } else if (target.id === 'btn-close-leaderboard') {
+        const overlay = document.getElementById('leaderboard-overlay');
+        if (overlay) overlay.remove();
     }
 });
+
+import { apiClient } from './api/client';
+import { renderLeaderboard } from './ui/leaderboard';
+
+async function showLeaderboard() {
+    const scores = await apiClient.getHighScores();
+    const html = renderLeaderboard(scores);
+    const div = document.createElement('div');
+    div.innerHTML = html;
+    document.body.appendChild(div.firstElementChild as Node);
+}
+
+// Sync saves
+async function syncSave() {
+    if (!state.gameOver) {
+       const token = await getToken();
+       if (token) {
+           apiClient.saveGame(token, state);
+       }
+    }
+}
+
 
 // Start
 start();
