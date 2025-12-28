@@ -160,7 +160,7 @@ export function generateRoom(state: RunState, rng?: SeededRNG): Room {
     // - Every 5 rooms except 10s (0, 5, 15, 25, 35...): Shrine (may be guarded)
     // - Other rooms: Random weighted (combat, elite, hazard, trader)
     let type: RoomType = 'combat';
-    let isGuardedShrine = false;
+    let isGuardedRoom = false; // Can be guarded shrine or guarded hazard
     
     if (state.depth % 10 === 0 && state.depth > 0) {
         // Room 10, 20, 30... = Intermission (safe)
@@ -168,10 +168,10 @@ export function generateRoom(state: RunState, rng?: SeededRNG): Room {
     } else if (state.depth === 0 || state.depth % 5 === 0) {
         // Room 0, 5, 15, 25, 35... = Shrine
         type = 'shrine';
-        // Shrines after room 0 may be guarded (50% chance, increasing with depth)
+        // Shrines after room 0 may be guarded (30-70% chance based on depth)
         if (state.depth > 0) {
             const guardChance = 0.3 + (state.depth * 0.01); // 30% base, +1% per room
-            isGuardedShrine = rng.float() < Math.min(guardChance, 0.7); // Cap at 70%
+            isGuardedRoom = rng.float() < Math.min(guardChance, 0.7); // Cap at 70%
         }
     } else {
         const weights = getRoomWeights(roomInSegment);
@@ -187,6 +187,12 @@ export function generateRoom(state: RunState, rng?: SeededRNG): Room {
                 break;
             }
         }
+        
+        // Hazard rooms may also be guarded (25-50% chance based on depth)
+        if (type === 'hazard') {
+            const guardChance = 0.25 + (state.depth * 0.005); // 25% base, +0.5% per room
+            isGuardedRoom = rng.float() < Math.min(guardChance, 0.5); // Cap at 50%
+        }
     }
     
     // 3. Generate Content based on Type
@@ -198,7 +204,7 @@ export function generateRoom(state: RunState, rng?: SeededRNG): Room {
         loot: []
     };
     
-    if (type === 'combat' || type === 'elite' || isGuardedShrine) {
+    if (type === 'combat' || type === 'elite' || isGuardedRoom) {
         // Get difficulty scaling for this depth
         const difficulty = getDifficulty(state.depth);
 
@@ -219,8 +225,8 @@ export function generateRoom(state: RunState, rng?: SeededRNG): Room {
 
         // Enemy count: base + possible bonus from difficulty
         // Guarded shrines get fewer enemies (1-2)
-        const baseCount = isGuardedShrine ? rng.int(1, 2) : (type === 'elite' ? 1 : rng.int(1, 3));
-        const bonusEnemies = isGuardedShrine ? 0 : (rng.float() < 0.5 ? difficulty.enemyCountBonus : 0);
+        const baseCount = isGuardedRoom ? rng.int(1, 2) : (type === 'elite' ? 1 : rng.int(1, 3));
+        const bonusEnemies = isGuardedRoom ? 0 : (rng.float() < 0.5 ? difficulty.enemyCountBonus : 0);
         const count = Math.min(5, baseCount + bonusEnemies); // Cap at 5 enemies
         
         // Track name counts for numbering duplicates
@@ -261,6 +267,23 @@ export function generateRoom(state: RunState, rng?: SeededRNG): Room {
         }
     }
     
+    // Generate treasure for hazard rooms (traps have treasure!)
+    if (type === 'hazard') {
+        
+        // Filter items by rarity based on whether room is guarded
+        // Guarded hazards have better loot
+        const rarityFilter = isGuardedRoom 
+            ? ['uncommon', 'rare', 'epic'] 
+            : ['common', 'uncommon'];
+        
+        const lootPool = ITEMS.filter(i => rarityFilter.includes(i.rarity));
+        const shuffledLoot = [...lootPool].sort(() => rng.float() - 0.5);
+        
+        // Guarded hazards: 2-3 items, unguarded: 1 item
+        const lootCount = isGuardedRoom ? rng.int(2, 3) : 1;
+        room.loot = shuffledLoot.slice(0, lootCount);
+    }
+    
     // Generate shop items for trader and intermission rooms
     if (type === 'trader' || type === 'intermission') {
         const shuffled = [...ITEMS].sort(() => rng.float() - 0.5);
@@ -283,6 +306,74 @@ export function generateRoom(state: RunState, rng?: SeededRNG): Room {
         
         const shuffledRecruits = [...scaledRecruits].sort(() => rng.float() - 0.5);
         room.availableRecruits = shuffledRecruits.slice(0, 2);
+        
+        // Generate optional BOSS ROOM challenge
+        // Boss is 1.5x stronger with 1-2 minions
+        // Loot is rare+ only (no common/uncommon)
+        // Defeating boss grants a rare+ shrine blessing
+        const bossRoom: Room = {
+            id: `boss-room-${state.depth}`,
+            type: 'boss',
+            themeId: state.themeId,
+            enemies: [],
+            loot: []
+        };
+        
+        // Find a boss-tagged enemy or use the strongest available
+        const bossPool = ENEMIES.filter(e => 
+            e.tags.includes('boss') || e.power >= difficulty.maxPower
+        );
+        const bossProto = bossPool.length > 0 
+            ? rng.pick(bossPool) 
+            : ENEMIES.reduce((a, b) => a.power > b.power ? a : b);
+        
+        // Boss scaled 1.5x
+        const bossMultiplier = difficulty.multiplier * 1.5;
+        const bossHp = Math.floor(bossProto.hp * bossMultiplier);
+        const bossAc = 12 + difficulty.acBonus + 2; // Extra AC
+        const bossPower = Math.floor(bossProto.power * bossMultiplier);
+        
+        bossRoom.enemies!.push({
+            ...bossProto,
+            id: `${bossProto.id}-boss`,
+            name: `${bossProto.name} (BOSS)`,
+            hp: bossHp,
+            maxHp: bossHp,
+            ac: bossAc,
+            power: bossPower,
+            xp: Math.floor(bossProto.power * 25 * difficulty.multiplier)
+        });
+        
+        // Add 1-2 minions (non-boss enemies from current tier)
+        const minionPool = ENEMIES.filter(e => 
+            !e.tags.includes('boss') && 
+            e.power >= difficulty.minPower && 
+            e.power <= difficulty.maxPower
+        );
+        const minionCount = rng.int(1, 2);
+        for (let i = 0; i < minionCount && minionPool.length > 0; i++) {
+            const minionProto = rng.pick(minionPool);
+            const minionHp = Math.floor(minionProto.hp * difficulty.multiplier);
+            bossRoom.enemies!.push({
+                ...minionProto,
+                id: `${minionProto.id}-minion-${i}`,
+                name: `${minionProto.name}`,
+                hp: minionHp,
+                maxHp: minionHp,
+                ac: 10 + difficulty.acBonus,
+                power: Math.floor(minionProto.power * difficulty.multiplier),
+                xp: Math.floor(minionProto.power * 10 * difficulty.multiplier)
+            });
+        }
+        
+        // Boss room loot: rare+ only (3-5 items)
+        const rareLootPool = ITEMS.filter(i => 
+            ['rare', 'epic', 'legendary', 'godly'].includes(i.rarity)
+        );
+        const shuffledBossLoot = [...rareLootPool].sort(() => rng.float() - 0.5);
+        bossRoom.loot = shuffledBossLoot.slice(0, rng.int(3, 5));
+        
+        room.bossRoom = bossRoom;
     }
 
     return room;

@@ -123,6 +123,8 @@ export function createInitialRunState(seed: string): RunState {
     },
     currentRoom: { ...STARTING_SHRINE }, // Room 0: Starting shrine
     roomResolved: false, // Shrine needs to be resolved (prayed at)
+    inBossRoom: false,
+    parentIntermission: null,
     combatTurn: null,
     combatRound: 0,
     actedThisRound: [],

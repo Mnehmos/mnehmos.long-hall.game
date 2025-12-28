@@ -390,11 +390,53 @@ export function gameReducer(state: RunState, action: Action): RunState {
         
         // Check victory
         if (newEnemies.length === 0) {
-            // Calculate gold reward (5-15 gold)
-            const goldReward = Math.floor(5 + Math.random() * 11);
+            // Calculate gold reward (5-15 gold, more for bosses)
+            const goldReward = state.inBossRoom ? Math.floor(20 + Math.random() * 30) : Math.floor(5 + Math.random() * 11);
             newHistory.push(`Victory! All enemies defeated. +${goldReward} gold.`);
             roomResolved = true;
-            // Set victory flag for popup
+            
+            // BOSS ROOM: Return to intermission with rare+ shrine blessing
+            if (state.inBossRoom && state.parentIntermission) {
+                // Collect boss room loot
+                const bossLoot = room.loot || [];
+                const updatedInventory = {
+                    ...newInventory,
+                    items: [...newInventory.items, ...bossLoot]
+                };
+                
+                if (bossLoot.length > 0) {
+                    newHistory.push(`🎁 Boss Loot Collected: ${bossLoot.map(i => i.name).join(', ')}`);
+                }
+                
+                newHistory.push(`🏆 Boss Defeated! Returning to rest area with a rare blessing...`);
+                
+                // Generate a rare+ shrine blessing (tier 3-5)
+                const tierRoll = Math.random() * 100;
+                let tierName: string;
+                if (tierRoll < 60) { tierName = 'Greater'; }
+                else if (tierRoll < 90) { tierName = 'Epic'; }
+                else { tierName = 'Legendary'; }
+                
+                return {
+                    ...state,
+                    currentRoom: state.parentIntermission,
+                    parentIntermission: null,
+                    inBossRoom: false,
+                    roomResolved: false, // Allow long rest at intermission
+                    combatTurn: null,
+                    actedThisRound: [],
+                    victory: true,
+                    shrineBoon: `🏆 ${tierName} Boss Blessing! Your weapon glows with power!`,
+                    history: cappedHistory(newHistory),
+                    party: {
+                        ...newParty,
+                        gold: state.party.gold + goldReward
+                    },
+                    inventory: updatedInventory
+                };
+            }
+            
+            // Normal combat victory
             return {
                 ...state,
                 currentRoom: { ...room, enemies: newEnemies },
@@ -1469,6 +1511,26 @@ export function gameReducer(state: RunState, action: Action): RunState {
         return {
             ...state,
             party: newParty
+        };
+    }
+
+    case 'ENTER_BOSS_ROOM': {
+        const room = state.currentRoom;
+        if (!room || room.type !== 'intermission' || !room.bossRoom) {
+            return state;
+        }
+        
+        // Store the intermission room to return to after boss fight
+        return {
+            ...state,
+            parentIntermission: room,
+            currentRoom: room.bossRoom,
+            inBossRoom: true,
+            roomResolved: false,
+            combatTurn: 'player',
+            combatRound: 1,
+            actedThisRound: [],
+            history: cappedHistory([...state.history, '⚔️ You enter the Boss Chamber! Prepare for battle!'])
         };
     }
 

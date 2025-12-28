@@ -218,6 +218,13 @@ function attachEvents() {
       }
   });
   
+  // Enter Boss Room (optional challenge)
+  document.getElementById('btn-enter-boss')?.addEventListener('click', () => {
+      if (confirm('Enter the Boss Chamber? This is a challenging fight, but the rewards are great!')) {
+          dispatch({ type: 'ENTER_BOSS_ROOM' });
+      }
+  });
+  
   // Buy item from shop
   document.querySelectorAll('.btn-buy').forEach(btn => {
       btn.addEventListener('click', (e) => {

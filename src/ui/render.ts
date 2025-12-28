@@ -284,18 +284,32 @@ export function renderGame(state: RunState): string {
   
   // Intermission always shows its own UI
   if (room?.type === 'intermission') {
-      // Intermission - long rest, shop, recruits
+      // Intermission - long rest, shop, recruits, optional boss
       html += `<button id="btn-long-rest" class="btn-success">🛏️ Take Long Rest</button>`;
       html += renderShopSection(state);
       html += renderRecruitSection(state);
+      
+      // Boss Room option
+      if (room.bossRoom) {
+          const bossCount = room.bossRoom.enemies?.length || 0;
+          const lootCount = room.bossRoom.loot?.length || 0;
+          html += `<div class="boss-challenge">
+              <h4>⚔️ Boss Challenge Available!</h4>
+              <p>Face a powerful boss (${bossCount} enemies) for rare+ loot only (${lootCount} items) and a guaranteed rare+ shrine blessing!</p>
+              <button id="btn-enter-boss" class="btn-danger">👹 Enter Boss Room</button>
+          </div>`;
+      }
+      
       html += `<div class="intermission-advance"><button id="btn-advance-confirm" class="btn-warning">⚔️ Continue to Next Segment</button></div>`;
   } else if (state.roomResolved) {
       html += `<button id="btn-advance">Advance →</button>`;
       if (state.shortRestsRemaining > 0) {
            html += `<button id="btn-rest" class="secondary">Short Rest</button>`;
       }
-  } else if (room) {
-      if ((room.type === 'combat' || room.type === 'elite') && room.enemies.length > 0) {
+   } else if (room) {
+      // Check if there are enemies to fight (combat, elite, OR guarded shrine/hazard)
+      const hasEnemies = room.enemies && room.enemies.length > 0;
+      if (hasEnemies) {
           // Combat in progress - show each party member's actions
           html += `<div class="combat-panel">`;
 
@@ -448,25 +462,43 @@ export function renderGame(state: RunState): string {
     let equipAtkBonus = 0;
     let equipDmgBonus = 0;
     let equipAcBonus = 0;
-    const atkItemParts: string[] = [];
-    const dmgItemParts: string[] = [];
-    const acItemParts: string[] = [];
+    const atkBreakdownLines: string[] = [];
+    const dmgBreakdownLines: string[] = [];
+    const acBreakdownLines: string[] = [];
+
+    // Start with skill contribution
+    if (skillAtkBonus > 0) atkBreakdownLines.push(`+${skillAtkBonus} from ${skillAtkName} skill`);
+    if (skillDmgBonus > 0) dmgBreakdownLines.push(`+${skillDmgBonus} from ${skillDmgName} skill`);
+    acBreakdownLines.push('10 Base AC');
+    if (skills.defense > 0) acBreakdownLines.push(`+${skills.defense} from DEF skill`);
 
     Object.entries(member.equipment).forEach(([_slot, item]) => {
         if (!item) return;
-        const itemAtk = (item.baseStats.attackBonus || 0) + (item.enchantment?.effect?.attackBonus || 0);
-        const itemDmg = (item.baseStats.damageBonus || 0) + (item.enchantment?.effect?.damageBonus || 0);
-        const itemAc = (item.baseStats.acBonus || 0) + (item.enchantment?.effect?.acBonus || 0);
+        const baseAtk = item.baseStats.attackBonus || 0;
+        const enchantAtk = item.enchantment?.effect?.attackBonus || 0;
+        const baseDmg = item.baseStats.damageBonus || 0;
+        const enchantDmg = item.enchantment?.effect?.damageBonus || 0;
+        const baseAc = item.baseStats.acBonus || 0;
+        const enchantAc = item.enchantment?.effect?.acBonus || 0;
+
+        const itemAtk = baseAtk + enchantAtk;
+        const itemDmg = baseDmg + enchantDmg;
+        const itemAc = baseAc + enchantAc;
 
         equipAtkBonus += itemAtk;
         equipDmgBonus += itemDmg;
         equipAcBonus += itemAc;
 
-        // Get short item name for tooltip
-        const shortName = (item.customName || item.name).split(' ')[0];
-        if (itemAtk > 0) atkItemParts.push(`+${itemAtk} ${shortName}`);
-        if (itemDmg > 0) dmgItemParts.push(`+${itemDmg} ${shortName}`);
-        if (itemAc > 0) acItemParts.push(`+${itemAc} ${shortName}`);
+        // Get display name
+        const displayName = item.customName || item.name;
+        
+        // Add breakdown lines for each item
+        if (baseAtk > 0) atkBreakdownLines.push(`+${baseAtk} from ${displayName}`);
+        if (enchantAtk > 0) atkBreakdownLines.push(`+${enchantAtk} from ${displayName} enchant`);
+        if (baseDmg > 0) dmgBreakdownLines.push(`+${baseDmg} from ${displayName}`);
+        if (enchantDmg > 0) dmgBreakdownLines.push(`+${enchantDmg} from ${displayName} enchant`);
+        if (baseAc > 0) acBreakdownLines.push(`+${baseAc} from ${displayName}`);
+        if (enchantAc > 0) acBreakdownLines.push(`+${enchantAc} from ${displayName} enchant`);
     });
 
     // Total stats
@@ -474,10 +506,14 @@ export function renderGame(state: RunState): string {
     const dmgBonus = skillDmgBonus + equipDmgBonus;
     const ac = 10 + skills.defense + equipAcBonus;
 
-    // Build breakdown tooltips with per-item details
-    const atkBreakdown = `+${skillAtkBonus} ${skillAtkName}${atkItemParts.length > 0 ? ' ' + atkItemParts.join(' ') : ''}`;
-    const dmgBreakdown = `+${skillDmgBonus} ${skillDmgName}${dmgItemParts.length > 0 ? ' ' + dmgItemParts.join(' ') : ''}`;
-    const acBreakdown = `10 Base +${skills.defense} DEF${acItemParts.length > 0 ? ' ' + acItemParts.join(' ') : ''}`;
+    // Build breakdown tooltips with vertical per-item details (use \\n for newlines in title)
+    const atkBreakdown = atkBreakdownLines.length > 0 
+        ? `ATTACK BONUS: +${atkBonus}\\n─────────────\\n${atkBreakdownLines.join('\\n')}`
+        : `ATTACK BONUS: +${atkBonus}\\n(no bonuses)`;
+    const dmgBreakdown = dmgBreakdownLines.length > 0 
+        ? `DAMAGE BONUS: +${dmgBonus}\\n─────────────\\n${dmgBreakdownLines.join('\\n')}`
+        : `DAMAGE BONUS: +${dmgBonus}\\n(no bonuses)`;
+    const acBreakdown = `ARMOR CLASS: ${ac}\\n────────────\\n${acBreakdownLines.join('\\n')}`;
 
     const typeIcon = type === 'ranged' ? '🏹' : type === 'magic' ? '✨' : '⚔️';
     

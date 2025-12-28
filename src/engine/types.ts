@@ -1,6 +1,6 @@
 export type Role = 'fighter' | 'wizard' | 'rogue' | 'cleric' | 'ranger';
 
-export type RoomType = 'combat' | 'elite' | 'hazard' | 'trader' | 'ally' | 'shrine' | 'intermission';
+export type RoomType = 'combat' | 'elite' | 'hazard' | 'trader' | 'ally' | 'shrine' | 'intermission' | 'boss';
 export type ThemeType = 'dungeon_start' | 'crypt' | 'sewer' | string; // extensible
 
 export interface Stats {
@@ -65,6 +65,7 @@ export interface Room {
   loot: Item[];
   shopItems?: Item[]; // For trader/intermission rooms
   availableRecruits?: RecruitOption[]; // For intermission rooms
+  bossRoom?: Room; // Optional boss room challenge from intermission
 }
 
 // Equipment Slots
@@ -181,6 +182,9 @@ export interface RunState {
   // Storing the full Room allows us to track enemy HP during combat
   currentRoom: Room | null;
   roomResolved: boolean;
+  // Boss room state
+  inBossRoom: boolean; // True when player is in optional boss fight
+  parentIntermission: Room | null; // Store the intermission room to return to
   // Combat state
   combatTurn: 'player' | 'enemy' | null;
   combatRound: number; // Current round in combat
@@ -213,4 +217,5 @@ export type Action =
   | { type: 'UNEQUIP_ITEM'; actorId: string; slot: EquipmentSlot }
   | { type: 'USE_ABILITY'; actorId: string; abilityId: string; targetId?: string }
   | { type: 'TAKE_LONG_REST' }
-  | { type: 'SPEND_STAT_POINT', actorId: string, stat: keyof Skills };
+  | { type: 'SPEND_STAT_POINT', actorId: string, stat: keyof Skills }
+  | { type: 'ENTER_BOSS_ROOM' };
