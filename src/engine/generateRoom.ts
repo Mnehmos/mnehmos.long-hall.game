@@ -237,7 +237,19 @@ export function generateRoom(state: RunState, rng?: SeededRNG): Room {
 
     // Generate available recruits for intermission rooms
     if (type === 'intermission') {
-        const shuffledRecruits = [...RECRUITS].sort(() => rng.float() - 0.5);
+        const difficulty = getDifficulty(state.depth);
+        const segment = difficulty.segment;
+        
+        // Recruits level = segment (so segment 3 = level 3)
+        // Cost scales with level (+15 gold per level above 1)
+        const scaledRecruits = RECRUITS.map(r => ({
+            ...r,
+            level: segment,
+            cost: r.cost + (segment - 1) * 15,
+            description: `${r.description} (Level ${segment})`
+        }));
+        
+        const shuffledRecruits = [...scaledRecruits].sort(() => rng.float() - 0.5);
         room.availableRecruits = shuffledRecruits.slice(0, 2);
     }
 

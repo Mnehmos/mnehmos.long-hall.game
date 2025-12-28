@@ -126,7 +126,7 @@ function renderRecruitSection(state: RunState): string {
         html += `
         <div class="recruit-card ${disabled}">
             <div class="recruit-name">${recruit.name}</div>
-            <div class="recruit-role">${recruit.role.toUpperCase()}</div>
+            <div class="recruit-role">${recruit.role.toUpperCase()} <span class="recruit-level">Lv.${recruit.level}</span></div>
             <div class="recruit-desc">${recruit.description}</div>
             <div class="recruit-cost">💰 ${recruit.cost} gold</div>
             <button class="btn-hire" data-recruit="${recruit.id}" ${disabled}>Hire</button>

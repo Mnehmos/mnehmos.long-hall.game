@@ -1,26 +1,27 @@
-import type { RunState, Actor, Role, Item, Room } from './types';
-import { getAbilitiesForRole } from '../content/abilities';
-import { STARTING_SKILLS, getHitDie } from '../content/classes';
+import type { RunState, Actor, Role, Item, Room, EquipmentSlot } from "./types";
+import { getAbilitiesForRole } from "../content/abilities";
+import { STARTING_SKILLS, getHitDie } from "../content/classes";
+import { STARTER_EQUIPMENT } from "../content/tables";
 
-const SAVE_KEY = 'the_long_hall_save';
+const SAVE_KEY = "the_long_hall_save";
 
-// Starting weapon for the fighter
+// Starting weapon for the fighter (kept for backward compatibility with main hero)
 const STARTER_SWORD: Item = {
-  id: 'starter_sword',
-  name: 'Rusty Sword',
-  type: 'weapon',
-  rarity: 'common',
+  id: "starter_sword",
+  name: "Rusty Sword",
+  type: "weapon",
+  rarity: "common",
   cost: 5,
-  baseStats: { attackBonus: 0, damageBonus: 1 }
+  baseStats: { attackBonus: 0, damageBonus: 1 },
 };
 
 // Room 0: Starting shrine that always grants a boon
 const STARTING_SHRINE: Room = {
-  id: 'room-0',
-  type: 'shrine',
-  themeId: 'dungeon_start',
+  id: "room-0",
+  type: "shrine",
+  themeId: "dungeon_start",
   enemies: [],
-  loot: []
+  loot: [],
 };
 
 export const INITIAL_HP: Record<Role, number> = {
@@ -31,10 +32,36 @@ export const INITIAL_HP: Record<Role, number> = {
   ranger: 10,
 };
 
-export function createActor(id: string, name: string, role: Role, level: number = 1): Actor {
-  const maxHp = INITIAL_HP[role] + ((level - 1) * 4); // +4 HP per level
+/**
+ * Create an actor with the given role and level.
+ * @param includeEquipment - If true, equips role-appropriate starter gear. Default false for main hero (manually equipped).
+ */
+export function createActor(
+  id: string,
+  name: string,
+  role: Role,
+  level: number = 1,
+  includeEquipment: boolean = false
+): Actor {
+  const maxHp = INITIAL_HP[role] + (level - 1) * 4; // +4 HP per level
   const hitDieVal = getHitDie(role);
-  
+
+  // Build equipment from starter gear if requested
+  const equipment: Partial<Record<EquipmentSlot, Item>> = {};
+  if (includeEquipment && STARTER_EQUIPMENT[role]) {
+    STARTER_EQUIPMENT[role].forEach((item) => {
+      // Map item type to equipment slot
+      const slot: EquipmentSlot =
+        item.type === "weapon"
+          ? "main_hand"
+          : item.type === "shield"
+          ? "off_hand"
+          : (item.type as EquipmentSlot);
+      // Create a unique copy for this actor
+      equipment[slot] = { ...item, id: `${item.id}-${id}` };
+    });
+  }
+
   return {
     id,
     name,
@@ -46,10 +73,13 @@ export function createActor(id: string, name: string, role: Role, level: number 
     isAlive: true,
     hp: { current: maxHp, max: maxHp },
     stress: { current: 0, max: 20 }, // fixed max stress for now
-    hitDice: { current: level, max: level, die: hitDieVal }, 
+    hitDice: { current: level, max: level, die: hitDieVal },
     spellSlots: {},
-    equipment: {},
-    abilities: getAbilitiesForRole(role).map(a => ({ abilityId: a.id, currentCooldown: 0 })),
+    equipment,
+    abilities: getAbilitiesForRole(role).map((a) => ({
+      abilityId: a.id,
+      currentCooldown: 0,
+    })),
     statuses: [],
   };
 }
@@ -58,14 +88,14 @@ export function createInitialRunState(seed: string): RunState {
   // Use RNG to maybe randomize starting gold slightly? Or fixed.
   // Design says "deterministic".
 
-  const hero = createActor('hero-1', 'Hero', 'fighter');
+  const hero = createActor("hero-1", "Hero", "fighter");
   // Equip fighter with starting sword
   hero.equipment.main_hand = { ...STARTER_SWORD };
 
   return {
     seed,
     depth: 0,
-    themeId: 'dungeon_start',
+    themeId: "dungeon_start",
     shortRestsRemaining: 2,
     longRestsTaken: 0,
     party: {
@@ -86,7 +116,7 @@ export function createInitialRunState(seed: string): RunState {
     victory: false,
     shrineBoon: null,
     mutations: [],
-    history: ['Run started.', 'You stand before an ancient shrine...'],
+    history: ["Run started.", "You stand before an ancient shrine..."],
   };
 }
 
@@ -95,7 +125,7 @@ export function saveGameState(state: RunState): void {
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(state));
   } catch (e) {
-    console.warn('Failed to save game state:', e);
+    console.warn("Failed to save game state:", e);
   }
 }
 
@@ -107,7 +137,7 @@ export function loadGameState(): RunState | null {
       return JSON.parse(saved) as RunState;
     }
   } catch (e) {
-    console.warn('Failed to load game state:', e);
+    console.warn("Failed to load game state:", e);
   }
   return null;
 }
@@ -117,6 +147,6 @@ export function clearGameState(): void {
   try {
     localStorage.removeItem(SAVE_KEY);
   } catch (e) {
-    console.warn('Failed to clear game state:', e);
+    console.warn("Failed to clear game state:", e);
   }
 }

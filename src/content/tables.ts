@@ -90,6 +90,7 @@ export interface RecruitDef {
     role: 'fighter' | 'wizard' | 'rogue' | 'cleric';
     cost: number;
     description: string;
+    level?: number;  // Optional level (set during room generation based on segment)
 }
 
 export const RECRUITS: RecruitDef[] = [
@@ -137,3 +138,66 @@ export function getItemTotalStats(item: Item): { attackBonus: number; damageBonu
         maxHpBonus: (base.maxHpBonus || 0) + (enchant.maxHpBonus || 0),
     };
 }
+
+// ============================================================================
+// MONSTER DROP TABLES
+// ============================================================================
+
+// Item drop configuration by enemy power tier
+export const DROP_TABLES = {
+    // Power 1-2: 5% chance for common items
+    low: { chance: 0.05, pool: ['sword_common', 'axe_common', 'staff_common', 'leather_armor', 'helm_iron', 'boots_leather', 'shield_wood'] },
+    // Power 3-4: 10% chance, uncommon possible
+    mid: { chance: 0.10, pool: ['sword_rare', 'chain_mail', 'ring_vit', 'charm_luck'] },
+    // Power 5+: 15% chance, rare possible
+    high: { chance: 0.15, pool: ['dagger_rare', 'plate_armor', 'amulet_str'] }
+};
+
+/**
+ * Roll for an item drop from an enemy based on its power level.
+ * Returns a copy of the item with a unique ID, or null if no drop.
+ */
+export function getDropForEnemy(enemyPower: number, rng: () => number): Item | null {
+    const tier = enemyPower <= 2 ? 'low' : enemyPower <= 4 ? 'mid' : 'high';
+    const config = DROP_TABLES[tier];
+    
+    if (rng() > config.chance) return null;
+    
+    // Pick random item from pool
+    const itemId = config.pool[Math.floor(rng() * config.pool.length)];
+    const itemDef = ITEMS.find(i => i.id === itemId);
+    if (!itemDef) return null;
+    
+    // Return a copy with unique ID for tracking
+    return {
+        ...itemDef,
+        id: `drop-${itemId}-${Date.now()}`
+    };
+}
+
+// ============================================================================
+// STARTER EQUIPMENT BY ROLE
+// ============================================================================
+
+// Role-appropriate starting equipment for recruits
+export const STARTER_EQUIPMENT: Record<string, Item[]> = {
+    fighter: [
+        { id: 'starter_sword', name: 'Iron Sword', type: 'weapon', rarity: 'common', cost: 15, baseStats: { attackBonus: 1, damageBonus: 1 } },
+        { id: 'starter_shield', name: 'Wooden Shield', type: 'shield', rarity: 'common', cost: 10, baseStats: { acBonus: 1 } }
+    ],
+    wizard: [
+        { id: 'starter_staff', name: 'Oak Staff', type: 'weapon', rarity: 'common', cost: 10, baseStats: { attackBonus: 2 } }
+    ],
+    rogue: [
+        { id: 'starter_dagger', name: 'Sharp Dagger', type: 'weapon', rarity: 'common', cost: 12, baseStats: { attackBonus: 1, damageBonus: 1 } },
+        { id: 'starter_leather', name: 'Leather Vest', type: 'chest', rarity: 'common', cost: 15, baseStats: { acBonus: 1 } }
+    ],
+    cleric: [
+        { id: 'starter_mace', name: 'Holy Mace', type: 'weapon', rarity: 'common', cost: 15, baseStats: { attackBonus: 1, damageBonus: 1 } },
+        { id: 'starter_robe', name: 'Clerical Robe', type: 'chest', rarity: 'common', cost: 12, baseStats: { maxHpBonus: 2 } }
+    ],
+    ranger: [
+        { id: 'starter_bow', name: 'Short Bow', type: 'weapon', rarity: 'common', cost: 15, baseStats: { attackBonus: 2 } },
+        { id: 'starter_cloak', name: 'Ranger Cloak', type: 'chest', rarity: 'common', cost: 10, baseStats: { acBonus: 1 } }
+    ]
+};

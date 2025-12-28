@@ -53,6 +53,7 @@ export interface RecruitOption {
   role: 'fighter' | 'wizard' | 'rogue' | 'cleric';
   cost: number;
   description: string;
+  level: number;  // Level scaling based on segment
 }
 
 // Room definition

@@ -4,7 +4,7 @@ import { SeededRNG } from '../core/rng';
 import { resolveRoom } from './resolveRoom';
 import { performLongRest, performShortRest } from './rest';
 import { hashWithSeed } from '../core/hash';
-import { ITEMS, RECRUITS } from '../content/tables';
+import { ITEMS, RECRUITS, getDropForEnemy } from '../content/tables';
 import { generateRoom, calculateEscapeDC } from './generateRoom';
 import { roll } from '../core/dice';
 import { getAbilityById } from '../content/abilities';
@@ -252,6 +252,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
         let newHistory = [...state.history];
         let newEnemies = [...room.enemies];
         let newParty = { ...state.party };
+        let newInventory = state.inventory; // Track inventory changes from dropped items
         let roomResolved = false;
 
         // Check if this attacker already acted and is using an extra action
@@ -314,6 +315,16 @@ export function gameReducer(state: RunState, action: Action): RunState {
                 // Per-enemy loot: gold based on power
                 const goldDrop = target.power * 3 + Math.floor(Math.random() * (target.power * 2));
                 newParty.gold += goldDrop;
+                
+                // Item drop chance based on enemy power tier
+                const droppedItem = getDropForEnemy(target.power, Math.random);
+                if (droppedItem) {
+                    newInventory = {
+                        ...newInventory,
+                        items: [...newInventory.items, droppedItem]
+                    };
+                    newHistory.push(`🎁 ${target.name} dropped ${droppedItem.name}!`);
+                }
                 
                 // Award XP to alive party members
                 const xpGain = target.power * 15; // XP = enemy power * 15
@@ -395,7 +406,8 @@ export function gameReducer(state: RunState, action: Action): RunState {
                 party: {
                     ...newParty,
                     gold: state.party.gold + goldReward
-                }
+                },
+                inventory: newInventory
             };
         }
         
@@ -428,7 +440,8 @@ export function gameReducer(state: RunState, action: Action): RunState {
             actedThisRound: combatTurn === 'enemy' ? [] : newActedThisRound, // Reset if going to enemy turn
             history: cappedHistory(newHistory),
             party: newParty,
-            extraActions: newExtraActions
+            extraActions: newExtraActions,
+            inventory: newInventory
         };
 
         // Enemy turn (if combat continues)
@@ -985,12 +998,13 @@ export function gameReducer(state: RunState, action: Action): RunState {
             };
         }
 
-        // Create new party member
+        // Create new party member at recruit's scaled level with starter equipment
         const newMember = createActor(
             `party-${state.party.members.length + 1}`,
             recruit.name,
             recruit.role,
-            1 // Start at level 1
+            recruit.level || 1, // Use recruit's scaled level (defaults to 1 if missing)
+            true // Include starter equipment
         );
 
         // Update room to remove hired recruit
