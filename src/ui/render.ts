@@ -481,10 +481,19 @@ export function renderGame(state: RunState): string {
 
     const typeIcon = type === 'ranged' ? '🏹' : type === 'magic' ? '✨' : '⚔️';
     
-    // Skills Grid
+    // Skills Grid with descriptions
     let skillsHtml = '<div class="skills-grid">';
     const skillKeys: (keyof typeof skills)[] = ['strength', 'attack', 'defense', 'magic', 'ranged', 'faith', 'agility'];
     const shortNames = { strength: 'STR', attack: 'ATK', defense: 'DEF', magic: 'MAG', ranged: 'RNG', faith: 'FTH', agility: 'AGI' };
+    const skillDescriptions: Record<string, string> = {
+        strength: 'STRENGTH\\n+Melee damage bonus\\nIncreases damage dealt with swords, axes, maces',
+        attack: 'ATTACK\\n+Melee hit chance\\nIncreases accuracy with melee weapons',
+        defense: 'DEFENSE\\n+Armor Class (AC)\\nMakes you harder to hit',
+        magic: 'MAGIC\\n+Spell hit & damage\\nIncreases staff/wand attacks and spell power',
+        ranged: 'RANGED\\n+Ranged hit & damage\\nIncreases bow/crossbow accuracy and damage',
+        faith: 'FAITH\\n+Healing & shrine luck\\nBetter heals and higher chance of rare shrine boons',
+        agility: 'AGILITY\\n+Escape chance & initiative\\nBetter odds to flee and act first'
+    };
     
     skillKeys.forEach(key => {
         const val = skills[key];
@@ -492,7 +501,8 @@ export function renderGame(state: RunState): string {
         if ((member.statPoints || 0) > 0) {
             btn = `<button class="btn-stat-up" data-actor="${member.id}" data-stat="${key}" title="Spend Stat Point">+</button>`;
         }
-        skillsHtml += `<div class="skill-item"><span class="skill-label">${shortNames[key]}</span> <span class="skill-val">${val}</span> ${btn}</div>`;
+        const tooltip = skillDescriptions[key];
+        skillsHtml += `<div class="skill-item" title="${tooltip}"><span class="skill-label">${shortNames[key]}</span> <span class="skill-val">${val}</span> ${btn}</div>`;
     });
     skillsHtml += '</div>';
     

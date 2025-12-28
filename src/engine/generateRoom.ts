@@ -154,12 +154,25 @@ export function generateRoom(state: RunState, rng?: SeededRNG): Room {
     const roomInSegment = state.depth % 10 === 0 ? 10 : state.depth % 10;
     const theme = getThemeDef(state.themeId);
     
-    // 2. Determing Room Type
+    // 2. Determine Room Type
+    // Schedule:
+    // - Every 10 rooms (10, 20, 30...): Intermission (safe, rest/shop)
+    // - Every 5 rooms except 10s (0, 5, 15, 25, 35...): Shrine (may be guarded)
+    // - Other rooms: Random weighted (combat, elite, hazard, trader)
     let type: RoomType = 'combat';
+    let isGuardedShrine = false;
     
-    if (roomInSegment === 10) {
-        // End of segment - Intermission room for rest/shop/recruit
+    if (state.depth % 10 === 0 && state.depth > 0) {
+        // Room 10, 20, 30... = Intermission (safe)
         type = 'intermission';
+    } else if (state.depth === 0 || state.depth % 5 === 0) {
+        // Room 0, 5, 15, 25, 35... = Shrine
+        type = 'shrine';
+        // Shrines after room 0 may be guarded (50% chance, increasing with depth)
+        if (state.depth > 0) {
+            const guardChance = 0.3 + (state.depth * 0.01); // 30% base, +1% per room
+            isGuardedShrine = rng.float() < Math.min(guardChance, 0.7); // Cap at 70%
+        }
     } else {
         const weights = getRoomWeights(roomInSegment);
         
@@ -185,7 +198,7 @@ export function generateRoom(state: RunState, rng?: SeededRNG): Room {
         loot: []
     };
     
-    if (type === 'combat' || type === 'elite') {
+    if (type === 'combat' || type === 'elite' || isGuardedShrine) {
         // Get difficulty scaling for this depth
         const difficulty = getDifficulty(state.depth);
 
@@ -205,8 +218,9 @@ export function generateRoom(state: RunState, rng?: SeededRNG): Room {
         if (pool.length === 0) pool = ENEMIES;
 
         // Enemy count: base + possible bonus from difficulty
-        const baseCount = type === 'elite' ? 1 : rng.int(1, 3);
-        const bonusEnemies = rng.float() < 0.5 ? difficulty.enemyCountBonus : 0;
+        // Guarded shrines get fewer enemies (1-2)
+        const baseCount = isGuardedShrine ? rng.int(1, 2) : (type === 'elite' ? 1 : rng.int(1, 3));
+        const bonusEnemies = isGuardedShrine ? 0 : (rng.float() < 0.5 ? difficulty.enemyCountBonus : 0);
         const count = Math.min(5, baseCount + bonusEnemies); // Cap at 5 enemies
         
         // Track name counts for numbering duplicates

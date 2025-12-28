@@ -926,11 +926,78 @@ export function gameReducer(state: RunState, action: Action): RunState {
             });
         }
         
-        // Pick a boon - Room 0 (starting shrine) always enchants equipment
+        // Pick a boon - Room 0 (starting shrine) always enchants the WEAPON specifically
         let chosenBoon;
-        if (state.depth === 0 && boons.some(b => b.type === 'enchant')) {
-            // Starting shrine guarantees enchantment for first weapon
-            chosenBoon = boons.find(b => b.type === 'enchant')!;
+        if (state.depth === 0) {
+            // Starting shrine ONLY enchants the main weapon
+            const hero = state.party.members[0];
+            const weapon = hero.equipment.main_hand;
+            
+            if (weapon) {
+                // Create a special weapon-only enchant boon
+                chosenBoon = {
+                    type: 'enchant_weapon',
+                    apply: () => {
+                        // Same enchantment logic but forced to main_hand weapon
+                        const faith = hero.skills?.faith || 0;
+                        const faithBonus = faith * 5;
+                        const existingTier = weapon.enchantment?.tier || 0;
+                        const isUpgrade = existingTier > 0 && Math.random() < 0.5;
+
+                        const tierRoll = Math.random() * 100 + faithBonus;
+                        let baseTier: 1 | 2 | 3 | 4 | 5;
+                        let tierName: string;
+                        if (tierRoll < 50) { baseTier = 1; tierName = 'Minor'; }
+                        else if (tierRoll < 75) { baseTier = 2; tierName = 'Lesser'; }
+                        else if (tierRoll < 90) { baseTier = 3; tierName = 'Greater'; }
+                        else if (tierRoll < 98) { baseTier = 4; tierName = 'Epic'; }
+                        else { baseTier = 5; tierName = 'Legendary'; }
+
+                        const tier = isUpgrade
+                            ? Math.min(5, Math.max(baseTier, existingTier + 1)) as 1 | 2 | 3 | 4 | 5
+                            : baseTier;
+                        if (tier > baseTier) {
+                            tierName = ['Minor', 'Lesser', 'Greater', 'Epic', 'Legendary'][tier - 1];
+                        }
+
+                        const bonusValue = tier + Math.floor(Math.random() * tier);
+                        const suffix = WEAPON_SUFFIXES[tier][Math.floor(Math.random() * WEAPON_SUFFIXES[tier].length)];
+
+                        const effect = {
+                            attackBonus: Math.floor(bonusValue / 2) || 1,
+                            damageBonus: bonusValue
+                        };
+
+                        const originalBaseName = weapon.enchantment
+                            ? weapon.name.replace(/ of .*$/, '').replace(/ God.*$/, '')
+                            : weapon.name;
+                        const displayBaseName = weapon.customName || originalBaseName;
+
+                        const itemHistory = [...(weapon.history || [])];
+                        itemHistory.push(`Blessed with ${tierName} enchantment at starting shrine`);
+                        while (itemHistory.length > 10) itemHistory.shift();
+
+                        const enchantedItem: Item = {
+                            ...weapon,
+                            name: `${originalBaseName} ${suffix}`,
+                            enchantment: { tier, name: suffix, effect, description: `${tierName} Boon` },
+                            history: itemHistory
+                        };
+
+                        // Update hero's equipment
+                        newParty.members = state.party.members.map((m, i) => {
+                            if (i !== 0) return m;
+                            return { ...m, equipment: { ...m.equipment, main_hand: enchantedItem } };
+                        });
+
+                        const upgradeText = isUpgrade ? ' (UPGRADED!)' : '';
+                        return `⚔️ ${tierName} Weapon Blessing${upgradeText}! Your ${displayBaseName} becomes ${enchantedItem.customName || enchantedItem.name}! (+${bonusValue} power)`;
+                    }
+                };
+            } else {
+                // No weapon? Fall back to gold
+                chosenBoon = boons.find(b => b.type === 'gold') || boons[0];
+            }
         } else {
             chosenBoon = boons[Math.floor(Math.random() * boons.length)];
         }
