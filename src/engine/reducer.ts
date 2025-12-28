@@ -415,11 +415,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
                 newHistory.push(`🏆 Boss Defeated! Returning to rest area with a rare blessing...`);
                 
                 // Generate a rare+ shrine blessing (tier 3-5)
-                const tierRoll = Math.random() * 100;
-                let tierName: string;
-                if (tierRoll < 60) { tierName = 'Greater'; }
-                else if (tierRoll < 90) { tierName = 'Epic'; }
-                else { tierName = 'Legendary'; }
+                // BUT DO NOT AUTO-APPLY. Wait for user to click button.
                 
                 return {
                     ...state,
@@ -432,8 +428,9 @@ export function gameReducer(state: RunState, action: Action): RunState {
                     combatTurn: null,
                     actedThisRound: [],
                     victory: true,
-                    shrineBoon: `🏆 ${tierName} Boss Blessing! Your weapon glows with power!`,
-                    history: cappedHistory(newHistory),
+                    shrineBoon: null, // No auto popup
+                    pendingBossReward: true, // Enable the "Pray at Shrine" button
+                    history: cappedHistory([...newHistory, `🏆 Boss Defeated! A powerful shrine awaits your prayer...`]),
                     party: {
                         ...newParty,
                         gold: state.party.gold + goldReward
@@ -769,7 +766,8 @@ export function gameReducer(state: RunState, action: Action): RunState {
     }
     
     case 'PRAY_AT_SHRINE': {
-        if (!state.currentRoom || state.currentRoom.type !== 'shrine') return state;
+        const isBossShrine = !!state.pendingBossReward;
+        if (!state.currentRoom || (state.currentRoom.type !== 'shrine' && !isBossShrine)) return state;
         
         // Check for cleric in party (shrine bonus)
         const hasCleric = state.party.members.some(m => m.isAlive && m.role === 'cleric');
@@ -783,7 +781,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
         const boons: { type: string; apply: () => string }[] = [];
         
         // Heal if not at full HP (cleric boosts heal amount)
-        if (hero.hp.current < hero.hp.max) {
+        if (!isBossShrine && hero.hp.current < hero.hp.max) {
             boons.push({
                 type: 'heal',
                 apply: () => {
@@ -800,7 +798,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
         }
         
         // Restore rest if not at max
-        if (state.shortRestsRemaining < 2) {
+        if (!isBossShrine && state.shortRestsRemaining < 2) {
             boons.push({
                 type: 'rest',
                 apply: () => {
@@ -811,17 +809,19 @@ export function gameReducer(state: RunState, action: Action): RunState {
         }
         
         // Gold is always useful
-        boons.push({
+        if (!isBossShrine) {
+           boons.push({
             type: 'gold',
             apply: () => {
                 const goldBonus = 15 + Math.floor(Math.random() * 16); // 15-30 gold
                 newParty.gold = state.party.gold + goldBonus;
                 return `Golden light showers upon you. +${goldBonus} gold!`;
             }
-        });
+           });
+        }
         
         // Full heal if damaged
-        if (hero.hp.current < hero.hp.max) {
+        if (!isBossShrine && hero.hp.current < hero.hp.max) {
             boons.push({
                 type: 'fullheal',
                 apply: () => {
@@ -880,7 +880,9 @@ export function gameReducer(state: RunState, action: Action): RunState {
                     const existingTier = target.item.enchantment?.tier || 0;
                     const isUpgrade = existingTier > 0 && Math.random() < 0.5;
 
-                    const tierRoll = Math.random() * 100 + faithBonus;
+                    const tierRoll = isBossShrine 
+                         ? 75 + (Math.random() * 25) + faithBonus // Force Rare+ (75-100+)
+                         : Math.random() * 100 + faithBonus;
                     let baseTier: 1 | 2 | 3 | 4 | 5;
                     let tierName: string;
                     if (tierRoll < 50) { baseTier = 1; tierName = 'Minor'; }
@@ -1077,6 +1079,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
             party: newParty,
             shortRestsRemaining: newShortRests,
             roomResolved: true,
+            pendingBossReward: false, // Clear flag
             shrineBoon: boonMessage, // Show shrine blessing popup
             history: cappedHistory([...state.history, boonMessage])
         };

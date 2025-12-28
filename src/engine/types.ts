@@ -194,6 +194,7 @@ export interface RunState {
   gameOver: boolean;
   victory: boolean; // true if just won a combat (for popup)
   shrineBoon: string | null; // Message to display after praying at shrine
+  pendingBossReward?: boolean; // True if player defeated boss and hasn't claimed reward
   mutations: string[];
   history: string[]; // log of events
 }
@@ -213,6 +214,7 @@ export type Action =
   | { type: 'EQUIP_ITEM'; actorId: string; itemId: string; slot?: EquipmentSlot }
   | { type: 'HIRE_RECRUIT'; recruitId: string }
   | { type: 'ESCAPE' }
+  | { type: 'PRAY_AT_BOSS_SHRINE' }
   | { type: 'RENAME_ITEM'; itemId: string; newName: string }
   | { type: 'UNEQUIP_ITEM'; actorId: string; slot: EquipmentSlot }
   | { type: 'USE_ABILITY'; actorId: string; abilityId: string; targetId?: string }

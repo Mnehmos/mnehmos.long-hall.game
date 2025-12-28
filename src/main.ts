@@ -224,6 +224,11 @@ function attachEvents() {
           dispatch({ type: 'ENTER_BOSS_ROOM' });
       }
   });
+
+  // Pray at Boss Shrine
+  document.getElementById('btn-pray-shrine-boss')?.addEventListener('click', () => {
+      dispatch({ type: 'PRAY_AT_SHRINE' });
+  });
   
   // Buy item from shop
   document.querySelectorAll('.btn-buy').forEach(btn => {

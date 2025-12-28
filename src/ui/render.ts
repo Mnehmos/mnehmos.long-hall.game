@@ -289,8 +289,14 @@ export function renderGame(state: RunState): string {
       html += renderShopSection(state);
       html += renderRecruitSection(state);
       
-      // Boss Room option
-      if (room.bossRoom) {
+      // Boss Room interaction
+      if (state.pendingBossReward) {
+          html += `<div class="boss-challenge">
+              <h4>🏆 Boss Defeated!</h4>
+              <p>A powerful shrine has appeared from the boss's remains.</p>
+              <button id="btn-pray-shrine-boss" class="btn-primary">🙏 Pray at Boss Shrine</button>
+          </div>`;
+      } else if (room.bossRoom) {
           const bossCount = room.bossRoom.enemies?.length || 0;
           const lootCount = room.bossRoom.loot?.length || 0;
           html += `<div class="boss-challenge">
