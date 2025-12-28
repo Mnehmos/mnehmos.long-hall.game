@@ -401,9 +401,14 @@ export function renderGame(state: RunState): string {
           // Shrine - pray button
           html += `<button id="btn-pray" class="btn-shrine">🙏 Pray at Shrine</button>`;
       } else if (room.type === 'trader') {
-          // Trader - show shop + advance
+          // Trader - show shop + rest option + advance
           html += renderShopSection(state);
+          html += `<div class="trader-actions">`;
+          if (state.shortRestsRemaining > 0) {
+               html += `<button id="btn-rest" class="secondary">☕ Short Rest (${state.shortRestsRemaining} left)</button>`;
+          }
           html += `<button id="btn-advance" class="btn-primary">Advance →</button>`;
+          html += `</div>`;
       }
   }
   html += `</div>`;
@@ -729,6 +734,28 @@ export function renderGame(state: RunState): string {
 }
 
 function renderRoomContent(room: any, state: RunState): string {
+    // Check if this is a GUARDED room (shrine or hazard with enemies)
+    // If so, show combat first - trap/shrine comes AFTER guards are defeated
+    const hasLivingEnemies = room.enemies && room.enemies.length > 0 && room.enemies.some((e: any) => e.hp > 0);
+    
+    if ((room.type === 'hazard' || room.type === 'shrine') && hasLivingEnemies) {
+        // Guarded room - show enemies that need to be defeated first
+        let guardHtml = '<div class="guarded-room">';
+        guardHtml += `<p class="guard-warning">⚠️ Enemies guard this ${room.type === 'shrine' ? 'shrine' : 'area'}! Defeat them first.</p>`;
+        guardHtml += '<div class="enemy-display">';
+        for (const enemy of room.enemies.filter((e: any) => e.hp > 0)) {
+            guardHtml += `
+              <div class="enemy-card">
+                <pre class="ascii-art">${getEnemyArt(enemy.id)}</pre>
+                <div class="enemy-name">${enemy.name}</div>
+                <div class="enemy-hp">${renderHpBar(enemy.hp, enemy.maxHp, 8)} ${enemy.hp}/${enemy.maxHp}</div>
+              </div>
+            `;
+        }
+        guardHtml += '</div></div>';
+        return guardHtml;
+    }
+    
     // Combat rooms - show cleared state or active enemies
     if (room.type === 'combat' || room.type === 'elite') {
         if (state.roomResolved || room.enemies.length === 0) {
@@ -737,7 +764,7 @@ function renderRoomContent(room: any, state: RunState): string {
             <div class="room-cleared">
               <pre class="ascii-art victory-art">
     ╔═══════════════════════════════╗
-    ║     ⚔️  ROOM CLEARED  ⚔️       ║
+    ║     ⚔️  ROOM CLEARED  ⚔️     ║
     ╠═══════════════════════════════╣
     ║                               ║
     ║   ░░░░░░░░░░░░░░░░░░░░░░░     ║
@@ -772,7 +799,7 @@ function renderRoomContent(room: any, state: RunState): string {
             <div class="trap-display disarmed">
               <pre class="ascii-art trap-art-safe">
     ╔═══════════════════════════════╗
-    ║     ✅  TRAP DISARMED  ✅      ║
+    ║     ✅  TRAP DISARMED  ✅ ║
     ╠═══════════════════════════════╣
     ║                               ║
     ║   ░░░░░░░░░░░░░░░░░░░░░░░     ║
