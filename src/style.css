@@ -1435,3 +1435,280 @@ li:last-child {
 .stat-ac {
   color: #60a5fa;
 }
+
+/* ============================================
+   MOBILE UX IMPROVEMENTS
+   ============================================ */
+
+/* Mobile Tooltip Modal */
+.mobile-tooltip-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+  padding: 16px;
+}
+
+.mobile-tooltip {
+  background: var(--surface-color);
+  border: 2px solid var(--primary-color);
+  border-radius: 12px;
+  padding: 20px;
+  max-width: 320px;
+  width: 100%;
+  text-align: center;
+  font-family: monospace;
+  white-space: pre-wrap;
+  line-height: 1.6;
+}
+
+.mobile-tooltip-title {
+  color: var(--primary-color);
+  font-weight: bold;
+  font-size: 1.1em;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 8px;
+}
+
+.mobile-tooltip-content {
+  color: var(--text-secondary);
+  font-size: 0.9em;
+}
+
+.mobile-tooltip-close {
+  margin-top: 16px;
+  padding: 12px 24px;
+  background: var(--primary-color);
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  font-size: 1em;
+  cursor: pointer;
+  width: 100%;
+}
+
+/* Mobile touch targets - minimum 44px for accessibility */
+@media (max-width: 768px) {
+  /* Increase all button sizes */
+  button {
+    min-height: 44px;
+    min-width: 44px;
+    padding: 12px 16px;
+    font-size: 1rem;
+  }
+  
+  .btn-sm {
+    min-height: 40px;
+    padding: 10px 16px;
+    font-size: 0.9em;
+  }
+  
+  .btn-equip-to, .btn-buy, .btn-hire {
+    min-height: 44px;
+    padding: 12px 16px;
+    font-size: 0.9em;
+  }
+  
+  .btn-attack {
+    padding: 14px 20px;
+    font-size: 1em;
+  }
+  
+  .btn-ability {
+    padding: 12px 16px;
+    min-height: 44px;
+  }
+  
+  /* Icon buttons need to be tappable */
+  .btn-icon, .btn-stat-up, .btn-rename, .btn-unequip {
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 1.2em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  /* Equipment slots - tappable to see stats */
+  .equipment-slot {
+    min-height: 60px;
+    padding: 8px 12px;
+    cursor: pointer;
+  }
+  
+  /* Combat stats - tappable for breakdown */
+  .c-stat {
+    min-height: 44px;
+    padding: 10px 14px;
+    cursor: pointer;
+  }
+  
+  /* Skill items - tappable */
+  .skill-item {
+    min-height: 44px;
+    cursor: pointer;
+  }
+  
+  /* Actions container - stack on mobile */
+  .actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .actions button {
+    width: 100%;
+  }
+  
+  /* Combat targets - wrap better */
+  .combat-targets, .member-targets, .member-abilities {
+    gap: 8px;
+  }
+  
+  /* Shop items - full width on very small screens */
+  .shop-item, .recruit-card {
+    min-width: 100%;
+  }
+  
+  /* Better mobile layout */
+  #app {
+    grid-template-columns: 1fr;
+    padding: 8px;
+    gap: 8px;
+  }
+  
+  /* Stack header elements */
+  .header-top {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .header-controls {
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  
+  /* Hide party nav hint on mobile (uses Tab key) */
+  .party-nav-hint {
+    display: none;
+  }
+  
+  /* Sidebar becomes horizontal scrollable party bar */
+  #app > .sidebar-left {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    top: auto;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 0;
+    z-index: 100;
+    max-height: 100px;
+    border-top: 2px solid var(--primary-color);
+    background: var(--bg-color);
+  }
+  
+  .sidebar-member {
+    min-width: 80px;
+    flex-shrink: 0;
+    margin-bottom: 0;
+  }
+  
+  /* Add bottom padding to main content for fixed party bar */
+  #app > .main-content {
+    padding-bottom: 120px;
+  }
+  
+  /* History panel - collapsible or smaller */
+  #app > .history {
+    max-height: 150px;
+  }
+  
+  /* Room container - less padding */
+  .room-container {
+    padding: 16px;
+    min-height: auto;
+  }
+  
+  /* Panels - single column */
+  .panels {
+    grid-template-columns: 1fr;
+  }
+  
+  /* Hero panel - more compact */
+  .hero-panel {
+    padding: 12px;
+  }
+  
+  .hero-panel .ascii-art {
+    font-size: 9px;
+  }
+  
+  .paper-doll-grid {
+    font-size: 0.65em;
+  }
+  
+  .equipment-slot {
+    min-width: 50px;
+  }
+  
+  /* Skills grid - 2 columns on mobile */
+  .skills-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  /* Combat panel - tighter */
+  .member-actions {
+    padding: 8px;
+  }
+  
+  /* Enemy cards - smaller */
+  .enemy-card {
+    min-width: 100px;
+    padding: 8px;
+  }
+  
+  /* Stats in header - scrollable */
+  .stats {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+  }
+}
+
+/* Very small screens (phones in portrait) */
+@media (max-width: 400px) {
+  .header h1 {
+    font-size: 1.2rem;
+  }
+  
+  .stats span {
+    font-size: 0.8em;
+    padding: 4px 8px;
+  }
+  
+  .hero-panel .ascii-art {
+    font-size: 8px;
+  }
+  
+  .skills-grid {
+    grid-template-columns: 1fr 1fr;
+    font-size: 0.85em;
+  }
+  
+  .btn-restart, .btn-continue {
+    padding: 14px 24px;
+    font-size: 1em;
+  }
+}

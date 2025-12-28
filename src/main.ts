@@ -231,6 +231,44 @@ function attachEvents() {
   
 }
 
+// Mobile tooltip handler - tap elements with title attribute to show modal
+document.addEventListener('click', (e) => {
+   const target = e.target as HTMLElement;
+   const titleEl = target.closest('[title]') as HTMLElement | null;
+   
+   // Only show tooltip modal on touch devices or narrow screens
+   if (titleEl && titleEl.getAttribute('title') && window.innerWidth < 768) {
+       const title = titleEl.getAttribute('title') || '';
+       const label = titleEl.textContent?.trim() || titleEl.getAttribute('aria-label') || 'Info';
+       
+       // Don't intercept if clicking a button's primary action
+       if (target.tagName === 'BUTTON' && !titleEl.classList.contains('equipment-slot') && !titleEl.classList.contains('c-stat') && !titleEl.classList.contains('skill-item')) {
+           return;
+       }
+       
+       e.preventDefault();
+       e.stopPropagation();
+       
+       const overlay = document.createElement('div');
+       overlay.className = 'mobile-tooltip-overlay';
+       overlay.innerHTML = `
+           <div class="mobile-tooltip">
+               <div class="mobile-tooltip-title">${label}</div>
+               <div class="mobile-tooltip-content">${title.replace(/\n/g, '<br>')}</div>
+               <button class="mobile-tooltip-close">Close</button>
+           </div>
+       `;
+       
+       overlay.addEventListener('click', (evt) => {
+           if (evt.target === overlay || (evt.target as HTMLElement).classList.contains('mobile-tooltip-close')) {
+               overlay.remove();
+           }
+       });
+       
+       document.body.appendChild(overlay);
+   }
+});
+
 // Auth Events
 document.addEventListener('click', (e) => {
     const target = e.target as HTMLElement;
