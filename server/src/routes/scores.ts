@@ -4,6 +4,15 @@ import { requireAuth } from '@clerk/express';
 
 const router = Router();
 
+// Privacy: Strip last names from display names (only return first word)
+// This protects users who submitted full names before the client-side fix
+function sanitizeDisplayName(name: string | null): string | null {
+  if (!name) return null;
+  // If name contains a space, only return the first word (first name)
+  const firstWord = name.split(' ')[0];
+  return firstWord || null;
+}
+
 // GET /api/scores - Get leaderboard
 router.get('/', async (req, res) => {
   const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
@@ -17,7 +26,13 @@ router.get('/', async (req, res) => {
       [limit]
     );
 
-    res.json(result.rows);
+    // Sanitize display names before returning (privacy protection)
+    const sanitizedRows = result.rows.map(row => ({
+      ...row,
+      display_name: sanitizeDisplayName(row.display_name)
+    }));
+
+    res.json(sanitizedRows);
   } catch (error) {
     console.error('Error fetching scores:', error);
     res.status(500).json({ error: 'Internal server error' });
