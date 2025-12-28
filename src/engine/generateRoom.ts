@@ -320,12 +320,29 @@ export function generateRoom(state: RunState, rng?: SeededRNG): Room {
         };
         
         // Find a boss-tagged enemy or use the strongest available
-        const bossPool = ENEMIES.filter(e => 
-            e.tags.includes('boss') || e.power >= difficulty.maxPower
+        // Find a suitable boss-tier enemy
+        // Must be at least max tier for this floor, but not overwhelmed (cap at +2 power)
+        // e.g. Floor 1 (Power 1-2) -> Boss (Power 2-4)
+        let potentialBosses = ENEMIES.filter(e => 
+            e.power >= difficulty.maxPower && 
+            e.power <= difficulty.maxPower + 2
         );
-        const bossProto = bossPool.length > 0 
-            ? rng.pick(bossPool) 
-            : ENEMIES.reduce((a, b) => a.power > b.power ? a : b);
+        
+        // If no bosses in that specific range, look slightly lower (elite of current tier)
+        if (potentialBosses.length === 0) {
+            potentialBosses = ENEMIES.filter(e => 
+                e.power >= difficulty.minPower && 
+                e.power <= difficulty.maxPower + 2
+            );
+        }
+        
+        // Filter for preferred tags if possible
+        const preferredBosses = potentialBosses.filter(e => e.tags.includes('boss') || e.tags.includes('elite'));
+        const finalBossPool = preferredBosses.length > 0 ? preferredBosses : potentialBosses;
+        
+        const bossProto = finalBossPool.length > 0
+            ? rng.pick(finalBossPool)
+            : ENEMIES.find(e => e.power === difficulty.maxPower) || ENEMIES[0]; // Fallback to max power of current tier
         
         // Boss scaled 1.3x HP, 1.2x Power (tuned down from 1.5x)
         const bossMultiplier = difficulty.multiplier;
