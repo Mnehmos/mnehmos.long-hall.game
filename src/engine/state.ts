@@ -165,6 +165,18 @@ export function loadGameState(): RunState | null {
           state.combatTurn = 'player';
       }
       
+      // FIX: If in guarded room that was auto-resolved by combat victory (bug), un-resolve it
+      if (state.currentRoom && 
+          (state.currentRoom.type === 'shrine' || state.currentRoom.type === 'hazard') &&
+          state.roomResolved && 
+          state.currentRoom.enemies && // Was a guarded room
+          state.history.some(h => h.includes('Victory!')) && // Combat finished
+          !state.history.some(h => h.includes('blessing') || h.includes('neutralized') || h.includes('triggered'))) { // But no interaction
+          
+          console.log('Repaired premature room resolution: Enabling interaction');
+          state.roomResolved = false;
+      }
+      
       return state;
     }
   } catch (e) {

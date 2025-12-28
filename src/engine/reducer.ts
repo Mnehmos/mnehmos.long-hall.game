@@ -395,7 +395,9 @@ export function gameReducer(state: RunState, action: Action): RunState {
             // Calculate gold reward (5-15 gold, more for bosses)
             const goldReward = state.inBossRoom ? Math.floor(20 + Math.random() * 30) : Math.floor(5 + Math.random() * 11);
             newHistory.push(`Victory! All enemies defeated. +${goldReward} gold.`);
-            roomResolved = true;
+            
+            // Only auto-resolve combat/elite rooms. Shrines/Hazards allow interaction after combat.
+            roomResolved = (room.type === 'combat' || room.type === 'elite');
             
             // BOSS ROOM: Return to intermission with rare+ shrine blessing
             if (state.inBossRoom && state.parentIntermission) {
