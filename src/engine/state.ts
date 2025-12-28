@@ -1,19 +1,11 @@
 import type { RunState, Actor, Role, Item, Room, EquipmentSlot } from "./types";
 import { getAbilitiesForRole } from "../content/abilities";
 import { STARTING_SKILLS, getHitDie } from "../content/classes";
-import { STARTER_EQUIPMENT } from "../content/tables";
+import { STARTER_EQUIPMENT, UNIVERSAL_STARTER, rollStartingWeaponRarity, getStartingWeapon } from "../content/tables";
+import { SeededRNG } from "../core/rng";
+import { hashWithSeed } from "../core/hash";
 
 const SAVE_KEY = "the_long_hall_save";
-
-// Starting weapon for the fighter (kept for backward compatibility with main hero)
-const STARTER_SWORD: Item = {
-  id: "starter_sword",
-  name: "Rusty Sword",
-  type: "weapon",
-  rarity: "common",
-  cost: 5,
-  baseStats: { attackBonus: 0, damageBonus: 1 },
-};
 
 // Room 0: Starting shrine that always grants a boon
 const STARTING_SHRINE: Room = {
@@ -85,12 +77,35 @@ export function createActor(
 }
 
 export function createInitialRunState(seed: string): RunState {
-  // Use RNG to maybe randomize starting gold slightly? Or fixed.
-  // Design says "deterministic".
+  // Use seeded RNG for deterministic starting equipment
+  const rng = new SeededRNG(hashWithSeed(seed, 0));
 
   const hero = createActor("hero-1", "Hero", "fighter");
-  // Equip fighter with starting sword
-  hero.equipment.main_hand = { ...STARTER_SWORD };
+  
+  // Roll for starting weapon rarity (60% common, 25% uncommon, 10% rare, 4% epic, 1% legendary)
+  const weaponRarity = rollStartingWeaponRarity(() => rng.float());
+  const startingWeapon = getStartingWeapon("fighter", weaponRarity);
+  
+  // Equip weapon
+  if (startingWeapon) {
+    hero.equipment.main_hand = { ...startingWeapon, id: `${startingWeapon.id}-hero-1` };
+  }
+  
+  // Equip universal starter gear (leather armor, boots, leggings)
+  UNIVERSAL_STARTER.forEach((item) => {
+    if (!item) return;
+    const slot: EquipmentSlot =
+      item.type === "chest" ? "chest"
+      : item.type === "feet" ? "feet"
+      : item.type === "legs" ? "legs"
+      : (item.type as EquipmentSlot);
+    hero.equipment[slot] = { ...item, id: `${item.id}-hero-1` };
+  });
+  
+  // Build history message about starting gear
+  const weaponMsg = startingWeapon 
+    ? `You found a ${startingWeapon.name} (${weaponRarity})!` 
+    : "You grip your fists, ready to fight.";
 
   return {
     seed,
@@ -116,7 +131,7 @@ export function createInitialRunState(seed: string): RunState {
     victory: false,
     shrineBoon: null,
     mutations: [],
-    history: ["Run started.", "You stand before an ancient shrine..."],
+    history: ["Run started.", weaponMsg, "You stand before an ancient shrine..."],
   };
 }
 

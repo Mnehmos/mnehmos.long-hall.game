@@ -1,4 +1,4 @@
-import type { Item } from '../engine/types';
+    import type { Item } from '../engine/types';
 
 export type RoomType = 'combat' | 'elite' | 'hazard' | 'trader' | 'ally' | 'shrine' | 'intermission';
 
@@ -60,27 +60,146 @@ export const ENEMIES: EnemyDef[] = [
 ];
 
 export const ITEMS: Item[] = [
-    // Weapons (Main Hand)
-    { id: 'sword_common', name: 'Iron Sword', type: 'weapon', rarity: 'common', cost: 15, baseStats: { attackBonus: 1, damageBonus: 1 } },
-    { id: 'axe_common', name: 'Hand Axe', type: 'weapon', rarity: 'common', cost: 12, baseStats: { damageBonus: 2 } },
-    { id: 'staff_common', name: 'Wooden Staff', type: 'weapon', rarity: 'common', cost: 10, baseStats: { attackBonus: 2 } },
-    { id: 'sword_rare', name: 'Steel Longsword', type: 'weapon', rarity: 'uncommon', cost: 30, baseStats: { attackBonus: 2, damageBonus: 2 } },
-    { id: 'dagger_rare', name: 'Assassin Dagger', type: 'weapon', rarity: 'rare', cost: 45, baseStats: { attackBonus: 3, damageBonus: 3 } },
-    
-    // Armor (Chest)
-    { id: 'leather_armor', name: 'Leather Armor', type: 'chest', rarity: 'common', cost: 20, baseStats: { acBonus: 1 } },
-    { id: 'chain_mail', name: 'Chain Mail', type: 'chest', rarity: 'uncommon', cost: 35, baseStats: { acBonus: 2 } },
-    { id: 'plate_armor', name: 'Plate Armor', type: 'chest', rarity: 'rare', cost: 60, baseStats: { acBonus: 3, maxHpBonus: 4 } },
-    
-    // Other Slots (New for Milestone 5)
-    { id: 'helm_iron', name: 'Iron Helm', type: 'head', rarity: 'common', cost: 15, baseStats: { acBonus: 1 } },
-    { id: 'boots_leather', name: 'Leather Boots', type: 'feet', rarity: 'common', cost: 10, baseStats: { maxHpBonus: 2 } },
-    { id: 'shield_wood', name: 'Wooden Shield', type: 'shield', rarity: 'common', cost: 15, baseStats: { acBonus: 1 } },
-    
-    // Trinkets (Rings/Neck)
-    { id: 'ring_vit', name: 'Ring of Vitality', type: 'ring', rarity: 'uncommon', cost: 25, baseStats: { maxHpBonus: 4 } },
-    { id: 'amulet_str', name: 'Amulet of Strength', type: 'neck', rarity: 'rare', cost: 40, baseStats: { damageBonus: 2, attackBonus: 1 } },
-    { id: 'charm_luck', name: 'Lucky Charm', type: 'neck', rarity: 'common', cost: 15, baseStats: { attackBonus: 1 } },
+    // ============================================================================
+    // FIGHTER EQUIPMENT (Swords, Heavy Armor)
+    // ============================================================================
+    // Weapons
+    { id: 'fighter_sword_common', name: 'Iron Sword', type: 'weapon', rarity: 'common', cost: 15, baseStats: { attackBonus: 1, damageBonus: 1 } },
+    { id: 'fighter_sword_uncommon', name: 'Steel Longsword', type: 'weapon', rarity: 'uncommon', cost: 35, baseStats: { attackBonus: 2, damageBonus: 2 } },
+    { id: 'fighter_sword_rare', name: "Knight's Blade", type: 'weapon', rarity: 'rare', cost: 70, baseStats: { attackBonus: 3, damageBonus: 3 } },
+    { id: 'fighter_sword_epic', name: 'Dragonslayer', type: 'weapon', rarity: 'epic', cost: 140, baseStats: { attackBonus: 4, damageBonus: 4 } },
+    { id: 'fighter_sword_legendary', name: 'Excalibur', type: 'weapon', rarity: 'legendary', cost: 280, baseStats: { attackBonus: 5, damageBonus: 5 } },
+    { id: 'fighter_sword_godly', name: 'Godsteel Blade', type: 'weapon', rarity: 'godly', cost: 600, baseStats: { attackBonus: 7, damageBonus: 7 } },
+    // Armor
+    { id: 'fighter_armor_common', name: 'Chainmail', type: 'chest', rarity: 'common', cost: 20, baseStats: { acBonus: 1 } },
+    { id: 'fighter_armor_uncommon', name: 'Plate Armor', type: 'chest', rarity: 'uncommon', cost: 45, baseStats: { acBonus: 2, maxHpBonus: 2 } },
+    { id: 'fighter_armor_rare', name: 'Crusader Plate', type: 'chest', rarity: 'rare', cost: 90, baseStats: { acBonus: 3, maxHpBonus: 4 } },
+    { id: 'fighter_armor_epic', name: 'Dragon Scale', type: 'chest', rarity: 'epic', cost: 180, baseStats: { acBonus: 4, maxHpBonus: 6 } },
+    { id: 'fighter_armor_legendary', name: "Titan's Aegis", type: 'chest', rarity: 'legendary', cost: 350, baseStats: { acBonus: 5, maxHpBonus: 8 } },
+    { id: 'fighter_armor_godly', name: 'Armor of the Valkyrie', type: 'chest', rarity: 'godly', cost: 700, baseStats: { acBonus: 7, maxHpBonus: 12 } },
+
+    // ============================================================================
+    // WIZARD EQUIPMENT (Staffs, Robes)
+    // ============================================================================
+    // Weapons
+    { id: 'wizard_staff_common', name: 'Oak Staff', type: 'weapon', rarity: 'common', cost: 12, baseStats: { attackBonus: 2 } },
+    { id: 'wizard_staff_uncommon', name: 'Arcane Staff', type: 'weapon', rarity: 'uncommon', cost: 30, baseStats: { attackBonus: 3, damageBonus: 1 } },
+    { id: 'wizard_staff_rare', name: 'Staff of Flames', type: 'weapon', rarity: 'rare', cost: 65, baseStats: { attackBonus: 4, damageBonus: 2 } },
+    { id: 'wizard_staff_epic', name: 'Voidwalker Staff', type: 'weapon', rarity: 'epic', cost: 130, baseStats: { attackBonus: 5, damageBonus: 3 } },
+    { id: 'wizard_staff_legendary', name: 'Staff of Infinite Power', type: 'weapon', rarity: 'legendary', cost: 260, baseStats: { attackBonus: 6, damageBonus: 4 } },
+    { id: 'wizard_staff_godly', name: 'Cosmic Conduit', type: 'weapon', rarity: 'godly', cost: 550, baseStats: { attackBonus: 8, damageBonus: 6 } },
+    // Armor
+    { id: 'wizard_robe_common', name: 'Apprentice Robe', type: 'chest', rarity: 'common', cost: 15, baseStats: { maxHpBonus: 2 } },
+    { id: 'wizard_robe_uncommon', name: 'Mage Robe', type: 'chest', rarity: 'uncommon', cost: 35, baseStats: { maxHpBonus: 4, attackBonus: 1 } },
+    { id: 'wizard_robe_rare', name: 'Archmage Vestments', type: 'chest', rarity: 'rare', cost: 75, baseStats: { maxHpBonus: 6, attackBonus: 2 } },
+    { id: 'wizard_robe_epic', name: 'Ethereal Robe', type: 'chest', rarity: 'epic', cost: 150, baseStats: { maxHpBonus: 8, attackBonus: 3 } },
+    { id: 'wizard_robe_legendary', name: 'Robe of the Arcane', type: 'chest', rarity: 'legendary', cost: 300, baseStats: { maxHpBonus: 10, attackBonus: 4 } },
+    { id: 'wizard_robe_godly', name: 'Astral Vestments', type: 'chest', rarity: 'godly', cost: 650, baseStats: { maxHpBonus: 15, attackBonus: 6 } },
+
+    // ============================================================================
+    // ROGUE EQUIPMENT (Daggers, Leather)
+    // ============================================================================
+    // Weapons
+    { id: 'rogue_dagger_common', name: 'Sharp Dagger', type: 'weapon', rarity: 'common', cost: 12, baseStats: { attackBonus: 1, damageBonus: 1 } },
+    { id: 'rogue_dagger_uncommon', name: 'Assassin Blade', type: 'weapon', rarity: 'uncommon', cost: 32, baseStats: { attackBonus: 2, damageBonus: 2 } },
+    { id: 'rogue_dagger_rare', name: 'Shadowstrike', type: 'weapon', rarity: 'rare', cost: 68, baseStats: { attackBonus: 3, damageBonus: 3 } },
+    { id: 'rogue_dagger_epic', name: 'Venom Fang', type: 'weapon', rarity: 'epic', cost: 135, baseStats: { attackBonus: 4, damageBonus: 4 } },
+    { id: 'rogue_dagger_legendary', name: 'Deathwhisper', type: 'weapon', rarity: 'legendary', cost: 270, baseStats: { attackBonus: 5, damageBonus: 5 } },
+    { id: 'rogue_dagger_godly', name: 'Midnight Edge', type: 'weapon', rarity: 'godly', cost: 580, baseStats: { attackBonus: 7, damageBonus: 7 } },
+    // Armor
+    { id: 'rogue_armor_common', name: 'Leather Vest', type: 'chest', rarity: 'common', cost: 18, baseStats: { acBonus: 1 } },
+    { id: 'rogue_armor_uncommon', name: "Thieves' Garb", type: 'chest', rarity: 'uncommon', cost: 40, baseStats: { acBonus: 2 } },
+    { id: 'rogue_armor_rare', name: 'Nightstalker Leather', type: 'chest', rarity: 'rare', cost: 85, baseStats: { acBonus: 3, attackBonus: 1 } },
+    { id: 'rogue_armor_epic', name: "Assassin's Shroud", type: 'chest', rarity: 'epic', cost: 170, baseStats: { acBonus: 4, attackBonus: 2 } },
+    { id: 'rogue_armor_legendary', name: 'Shadow Walker Armor', type: 'chest', rarity: 'legendary', cost: 340, baseStats: { acBonus: 5, attackBonus: 3 } },
+    { id: 'rogue_armor_godly', name: 'Cloak of Invisibility', type: 'chest', rarity: 'godly', cost: 680, baseStats: { acBonus: 7, attackBonus: 5 } },
+
+    // ============================================================================
+    // CLERIC EQUIPMENT (Maces, Vestments)
+    // ============================================================================
+    // Weapons
+    { id: 'cleric_mace_common', name: 'Holy Mace', type: 'weapon', rarity: 'common', cost: 15, baseStats: { attackBonus: 1, damageBonus: 1 } },
+    { id: 'cleric_mace_uncommon', name: 'Blessed Hammer', type: 'weapon', rarity: 'uncommon', cost: 35, baseStats: { attackBonus: 2, damageBonus: 2 } },
+    { id: 'cleric_mace_rare', name: 'Divine Scepter', type: 'weapon', rarity: 'rare', cost: 72, baseStats: { attackBonus: 3, damageBonus: 3 } },
+    { id: 'cleric_mace_epic', name: 'Judgment', type: 'weapon', rarity: 'epic', cost: 145, baseStats: { attackBonus: 4, damageBonus: 4 } },
+    { id: 'cleric_mace_legendary', name: 'Hand of God', type: 'weapon', rarity: 'legendary', cost: 290, baseStats: { attackBonus: 5, damageBonus: 5 } },
+    { id: 'cleric_mace_godly', name: "Heaven's Wrath", type: 'weapon', rarity: 'godly', cost: 620, baseStats: { attackBonus: 7, damageBonus: 7 } },
+    // Armor
+    { id: 'cleric_armor_common', name: 'Clerical Robe', type: 'chest', rarity: 'common', cost: 18, baseStats: { maxHpBonus: 3 } },
+    { id: 'cleric_armor_uncommon', name: 'Priest Vestments', type: 'chest', rarity: 'uncommon', cost: 42, baseStats: { maxHpBonus: 5, acBonus: 1 } },
+    { id: 'cleric_armor_rare', name: 'Holy Raiment', type: 'chest', rarity: 'rare', cost: 88, baseStats: { maxHpBonus: 7, acBonus: 2 } },
+    { id: 'cleric_armor_epic', name: 'Blessed Plate', type: 'chest', rarity: 'epic', cost: 175, baseStats: { maxHpBonus: 9, acBonus: 3 } },
+    { id: 'cleric_armor_legendary', name: 'Divine Aegis', type: 'chest', rarity: 'legendary', cost: 360, baseStats: { maxHpBonus: 12, acBonus: 4 } },
+    { id: 'cleric_armor_godly', name: 'Celestial Vestments', type: 'chest', rarity: 'godly', cost: 720, baseStats: { maxHpBonus: 18, acBonus: 6 } },
+
+    // ============================================================================
+    // RANGER EQUIPMENT (Bows, Cloaks)
+    // ============================================================================
+    // Weapons
+    { id: 'ranger_bow_common', name: 'Short Bow', type: 'weapon', rarity: 'common', cost: 14, baseStats: { attackBonus: 2 } },
+    { id: 'ranger_bow_uncommon', name: 'Longbow', type: 'weapon', rarity: 'uncommon', cost: 34, baseStats: { attackBonus: 3, damageBonus: 1 } },
+    { id: 'ranger_bow_rare', name: 'Elven Bow', type: 'weapon', rarity: 'rare', cost: 70, baseStats: { attackBonus: 4, damageBonus: 2 } },
+    { id: 'ranger_bow_epic', name: 'Windpiercer', type: 'weapon', rarity: 'epic', cost: 140, baseStats: { attackBonus: 5, damageBonus: 3 } },
+    { id: 'ranger_bow_legendary', name: 'Heartseeker', type: 'weapon', rarity: 'legendary', cost: 280, baseStats: { attackBonus: 6, damageBonus: 4 } },
+    { id: 'ranger_bow_godly', name: 'Star Shot', type: 'weapon', rarity: 'godly', cost: 600, baseStats: { attackBonus: 8, damageBonus: 6 } },
+    // Armor
+    { id: 'ranger_armor_common', name: 'Ranger Cloak', type: 'chest', rarity: 'common', cost: 16, baseStats: { acBonus: 1 } },
+    { id: 'ranger_armor_uncommon', name: "Hunter's Mail", type: 'chest', rarity: 'uncommon', cost: 38, baseStats: { acBonus: 2 } },
+    { id: 'ranger_armor_rare', name: 'Woodland Armor', type: 'chest', rarity: 'rare', cost: 80, baseStats: { acBonus: 3, attackBonus: 1 } },
+    { id: 'ranger_armor_epic', name: 'Beast Hunter Gear', type: 'chest', rarity: 'epic', cost: 160, baseStats: { acBonus: 4, attackBonus: 2 } },
+    { id: 'ranger_armor_legendary', name: "Nature's Warden", type: 'chest', rarity: 'legendary', cost: 320, baseStats: { acBonus: 5, attackBonus: 3 } },
+    { id: 'ranger_armor_godly', name: 'Avatar of the Wild', type: 'chest', rarity: 'godly', cost: 660, baseStats: { acBonus: 7, attackBonus: 5 } },
+
+    // ============================================================================
+    // UNIVERSAL ACCESSORIES (Head, Shield, Ring, Neck, Feet, Legs)
+    // ============================================================================
+    // HEAD
+    { id: 'helm_common', name: 'Iron Helm', type: 'head', rarity: 'common', cost: 15, baseStats: { acBonus: 1 } },
+    { id: 'helm_uncommon', name: 'Steel Helm', type: 'head', rarity: 'uncommon', cost: 35, baseStats: { acBonus: 2 } },
+    { id: 'helm_rare', name: "Knight's Helm", type: 'head', rarity: 'rare', cost: 70, baseStats: { acBonus: 3 } },
+    { id: 'helm_epic', name: 'Dragon Helm', type: 'head', rarity: 'epic', cost: 140, baseStats: { acBonus: 4, maxHpBonus: 4 } },
+    { id: 'helm_legendary', name: 'Crown of Kings', type: 'head', rarity: 'legendary', cost: 280, baseStats: { acBonus: 5, maxHpBonus: 6 } },
+    { id: 'helm_godly', name: 'Halo of Divinity', type: 'head', rarity: 'godly', cost: 580, baseStats: { acBonus: 7, maxHpBonus: 10 } },
+
+    // SHIELD
+    { id: 'shield_common', name: 'Wooden Shield', type: 'shield', rarity: 'common', cost: 15, baseStats: { acBonus: 1 } },
+    { id: 'shield_uncommon', name: 'Iron Shield', type: 'shield', rarity: 'uncommon', cost: 35, baseStats: { acBonus: 2 } },
+    { id: 'shield_rare', name: 'Tower Shield', type: 'shield', rarity: 'rare', cost: 72, baseStats: { acBonus: 3, maxHpBonus: 2 } },
+    { id: 'shield_epic', name: 'Aegis', type: 'shield', rarity: 'epic', cost: 145, baseStats: { acBonus: 4, maxHpBonus: 4 } },
+    { id: 'shield_legendary', name: 'Bulwark', type: 'shield', rarity: 'legendary', cost: 290, baseStats: { acBonus: 5, maxHpBonus: 6 } },
+    { id: 'shield_godly', name: 'Shield of the Gods', type: 'shield', rarity: 'godly', cost: 600, baseStats: { acBonus: 7, maxHpBonus: 10 } },
+
+    // RING
+    { id: 'ring_common', name: 'Ring of Vigor', type: 'ring', rarity: 'common', cost: 18, baseStats: { maxHpBonus: 2 } },
+    { id: 'ring_uncommon', name: 'Ring of Power', type: 'ring', rarity: 'uncommon', cost: 40, baseStats: { maxHpBonus: 4, damageBonus: 1 } },
+    { id: 'ring_rare', name: 'Ring of Mastery', type: 'ring', rarity: 'rare', cost: 85, baseStats: { maxHpBonus: 6, damageBonus: 2 } },
+    { id: 'ring_epic', name: 'Ring of Legends', type: 'ring', rarity: 'epic', cost: 170, baseStats: { maxHpBonus: 8, damageBonus: 3, attackBonus: 1 } },
+    { id: 'ring_legendary', name: 'Ring of Eternity', type: 'ring', rarity: 'legendary', cost: 340, baseStats: { maxHpBonus: 10, damageBonus: 4, attackBonus: 2 } },
+    { id: 'ring_godly', name: 'Godring', type: 'ring', rarity: 'godly', cost: 700, baseStats: { maxHpBonus: 15, damageBonus: 6, attackBonus: 4 } },
+
+    // NECK
+    { id: 'neck_common', name: 'Lucky Charm', type: 'neck', rarity: 'common', cost: 15, baseStats: { attackBonus: 1 } },
+    { id: 'neck_uncommon', name: 'Amulet of Strength', type: 'neck', rarity: 'uncommon', cost: 38, baseStats: { attackBonus: 1, damageBonus: 2 } },
+    { id: 'neck_rare', name: 'Amulet of Power', type: 'neck', rarity: 'rare', cost: 78, baseStats: { attackBonus: 2, damageBonus: 3 } },
+    { id: 'neck_epic', name: 'Heart of the Dragon', type: 'neck', rarity: 'epic', cost: 160, baseStats: { attackBonus: 3, damageBonus: 4, maxHpBonus: 4 } },
+    { id: 'neck_legendary', name: 'Star of Souls', type: 'neck', rarity: 'legendary', cost: 320, baseStats: { attackBonus: 4, damageBonus: 5, maxHpBonus: 6 } },
+    { id: 'neck_godly', name: 'Divine Pendant', type: 'neck', rarity: 'godly', cost: 680, baseStats: { attackBonus: 6, damageBonus: 7, maxHpBonus: 10 } },
+
+    // FEET
+    { id: 'boots_common', name: 'Leather Boots', type: 'feet', rarity: 'common', cost: 12, baseStats: { maxHpBonus: 2 } },
+    { id: 'boots_uncommon', name: 'Iron Boots', type: 'feet', rarity: 'uncommon', cost: 30, baseStats: { maxHpBonus: 4 } },
+    { id: 'boots_rare', name: 'Boots of Speed', type: 'feet', rarity: 'rare', cost: 65, baseStats: { maxHpBonus: 6, attackBonus: 1 } },
+    { id: 'boots_epic', name: 'Boots of Flight', type: 'feet', rarity: 'epic', cost: 130, baseStats: { maxHpBonus: 8, attackBonus: 2 } },
+    { id: 'boots_legendary', name: 'Winged Boots', type: 'feet', rarity: 'legendary', cost: 260, baseStats: { maxHpBonus: 10, attackBonus: 3 } },
+    { id: 'boots_godly', name: 'Boots of the Cosmos', type: 'feet', rarity: 'godly', cost: 550, baseStats: { maxHpBonus: 15, attackBonus: 5 } },
+
+    // LEGS
+    { id: 'legs_common', name: 'Leather Leggings', type: 'legs', rarity: 'common', cost: 14, baseStats: { acBonus: 1 } },
+    { id: 'legs_uncommon', name: 'Chain Leggings', type: 'legs', rarity: 'uncommon', cost: 32, baseStats: { acBonus: 2 } },
+    { id: 'legs_rare', name: 'Plated Greaves', type: 'legs', rarity: 'rare', cost: 68, baseStats: { acBonus: 3, maxHpBonus: 2 } },
+    { id: 'legs_epic', name: 'Dragon Greaves', type: 'legs', rarity: 'epic', cost: 135, baseStats: { acBonus: 4, maxHpBonus: 4 } },
+    { id: 'legs_legendary', name: "Titan's Legguards", type: 'legs', rarity: 'legendary', cost: 270, baseStats: { acBonus: 5, maxHpBonus: 6 } },
+    { id: 'legs_godly', name: 'Celestial Greaves', type: 'legs', rarity: 'godly', cost: 580, baseStats: { acBonus: 7, maxHpBonus: 10 } },
 ];
 
 // Recruits available for hire at intermission
@@ -143,14 +262,54 @@ export function getItemTotalStats(item: Item): { attackBonus: number; damageBonu
 // MONSTER DROP TABLES
 // ============================================================================
 
-// Item drop configuration by enemy power tier
+// Item drop configuration by enemy power tier and source type
+// All classes' weapons + universal accessories in pools
+const COMMON_POOL = [
+    'fighter_sword_common', 'wizard_staff_common', 'rogue_dagger_common', 'cleric_mace_common', 'ranger_bow_common',
+    'fighter_armor_common', 'wizard_robe_common', 'rogue_armor_common', 'cleric_armor_common', 'ranger_armor_common',
+    'helm_common', 'shield_common', 'ring_common', 'neck_common', 'boots_common', 'legs_common'
+];
+const UNCOMMON_POOL = [
+    'fighter_sword_uncommon', 'wizard_staff_uncommon', 'rogue_dagger_uncommon', 'cleric_mace_uncommon', 'ranger_bow_uncommon',
+    'fighter_armor_uncommon', 'wizard_robe_uncommon', 'rogue_armor_uncommon', 'cleric_armor_uncommon', 'ranger_armor_uncommon',
+    'helm_uncommon', 'shield_uncommon', 'ring_uncommon', 'neck_uncommon', 'boots_uncommon', 'legs_uncommon'
+];
+const RARE_POOL = [
+    'fighter_sword_rare', 'wizard_staff_rare', 'rogue_dagger_rare', 'cleric_mace_rare', 'ranger_bow_rare',
+    'fighter_armor_rare', 'wizard_robe_rare', 'rogue_armor_rare', 'cleric_armor_rare', 'ranger_armor_rare',
+    'helm_rare', 'shield_rare', 'ring_rare', 'neck_rare', 'boots_rare', 'legs_rare'
+];
+const EPIC_POOL = [
+    'fighter_sword_epic', 'wizard_staff_epic', 'rogue_dagger_epic', 'cleric_mace_epic', 'ranger_bow_epic',
+    'fighter_armor_epic', 'wizard_robe_epic', 'rogue_armor_epic', 'cleric_armor_epic', 'ranger_armor_epic',
+    'helm_epic', 'shield_epic', 'ring_epic', 'neck_epic', 'boots_epic', 'legs_epic'
+];
+const LEGENDARY_POOL = [
+    'fighter_sword_legendary', 'wizard_staff_legendary', 'rogue_dagger_legendary', 'cleric_mace_legendary', 'ranger_bow_legendary',
+    'fighter_armor_legendary', 'wizard_robe_legendary', 'rogue_armor_legendary', 'cleric_armor_legendary', 'ranger_armor_legendary',
+    'helm_legendary', 'shield_legendary', 'ring_legendary', 'neck_legendary', 'boots_legendary', 'legs_legendary'
+];
+const GODLY_POOL = [
+    'fighter_sword_godly', 'wizard_staff_godly', 'rogue_dagger_godly', 'cleric_mace_godly', 'ranger_bow_godly',
+    'fighter_armor_godly', 'wizard_robe_godly', 'rogue_armor_godly', 'cleric_armor_godly', 'ranger_armor_godly',
+    'helm_godly', 'shield_godly', 'ring_godly', 'neck_godly', 'boots_godly', 'legs_godly'
+];
+
 export const DROP_TABLES = {
-    // Power 1-2: 5% chance for common items
-    low: { chance: 0.05, pool: ['sword_common', 'axe_common', 'staff_common', 'leather_armor', 'helm_iron', 'boots_leather', 'shield_wood'] },
-    // Power 3-4: 10% chance, uncommon possible
-    mid: { chance: 0.10, pool: ['sword_rare', 'chain_mail', 'ring_vit', 'charm_luck'] },
-    // Power 5+: 15% chance, rare possible
-    high: { chance: 0.15, pool: ['dagger_rare', 'plate_armor', 'amulet_str'] }
+    // Power 1-2: 8% chance, common only
+    low: { chance: 0.08, pool: COMMON_POOL },
+    // Power 3-4: 12% chance, common + uncommon
+    mid: { chance: 0.12, pool: [...COMMON_POOL, ...UNCOMMON_POOL] },
+    // Power 5+: 15% chance, uncommon + rare
+    high: { chance: 0.15, pool: [...UNCOMMON_POOL, ...RARE_POOL] },
+    // Elites: 25% chance, rare + epic
+    elite: { chance: 0.25, pool: [...RARE_POOL, ...EPIC_POOL] },
+    // Bosses: 50% chance, epic + legendary (+ small godly chance handled separately)
+    boss: { chance: 0.50, pool: [...EPIC_POOL, ...LEGENDARY_POOL] },
+    // Shrines: 30% chance, rare to legendary weighted toward higher
+    shrine: { chance: 0.30, pool: [...RARE_POOL, ...EPIC_POOL, ...LEGENDARY_POOL] },
+    // Godly: separate 2% chance from any high-tier source
+    godly: { chance: 0.02, pool: GODLY_POOL }
 };
 
 /**
@@ -179,25 +338,79 @@ export function getDropForEnemy(enemyPower: number, rng: () => number): Item | n
 // STARTER EQUIPMENT BY ROLE
 // ============================================================================
 
-// Role-appropriate starting equipment for recruits
+// Common leather armor and boots for all new characters
+export const UNIVERSAL_STARTER: Item[] = [
+    ITEMS.find(i => i.id === 'rogue_armor_common')!, // Leather Vest
+    ITEMS.find(i => i.id === 'boots_common')!,       // Leather Boots
+    ITEMS.find(i => i.id === 'legs_common')!,        // Leather Leggings
+];
+
+// Role-appropriate starting WEAPON only (armor comes from UNIVERSAL_STARTER)
+export const STARTER_WEAPONS: Record<string, string> = {
+    fighter: 'fighter_sword',
+    wizard: 'wizard_staff',
+    rogue: 'rogue_dagger',
+    cleric: 'cleric_mace',
+    ranger: 'ranger_bow',
+};
+
+// Rarity weights for starting weapon roll
+const STARTING_WEAPON_WEIGHTS = [
+    { rarity: 'common', weight: 60 },
+    { rarity: 'uncommon', weight: 25 },
+    { rarity: 'rare', weight: 10 },
+    { rarity: 'epic', weight: 4 },
+    { rarity: 'legendary', weight: 1 },
+    // godly: 0 - can't start with godly
+];
+
+/**
+ * Roll for starting weapon rarity.
+ * Returns a rarity string based on weighted random roll.
+ */
+export function rollStartingWeaponRarity(rng: () => number): 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' {
+    const totalWeight = STARTING_WEAPON_WEIGHTS.reduce((sum, w) => sum + w.weight, 0);
+    let roll = rng() * totalWeight;
+    
+    for (const entry of STARTING_WEAPON_WEIGHTS) {
+        roll -= entry.weight;
+        if (roll <= 0) {
+            return entry.rarity as 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+        }
+    }
+    return 'common'; // Fallback
+}
+
+/**
+ * Get the starting weapon for a role at a specific rarity.
+ */
+export function getStartingWeapon(role: string, rarity: string): Item | null {
+    const baseId = STARTER_WEAPONS[role];
+    if (!baseId) return null;
+    
+    const itemId = `${baseId}_${rarity}`;
+    return ITEMS.find(i => i.id === itemId) || null;
+}
+
+// Legacy STARTER_EQUIPMENT for recruits (they get common weapon + armor)
 export const STARTER_EQUIPMENT: Record<string, Item[]> = {
     fighter: [
-        { id: 'starter_sword', name: 'Iron Sword', type: 'weapon', rarity: 'common', cost: 15, baseStats: { attackBonus: 1, damageBonus: 1 } },
-        { id: 'starter_shield', name: 'Wooden Shield', type: 'shield', rarity: 'common', cost: 10, baseStats: { acBonus: 1 } }
+        ITEMS.find(i => i.id === 'fighter_sword_common')!,
+        ITEMS.find(i => i.id === 'shield_common')!
     ],
     wizard: [
-        { id: 'starter_staff', name: 'Oak Staff', type: 'weapon', rarity: 'common', cost: 10, baseStats: { attackBonus: 2 } }
+        ITEMS.find(i => i.id === 'wizard_staff_common')!
     ],
     rogue: [
-        { id: 'starter_dagger', name: 'Sharp Dagger', type: 'weapon', rarity: 'common', cost: 12, baseStats: { attackBonus: 1, damageBonus: 1 } },
-        { id: 'starter_leather', name: 'Leather Vest', type: 'chest', rarity: 'common', cost: 15, baseStats: { acBonus: 1 } }
+        ITEMS.find(i => i.id === 'rogue_dagger_common')!,
+        ITEMS.find(i => i.id === 'rogue_armor_common')!
     ],
     cleric: [
-        { id: 'starter_mace', name: 'Holy Mace', type: 'weapon', rarity: 'common', cost: 15, baseStats: { attackBonus: 1, damageBonus: 1 } },
-        { id: 'starter_robe', name: 'Clerical Robe', type: 'chest', rarity: 'common', cost: 12, baseStats: { maxHpBonus: 2 } }
+        ITEMS.find(i => i.id === 'cleric_mace_common')!,
+        ITEMS.find(i => i.id === 'cleric_armor_common')!
     ],
     ranger: [
-        { id: 'starter_bow', name: 'Short Bow', type: 'weapon', rarity: 'common', cost: 15, baseStats: { attackBonus: 2 } },
-        { id: 'starter_cloak', name: 'Ranger Cloak', type: 'chest', rarity: 'common', cost: 10, baseStats: { acBonus: 1 } }
+        ITEMS.find(i => i.id === 'ranger_bow_common')!,
+        ITEMS.find(i => i.id === 'ranger_armor_common')!
     ]
 };

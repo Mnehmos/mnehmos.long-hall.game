@@ -90,7 +90,7 @@ body {
   color: var(--text-secondary);
   margin-top: 8px;
   padding: 4px;
-  background: rgba(0,0,0,0.3);
+  background: rgba(0, 0, 0, 0.3);
   border-radius: 4px;
 }
 
@@ -465,8 +465,12 @@ li:last-child {
   animation: pulse 0.5s ease-in-out infinite alternate;
 }
 @keyframes pulse {
-  from { opacity: 0.7; }
-  to { opacity: 1; }
+  from {
+    opacity: 0.7;
+  }
+  to {
+    opacity: 1;
+  }
 }
 .member-actions.acted {
   opacity: 0.6;
@@ -544,9 +548,15 @@ li:last-child {
   min-width: 24px;
 }
 
-.highscore-rank.gold { color: #ffd700; }
-.highscore-rank.silver { color: #c0c0c0; }
-.highscore-rank.bronze { color: #cd7f32; }
+.highscore-rank.gold {
+  color: #ffd700;
+}
+.highscore-rank.silver {
+  color: #c0c0c0;
+}
+.highscore-rank.bronze {
+  color: #cd7f32;
+}
 
 .highscore-name {
   color: var(--text-secondary);
@@ -1503,31 +1513,36 @@ li:last-child {
     padding: 12px 16px;
     font-size: 1rem;
   }
-  
+
   .btn-sm {
     min-height: 40px;
     padding: 10px 16px;
     font-size: 0.9em;
   }
-  
-  .btn-equip-to, .btn-buy, .btn-hire {
+
+  .btn-equip-to,
+  .btn-buy,
+  .btn-hire {
     min-height: 44px;
     padding: 12px 16px;
     font-size: 0.9em;
   }
-  
+
   .btn-attack {
     padding: 14px 20px;
     font-size: 1em;
   }
-  
+
   .btn-ability {
     padding: 12px 16px;
     min-height: 44px;
   }
-  
+
   /* Icon buttons need to be tappable */
-  .btn-icon, .btn-stat-up, .btn-rename, .btn-unequip {
+  .btn-icon,
+  .btn-stat-up,
+  .btn-rename,
+  .btn-unequip {
     min-width: 44px;
     min-height: 44px;
     font-size: 1.2em;
@@ -1535,71 +1550,74 @@ li:last-child {
     align-items: center;
     justify-content: center;
   }
-  
+
   /* Equipment slots - tappable to see stats */
   .equipment-slot {
     min-height: 60px;
     padding: 8px 12px;
     cursor: pointer;
   }
-  
+
   /* Combat stats - tappable for breakdown */
   .c-stat {
     min-height: 44px;
     padding: 10px 14px;
     cursor: pointer;
   }
-  
+
   /* Skill items - tappable */
   .skill-item {
     min-height: 44px;
     cursor: pointer;
   }
-  
+
   /* Actions container - stack on mobile */
   .actions {
     flex-direction: column;
     gap: 8px;
   }
-  
+
   .actions button {
     width: 100%;
   }
-  
+
   /* Combat targets - wrap better */
-  .combat-targets, .member-targets, .member-abilities {
+  .combat-targets,
+  .member-targets,
+  .member-abilities {
     gap: 8px;
   }
-  
+
   /* Shop items - full width on very small screens */
-  .shop-item, .recruit-card {
+  .shop-item,
+  .recruit-card {
     min-width: 100%;
   }
-  
+
   /* Better mobile layout */
   #app {
     grid-template-columns: 1fr;
     padding: 8px;
     gap: 8px;
   }
-  
+
   /* Stack header elements */
   .header-top {
     flex-direction: column;
     gap: 12px;
   }
-  
+
   .header-controls {
     width: 100%;
     justify-content: center;
     flex-wrap: wrap;
   }
-  
+
   /* Hide party nav hint on mobile (uses Tab key) */
   .party-nav-hint {
     display: none;
   }
-  
+
   /* Sidebar becomes horizontal scrollable party bar */
   #app > .sidebar-left {
     position: fixed;
@@ -1618,67 +1636,67 @@ li:last-child {
     border-top: 2px solid var(--primary-color);
     background: var(--bg-color);
   }
-  
+
   .sidebar-member {
     min-width: 80px;
     flex-shrink: 0;
     margin-bottom: 0;
   }
-  
+
   /* Add bottom padding to main content for fixed party bar */
   #app > .main-content {
     padding-bottom: 120px;
   }
-  
+
   /* History panel - collapsible or smaller */
   #app > .history {
     max-height: 150px;
   }
-  
+
   /* Room container - less padding */
   .room-container {
     padding: 16px;
     min-height: auto;
   }
-  
+
   /* Panels - single column */
   .panels {
     grid-template-columns: 1fr;
   }
-  
+
   /* Hero panel - more compact */
   .hero-panel {
     padding: 12px;
   }
-  
+
   .hero-panel .ascii-art {
     font-size: 9px;
   }
-  
+
   .paper-doll-grid {
     font-size: 0.65em;
   }
-  
+
   .equipment-slot {
     min-width: 50px;
   }
-  
+
   /* Skills grid - 2 columns on mobile */
   .skills-grid {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   /* Combat panel - tighter */
   .member-actions {
     padding: 8px;
   }
-  
+
   /* Enemy cards - smaller */
   .enemy-card {
     min-width: 100px;
     padding: 8px;
   }
-  
+
   /* Stats in header - scrollable */
   .stats {
     overflow-x: auto;
@@ -1692,22 +1710,23 @@ li:last-child {
   .header h1 {
     font-size: 1.2rem;
   }
-  
+
   .stats span {
     font-size: 0.8em;
     padding: 4px 8px;
   }
-  
+
   .hero-panel .ascii-art {
     font-size: 8px;
   }
-  
+
   .skills-grid {
     grid-template-columns: 1fr 1fr;
     font-size: 0.85em;
   }
-  
-  .btn-restart, .btn-continue {
+
+  .btn-restart,
+  .btn-continue {
     padding: 14px 24px;
     font-size: 1em;
   }
@@ -1810,9 +1829,15 @@ li:last-child {
   text-align: center;
 }
 
-.score-table .rank.gold { color: #ffd700; }
-.score-table .rank.silver { color: #c0c0c0; }
-.score-table .rank.bronze { color: #cd7f32; }
+.score-table .rank.gold {
+  color: #ffd700;
+}
+.score-table .rank.silver {
+  color: #c0c0c0;
+}
+.score-table .rank.bronze {
+  color: #cd7f32;
+}
 
 .score-table .player-name {
   color: var(--text-primary);
@@ -1837,11 +1862,51 @@ li:last-child {
 }
 
 /* Weapon rarity colors */
-.rarity-common { color: #888; }
-.rarity-uncommon { color: #2ecc71; }
-.rarity-rare { color: #3498db; }
-.rarity-legendary { color: #f39c12; }
-.rarity-mythic { color: #9b59b6; }
+.rarity-common,
+.common {
+  color: #888;
+}
+.rarity-uncommon,
+.uncommon {
+  color: #2ecc71;
+}
+.rarity-rare,
+.rare {
+  color: #3498db;
+}
+.rarity-epic,
+.epic {
+  color: #9b59b6;
+}
+.rarity-legendary,
+.legendary {
+  color: #f39c12;
+}
+.rarity-godly,
+.godly {
+  color: #ff6b6b;
+  text-shadow: 0 0 10px #ff6b6b, 0 0 20px #ffd93d;
+  animation: godly-glow 2s ease-in-out infinite;
+}
+
+@keyframes godly-glow {
+  0%,
+  100% {
+    text-shadow: 0 0 10px #ff6b6b, 0 0 20px #ffd93d;
+  }
+  50% {
+    text-shadow: 0 0 15px #6bcbff, 0 0 30px #ff6b6b;
+  }
+}
+
+/* Shop item border colors by rarity */
+.shop-item.epic {
+  border-color: #9b59b6;
+}
+.shop-item.godly {
+  border-color: #ff6b6b;
+  box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+}
 
 /* Mobile responsive tabs */
 @media (max-width: 600px) {
@@ -1851,30 +1916,30 @@ li:last-child {
     margin: 8px;
     border-radius: 8px;
   }
-  
+
   .leaderboard-tabs {
     gap: 4px;
   }
-  
+
   .tab-btn {
     padding: 6px 8px;
     font-size: 0.8em;
   }
-  
+
   .tab-btn .tab-label {
     display: none;
   }
-  
+
   .tab-btn.active .tab-label {
     display: inline;
   }
-  
+
   .score-table th,
   .score-table td {
     padding: 8px 6px;
     font-size: 0.9em;
   }
-  
+
   .score-table .rank {
     width: 30px;
   }
@@ -1885,7 +1950,7 @@ li:last-child {
     padding: 8px 6px;
     font-size: 1em;
   }
-  
+
   .tab-btn .tab-label {
     display: none;
   }

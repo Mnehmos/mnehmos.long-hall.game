@@ -126,7 +126,7 @@ export interface Item {
   name: string;
   customName?: string; // Player-given name
   type: 'weapon' | 'armor' | 'ring' | 'shield' | 'neck' | 'feet' | 'legs' | 'head' | 'chest'; // TODO: match EquipmentSlot keys properly or keep mapped
-  rarity: 'common' | 'uncommon' | 'rare' | 'legendary' | 'mythic';
+  rarity: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'godly';
   cost: number;
   baseStats: {
     attackBonus?: number;
