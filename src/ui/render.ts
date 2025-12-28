@@ -511,14 +511,14 @@ export function renderGame(state: RunState): string {
     const dmgBonus = skillDmgBonus + equipDmgBonus;
     const ac = 10 + skills.defense + equipAcBonus;
 
-    // Build breakdown tooltips with vertical per-item details (use \\n for newlines in title)
+    // Build breakdown tooltips with vertical per-item details (use \n for newlines in title)
     const atkBreakdown = atkBreakdownLines.length > 0 
-        ? `ATTACK BONUS: +${atkBonus}\\n─────────────\\n${atkBreakdownLines.join('\\n')}`
-        : `ATTACK BONUS: +${atkBonus}\\n(no bonuses)`;
+        ? `ATTACK BONUS: +${atkBonus}\n─────────────\n${atkBreakdownLines.join('\n')}`
+        : `ATTACK BONUS: +${atkBonus}\n(no bonuses)`;
     const dmgBreakdown = dmgBreakdownLines.length > 0 
-        ? `DAMAGE BONUS: +${dmgBonus}\\n─────────────\\n${dmgBreakdownLines.join('\\n')}`
-        : `DAMAGE BONUS: +${dmgBonus}\\n(no bonuses)`;
-    const acBreakdown = `ARMOR CLASS: ${ac}\\n────────────\\n${acBreakdownLines.join('\\n')}`;
+        ? `DAMAGE BONUS: +${dmgBonus}\n─────────────\n${dmgBreakdownLines.join('\n')}`
+        : `DAMAGE BONUS: +${dmgBonus}\n(no bonuses)`;
+    const acBreakdown = `ARMOR CLASS: ${ac}\n────────────\n${acBreakdownLines.join('\n')}`;
 
     const typeIcon = type === 'ranged' ? '🏹' : type === 'magic' ? '✨' : '⚔️';
     
@@ -527,13 +527,13 @@ export function renderGame(state: RunState): string {
     const skillKeys: (keyof typeof skills)[] = ['strength', 'attack', 'defense', 'magic', 'ranged', 'faith', 'agility'];
     const shortNames = { strength: 'STR', attack: 'ATK', defense: 'DEF', magic: 'MAG', ranged: 'RNG', faith: 'FTH', agility: 'AGI' };
     const skillDescriptions: Record<string, string> = {
-        strength: 'STRENGTH\\n+Melee damage bonus\\nIncreases damage dealt with swords, axes, maces',
-        attack: 'ATTACK\\n+Melee hit chance\\nIncreases accuracy with melee weapons',
-        defense: 'DEFENSE\\n+Armor Class (AC)\\nMakes you harder to hit',
-        magic: 'MAGIC\\n+Spell hit & damage\\nIncreases staff/wand attacks and spell power',
-        ranged: 'RANGED\\n+Ranged hit & damage\\nIncreases bow/crossbow accuracy and damage',
-        faith: 'FAITH\\n+Healing & shrine luck\\nBetter heals and higher chance of rare shrine boons',
-        agility: 'AGILITY\\n+Escape chance & initiative\\nBetter odds to flee and act first'
+        strength: 'STRENGTH\n+Melee damage bonus\nIncreases damage dealt with swords, axes, maces',
+        attack: 'ATTACK\n+Melee hit chance\nIncreases accuracy with melee weapons',
+        defense: 'DEFENSE\n+Armor Class (AC)\nMakes you harder to hit',
+        magic: 'MAGIC\n+Spell hit & damage\nIncreases staff/wand attacks and spell power',
+        ranged: 'RANGED\n+Ranged hit & damage\nIncreases bow/crossbow accuracy and damage',
+        faith: 'FAITH\n+Healing & shrine luck\nBetter heals and higher chance of rare shrine boons',
+        agility: 'AGILITY\n+Escape chance & initiative\nBetter odds to flee and act first'
     };
     
     skillKeys.forEach(key => {

@@ -934,16 +934,37 @@ export function gameReducer(state: RunState, action: Action): RunState {
                         }
                     }
 
+                    // MERGE / STACK LOGIC
+                    // If upgrading, stack the stats on top of existing ones
+                    if (isUpgrade && target.item.enchantment) {
+                        const oldEffect = target.item.enchantment.effect;
+                        
+                        // Add new bonuses to old bonuses
+                        if (effect.attackBonus) effect.attackBonus = (oldEffect.attackBonus || 0) + effect.attackBonus;
+                        if (effect.damageBonus) effect.damageBonus = (oldEffect.damageBonus || 0) + effect.damageBonus;
+                        if (effect.acBonus) effect.acBonus = (oldEffect.acBonus || 0) + effect.acBonus;
+                        if (effect.maxHpBonus) effect.maxHpBonus = (oldEffect.maxHpBonus || 0) + effect.maxHpBonus;
+                        
+                        // Keep the highest tier for coloring purposes, or upgrades tier
+                        // Use calculated 'tier' from above which is already max(old+1, new)
+                    }
+
                     // Get base item name (remove old suffix if upgrading)
                     // Use customName if player renamed the item, otherwise use original name
                     const originalBaseName = target.item.enchantment
                         ? target.item.name.replace(/ of .*$/, '').replace(/ God.*$/, '')
                         : target.item.name;
+                    // For stacked blessings, we keep the new suffix as the "primary" name descriptor
+                    // but the stats are stacked.
+                    
                     const displayBaseName = target.item.customName || originalBaseName;
 
                     // Add to item history
                     const itemHistory = [...(target.item.history || [])];
-                    if (isUpgrade) {
+                    if (isUpgrade && target.item.enchantment) {
+                         // Describe stacking
+                         itemHistory.push(`Stacked with ${tierName} enchantment (Total Tier ${tier})`);
+                    } else if (isUpgrade) {
                         itemHistory.push(`Upgraded to ${tierName} at shrine`);
                     } else {
                         itemHistory.push(`Blessed with ${tierName} enchantment`);
