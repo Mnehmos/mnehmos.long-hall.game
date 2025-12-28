@@ -757,7 +757,7 @@ function renderRoomContent(room: any, state: RunState): string {
     }
     
     // Combat rooms - show cleared state or active enemies
-    if (room.type === 'combat' || room.type === 'elite') {
+    if (room.type === 'combat' || room.type === 'elite' || room.type === 'boss') {
         if (state.roomResolved || room.enemies.length === 0) {
             // Room cleared - victory state
             return `
