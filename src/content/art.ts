@@ -534,8 +534,9 @@ export const UI_ELEMENTS = {
  * @param width Width of the bar in characters
  */
 export function renderHpBar(current: number, max: number, width: number = 10): string {
-  const filled = Math.round((current / max) * width);
-  const empty = width - filled;
+  const pct = Math.max(0, Math.min(1, current / Math.max(1, max)));
+  const filled = Math.round(pct * width);
+  const empty = Math.max(0, width - filled);
   return '[' + UI_ELEMENTS.hp_full.repeat(filled) + UI_ELEMENTS.hp_empty.repeat(empty) + ']';
 }
 
@@ -554,8 +555,9 @@ export function renderStatBar(
   filledChar: string = '█',
   emptyChar: string = '░'
 ): string {
-  const filled = Math.round((current / max) * width);
-  const empty = width - filled;
+  const pct = Math.max(0, Math.min(1, current / Math.max(1, max)));
+  const filled = Math.round(pct * width);
+  const empty = Math.max(0, width - filled);
   return filledChar.repeat(filled) + emptyChar.repeat(empty);
 }
 

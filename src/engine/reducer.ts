@@ -880,9 +880,14 @@ export function gameReducer(state: RunState, action: Action): RunState {
                     const existingTier = target.item.enchantment?.tier || 0;
                     const isUpgrade = existingTier > 0 && Math.random() < 0.5;
 
-                    const tierRoll = isBossShrine 
-                         ? 75 + (Math.random() * 25) + faithBonus // Force Rare+ (75-100+)
+                    let tierRoll = isBossShrine 
+                         ? 60 + (Math.random() * 35) + faithBonus // Force Lesser+ (60-95), rarely Epic
                          : Math.random() * 100 + faithBonus;
+                    
+                    // Soft cap: Prevent Legendary (Tier 5, >98) at low depths (< 10)
+                    if (state.depth < 10 && tierRoll > 95) {
+                        tierRoll = 95; // Cap at max Epic
+                    }
                     let baseTier: 1 | 2 | 3 | 4 | 5;
                     let tierName: string;
                     if (tierRoll < 50) { baseTier = 1; tierName = 'Minor'; }
@@ -1325,7 +1330,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
         }
 
         let roomResolved = false;
-        let combatTurn: 'player' | 'enemy' | null = 'enemy';
+        // combatTurn is calculated at the end now
         let usedAction = true;
 
         if (abilityDef.effect.type === 'damage' || abilityDef.effect.type === 'attack') {
@@ -1393,7 +1398,9 @@ export function gameReducer(state: RunState, action: Action): RunState {
         let extraActionsGranted = 0;
         if (abilityDef.id === 'action_surge') {
             usedAction = false;
-            combatTurn = 'player'; // Keep it player's turn
+            usedAction = false;
+            // combatTurn handled at end
+            extraActionsGranted = 1;
             extraActionsGranted = 1;
             newHistory.push(`${actor.name} surges with energy (Action Surge)! Take another action!`);
         }
@@ -1441,8 +1448,45 @@ export function gameReducer(state: RunState, action: Action): RunState {
         const aliveEnemies = newEnemies.filter(e => e.hp > 0);
         if (aliveEnemies.length === 0 && room.enemies.length > 0) {
             newHistory.push("Victory! All enemies defeated.");
-            roomResolved = true;
-            combatTurn = null;
+            // Don't auto-resolve shrines or hazards - let player interact with them
+            if (room.type === 'shrine' || room.type === 'hazard') {
+                roomResolved = false;
+            } else {
+                roomResolved = true;
+            }
+            // combatTurn handled at end by roomResolved check
+        }
+
+        // Turn Tracking Logic (Match ATTACK handler behavior)
+        const alreadyActed = (state.actedThisRound || []).includes(action.actorId);
+        let newExtraActions = state.extraActions + extraActionsGranted;
+        let newActedThisRound = [...(state.actedThisRound || [])];
+
+        if (usedAction) {
+             if (alreadyActed && state.extraActions > 0 && extraActionsGranted === 0) {
+                 // Consumed an existing extra action
+                 newExtraActions = (state.extraActions - 1) + extraActionsGranted; // Recalc based on original state
+                 newHistory.push(`(Using extra action!)`);
+             } else if (extraActionsGranted === 0) {
+                 // Normal action consumption (if no surge granted)
+                 if (!alreadyActed) newActedThisRound.push(action.actorId);
+             }
+        }
+        
+        // Determine Next Turn
+        const aliveMemberIds = newParty.members.filter(m => m.isAlive).map(m => m.id);
+        const allActed = aliveMemberIds.every(id => newActedThisRound.includes(id));
+        
+        let nextCombatTurn: 'player' | 'enemy' | null = 'player';
+        
+        if (roomResolved) {
+             nextCombatTurn = null;
+        } else {
+             // If all acted and no extra actions remain, switch to enemy
+             if (allActed && newExtraActions === 0) {
+                 nextCombatTurn = 'enemy';
+             }
+             // If Action Surge was used (extraActionsGranted > 0), we DEFINITELY stay on player turn (already set default 'player')
         }
 
         let nextState = {
@@ -1451,15 +1495,15 @@ export function gameReducer(state: RunState, action: Action): RunState {
             party: newParty,
             currentRoom: { ...room, enemies: aliveEnemies },
             roomResolved,
-            combatTurn,
-            extraActions: state.extraActions + extraActionsGranted
+            combatTurn: nextCombatTurn,
+            actedThisRound: nextCombatTurn === 'enemy' ? [] : newActedThisRound,
+            extraActions: newExtraActions
         };
 
-        if (usedAction && !roomResolved) {
+        if (nextCombatTurn === 'enemy') {
             return resolveEnemyTurn(nextState);
-        } else {
-            return nextState;
         }
+        return nextState;
     }
 
     case 'RENAME_ITEM': {

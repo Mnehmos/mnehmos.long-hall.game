@@ -385,11 +385,17 @@ export function generateRoom(state: RunState, rng?: SeededRNG): Room {
         }
         
         // Boss room loot: rare+ only (3-5 items)
+        // Boss room loot: scaled by depth
+        // Depth 1-10: Rare/Epic max (no Legendary/Godly)
+        // Count: 1-2 (Reduced from 3-5)
+        const maxRarityIndex = state.depth < 10 ? 2 : (state.depth < 30 ? 3 : 5); // 2=Epic, 3=Legendary, 5=Godly
+        const allowedRarities = ['rare', 'epic', 'legendary', 'godly'].slice(0, maxRarityIndex);
+        
         const rareLootPool = ITEMS.filter(i => 
-            ['rare', 'epic', 'legendary', 'godly'].includes(i.rarity)
+            allowedRarities.includes(i.rarity)
         );
         const shuffledBossLoot = [...rareLootPool].sort(() => rng.float() - 0.5);
-        bossRoom.loot = shuffledBossLoot.slice(0, rng.int(3, 5));
+        bossRoom.loot = shuffledBossLoot.slice(0, rng.int(1, 2));
         
         room.bossRoom = bossRoom;
     }
