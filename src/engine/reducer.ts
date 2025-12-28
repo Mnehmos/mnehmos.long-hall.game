@@ -423,7 +423,9 @@ export function gameReducer(state: RunState, action: Action): RunState {
                 
                 return {
                     ...state,
-                    currentRoom: state.parentIntermission,
+                    // Remove boss room link from the intermission room we are returning to
+                    // This prevents players from entering the boss room again (spamming it)
+                    currentRoom: { ...state.parentIntermission, bossRoom: undefined },
                     parentIntermission: null,
                     inBossRoom: false,
                     roomResolved: false, // Allow long rest at intermission

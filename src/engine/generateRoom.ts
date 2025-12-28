@@ -321,18 +321,19 @@ export function generateRoom(state: RunState, rng?: SeededRNG): Room {
         
         // Find a boss-tagged enemy or use the strongest available
         // Find a suitable boss-tier enemy
-        // Must be at least max tier for this floor, but not overwhelmed (cap at +2 power)
-        // e.g. Floor 1 (Power 1-2) -> Boss (Power 2-4)
+        // Must be STRICTLY stronger than normal max tier (to avoid weak Bandit bosses)
+        // Range: [MaxPower + 1, MaxPower + 3]
+        // e.g. Floor 1 (Power 1-2) -> Boss (Power 3-5) -> Skeleton/Orc instead of Bandit
         let potentialBosses = ENEMIES.filter(e => 
-            e.power >= difficulty.maxPower && 
-            e.power <= difficulty.maxPower + 2
+            e.power >= difficulty.maxPower + 1 && 
+            e.power <= difficulty.maxPower + 3
         );
         
-        // If no bosses in that specific range, look slightly lower (elite of current tier)
+        // If no bosses in that specific range, accept current max tier as fallback
         if (potentialBosses.length === 0) {
             potentialBosses = ENEMIES.filter(e => 
-                e.power >= difficulty.minPower && 
-                e.power <= difficulty.maxPower + 2
+                e.power >= difficulty.maxPower && 
+                e.power <= difficulty.maxPower + 3
             );
         }
         
@@ -344,11 +345,11 @@ export function generateRoom(state: RunState, rng?: SeededRNG): Room {
             ? rng.pick(finalBossPool)
             : ENEMIES.find(e => e.power === difficulty.maxPower) || ENEMIES[0]; // Fallback to max power of current tier
         
-        // Boss scaled 1.3x HP, 1.2x Power (tuned down from 1.5x)
+        // Boss scaled 1.5x HP, 1.25x Power (Buffed from 1.3/1.2)
         const bossMultiplier = difficulty.multiplier;
-        const bossHp = Math.floor(bossProto.hp * bossMultiplier * 1.3);
-        const bossAc = 12 + difficulty.acBonus + 1; // Reduced AC bonus
-        const bossPower = Math.floor(bossProto.power * bossMultiplier * 1.2);
+        const bossHp = Math.floor(bossProto.hp * bossMultiplier * 1.5);
+        const bossAc = 12 + difficulty.acBonus + 1; // Keep AC manageable
+        const bossPower = Math.floor(bossProto.power * bossMultiplier * 1.25);
         
         bossRoom.enemies!.push({
             ...bossProto,
@@ -361,13 +362,13 @@ export function generateRoom(state: RunState, rng?: SeededRNG): Room {
             xp: Math.floor(bossProto.power * 25 * difficulty.multiplier)
         });
         
-        // Add 0-1 minions (reduced from 1-2)
+        // Add 1-2 minions (Restored from 0-1)
         const minionPool = ENEMIES.filter(e => 
             !e.tags.includes('boss') && 
             e.power >= difficulty.minPower && 
             e.power <= difficulty.maxPower
         );
-        const minionCount = rng.int(0, 1);
+        const minionCount = rng.int(1, 2);
         for (let i = 0; i < minionCount && minionPool.length > 0; i++) {
             const minionProto = rng.pick(minionPool);
             const minionHp = Math.floor(minionProto.hp * difficulty.multiplier);
