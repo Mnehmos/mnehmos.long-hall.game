@@ -327,11 +327,11 @@ export function generateRoom(state: RunState, rng?: SeededRNG): Room {
             ? rng.pick(bossPool) 
             : ENEMIES.reduce((a, b) => a.power > b.power ? a : b);
         
-        // Boss scaled 1.5x
-        const bossMultiplier = difficulty.multiplier * 1.5;
-        const bossHp = Math.floor(bossProto.hp * bossMultiplier);
-        const bossAc = 12 + difficulty.acBonus + 2; // Extra AC
-        const bossPower = Math.floor(bossProto.power * bossMultiplier);
+        // Boss scaled 1.3x HP, 1.2x Power (tuned down from 1.5x)
+        const bossMultiplier = difficulty.multiplier;
+        const bossHp = Math.floor(bossProto.hp * bossMultiplier * 1.3);
+        const bossAc = 12 + difficulty.acBonus + 1; // Reduced AC bonus
+        const bossPower = Math.floor(bossProto.power * bossMultiplier * 1.2);
         
         bossRoom.enemies!.push({
             ...bossProto,
@@ -344,13 +344,13 @@ export function generateRoom(state: RunState, rng?: SeededRNG): Room {
             xp: Math.floor(bossProto.power * 25 * difficulty.multiplier)
         });
         
-        // Add 1-2 minions (non-boss enemies from current tier)
+        // Add 0-1 minions (reduced from 1-2)
         const minionPool = ENEMIES.filter(e => 
             !e.tags.includes('boss') && 
             e.power >= difficulty.minPower && 
             e.power <= difficulty.maxPower
         );
-        const minionCount = rng.int(1, 2);
+        const minionCount = rng.int(0, 1);
         for (let i = 0; i < minionCount && minionPool.length > 0; i++) {
             const minionProto = rng.pick(minionPool);
             const minionHp = Math.floor(minionProto.hp * difficulty.multiplier);
