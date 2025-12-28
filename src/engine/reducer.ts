@@ -115,7 +115,9 @@ export function gameReducer(state: RunState, action: Action): RunState {
         const room = generateRoom({ ...state, depth: newDepth, party: { ...state.party, members: survivingMembers } }, rng);
         
         // Increment weapon encounter counts if entering combat
-        const isCombat = room.type === 'combat' || room.type === 'elite';
+        // Check if room has enemies (combat, elite, or guarded shrine/hazard)
+        const isCombat = (room.type === 'combat' || room.type === 'elite') || 
+                        ((room.type === 'shrine' || room.type === 'hazard') && room.enemies && room.enemies.length > 0);
         const updatedMembers = isCombat
             ? incrementWeaponEncounters(survivingMembers)
             : survivingMembers;
@@ -1138,7 +1140,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
     case 'ESCAPE': {
         if (!state.currentRoom || state.combatTurn !== 'player') return state;
         const room = state.currentRoom;
-        if (room.type !== 'combat' && room.type !== 'elite') return state;
+        if (room.type !== 'combat' && room.type !== 'elite' && ((room.type !== 'shrine' && room.type !== 'hazard') || !room.enemies || room.enemies.length === 0)) return state;
 
         // Calculate dynamic escape DC based on difficulty, enemies, and party composition
         const aliveMembers = state.party.members.filter(m => m.isAlive);

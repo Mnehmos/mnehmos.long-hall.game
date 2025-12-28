@@ -151,7 +151,21 @@ export function loadGameState(): RunState | null {
   try {
     const saved = localStorage.getItem(SAVE_KEY);
     if (saved) {
-      return JSON.parse(saved) as RunState;
+      const state = JSON.parse(saved) as RunState;
+      
+      // FIX: If in guarded room with no combat turn (bug fix), force player turn
+      if (state.currentRoom && 
+          (state.currentRoom.type === 'shrine' || state.currentRoom.type === 'hazard') &&
+          state.currentRoom.enemies && 
+          state.currentRoom.enemies.length > 0 &&
+          !state.combatTurn && 
+          !state.roomResolved) {
+          
+          console.log('Repaired broken guarded room state: Forcing player turn');
+          state.combatTurn = 'player';
+      }
+      
+      return state;
     }
   } catch (e) {
     console.warn("Failed to load game state:", e);
