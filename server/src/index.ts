@@ -21,7 +21,7 @@ app.use(cors({
   ],
   credentials: true,
 }));
-app.use(express.json());
+app.use(express.json({ limit: '500kb' })); // Reasonable limit for game saves
 
 // Public health check (before auth middleware)
 app.get('/health', (req, res) => {

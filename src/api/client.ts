@@ -15,13 +15,20 @@ export interface ScoreEntry {
 export const apiClient = {
   async saveGame(token: string, state: RunState): Promise<{ success: boolean; hash?: string }> {
     try {
+      // Strip history before sending to reduce payload size
+      // Keep last 50 entries for cloud saves (client already caps at 100)
+      const sanitizedState = {
+        ...state,
+        history: state.history.slice(-50)
+      };
+      
       const response = await fetch(`${API_BASE}/saves`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
-        body: JSON.stringify({ state })
+        body: JSON.stringify({ state: sanitizedState })
       });
       
       if (!response.ok) throw new Error('Failed to save game');

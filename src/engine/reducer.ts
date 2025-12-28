@@ -10,6 +10,15 @@ import { roll } from '../core/dice';
 import { getAbilityById } from '../content/abilities';
 import { resolveEnemyTurn } from './combatHelpers';
 
+// Helper to cap history array to prevent memory bloat
+// UI only shows last 20 entries, keeping 100 for reasonable scroll-back
+const MAX_HISTORY_LENGTH = 100;
+function cappedHistory(history: string[]): string[] {
+    return history.length > MAX_HISTORY_LENGTH
+        ? history.slice(-MAX_HISTORY_LENGTH)
+        : history;
+}
+
 // Helper to update weapon mastery stats
 function updateWeaponStats(
     item: Item,
@@ -151,7 +160,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
           extraActions: 0, // Reset extra actions on room enter
           victory: false, // Reset victory flag on room enter
           party: { ...state.party, members: updatedMembers },
-          history: newHistory,
+          history: cappedHistory(newHistory),
         };
 
         // Long rest at segment boundaries
@@ -382,10 +391,10 @@ export function gameReducer(state: RunState, action: Action): RunState {
                 combatTurn: null,
                 actedThisRound: [],
                 victory: true,
-                history: newHistory,
-                party: { 
-                    ...newParty, 
-                    gold: state.party.gold + goldReward 
+                history: cappedHistory(newHistory),
+                party: {
+                    ...newParty,
+                    gold: state.party.gold + goldReward
                 }
             };
         }
@@ -417,7 +426,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
             roomResolved,
             combatTurn,
             actedThisRound: combatTurn === 'enemy' ? [] : newActedThisRound, // Reset if going to enemy turn
-            history: newHistory,
+            history: cappedHistory(newHistory),
             party: newParty,
             extraActions: newExtraActions
         };
@@ -435,7 +444,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
         if (state.party.gold < action.cost) {
             return {
                 ...state, 
-                history: [...state.history, "Not enough gold to buy item."]
+                history: cappedHistory([...state.history, "Not enough gold to buy item."])
             };
         }
         
@@ -461,7 +470,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
                 ...state.inventory,
                 items: [...state.inventory.items, item]
             },
-            history: [...state.history, `Bought ${item.name}`]
+            history: cappedHistory([...state.history, `Bought ${item.name}`])
         };
     }
 
@@ -471,7 +480,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
         if (itemIndex === -1) {
             return {
                 ...state,
-                history: [...state.history, "Item not found in inventory."]
+                history: cappedHistory([...state.history, "Item not found in inventory."])
             };
         }
         
@@ -492,7 +501,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
                 ...state.inventory,
                 items: newItems
             },
-            history: [...state.history, `Sold ${item.name} for ${sellPrice} gold`]
+            history: cappedHistory([...state.history, `Sold ${item.name} for ${sellPrice} gold`])
         };
     }
 
@@ -575,7 +584,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
             ...state,
             party: newParty,
             inventory: { ...state.inventory, items: newInventoryItems },
-            history: [...state.history, `Equipped ${item.name} to ${targetSlot}`]
+            history: cappedHistory([...state.history, `Equipped ${item.name} to ${targetSlot}`])
         };
     }
 
@@ -616,7 +625,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
             ...state,
             party: newParty,
             inventory: { ...state.inventory, items: newInventoryItems },
-            history: [...state.history, `Unequipped ${item.name}.`]
+            history: cappedHistory([...state.history, `Unequipped ${item.name}.`])
         };
     }
 
@@ -643,7 +652,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
                     ...state.party,
                     gold: state.party.gold + goldReward
                 },
-                history: [...state.history, `Trap disarmed! (Rolled ${baseRoll}+${2 + rogueBonus}=${disarmRoll} vs DC 12)${bonusMsg}. +${goldReward} gold.`]
+                history: cappedHistory([...state.history, `Trap disarmed! (Rolled ${baseRoll}+${2 + rogueBonus}=${disarmRoll} vs DC 12)${bonusMsg}. +${goldReward} gold.`])
             };
         } else {
             // Failed disarm triggers the trap
@@ -660,11 +669,11 @@ export function gameReducer(state: RunState, action: Action): RunState {
                     )
                 },
                 roomResolved: true,
-                history: [...state.history, `Failed to disarm! (Rolled ${disarmRoll}). Trap deals ${damage} damage!`]
+                history: cappedHistory([...state.history, `Failed to disarm! (Rolled ${disarmRoll}). Trap deals ${damage} damage!`])
             };
             
             if (newHp <= 0) {
-                nextState = { ...nextState, gameOver: true, history: [...nextState.history, 'Hero has fallen! Game Over.'] };
+                nextState = { ...nextState, gameOver: true, history: cappedHistory([...nextState.history, 'Hero has fallen! Game Over.']) };
             }
             
             return nextState;
@@ -688,11 +697,11 @@ export function gameReducer(state: RunState, action: Action): RunState {
                 )
             },
             roomResolved: true,
-            history: [...state.history, `Triggered the trap! Takes ${damage} damage!`]
+            history: cappedHistory([...state.history, `Triggered the trap! Takes ${damage} damage!`])
         };
         
         if (newHp <= 0) {
-            nextState = { ...nextState, gameOver: true, history: [...nextState.history, 'Hero has fallen! Game Over.'] };
+            nextState = { ...nextState, gameOver: true, history: cappedHistory([...nextState.history, 'Hero has fallen! Game Over.']) };
         }
         
         return nextState;
@@ -920,7 +929,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
             shortRestsRemaining: newShortRests,
             roomResolved: true,
             shrineBoon: boonMessage, // Show shrine blessing popup
-            history: [...state.history, boonMessage]
+            history: cappedHistory([...state.history, boonMessage])
         };
     }
 
@@ -949,7 +958,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
             party: { ...state.party, members: restoredMembers },
             shortRestsRemaining: 2,
             longRestsTaken: state.longRestsTaken + 1,
-            history: [...state.history, 'Party takes a long rest. All resources restored!']
+            history: cappedHistory([...state.history, 'Party takes a long rest. All resources restored!'])
         };
     }
     
@@ -964,7 +973,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
         if (state.party.gold < recruit.cost) {
             return {
                 ...state,
-                history: [...state.history, `Not enough gold to hire ${recruit.name}. Need ${recruit.cost} gold.`]
+                history: cappedHistory([...state.history, `Not enough gold to hire ${recruit.name}. Need ${recruit.cost} gold.`])
             };
         }
 
@@ -972,7 +981,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
         if (state.party.members.length >= 4) {
             return {
                 ...state,
-                history: [...state.history, 'Party is full! Max 4 members.']
+                history: cappedHistory([...state.history, 'Party is full! Max 4 members.'])
             };
         }
 
@@ -998,7 +1007,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
                 gold: state.party.gold - recruit.cost,
                 members: [...state.party.members, newMember]
             },
-            history: [...state.history, `${recruit.name} joins the party!`]
+            history: cappedHistory([...state.history, `${recruit.name} joins the party!`])
         };
     }
     
@@ -1040,7 +1049,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
                 combatTurn: (newRoom.type === 'combat' || newRoom.type === 'elite') ? 'player' : null,
                 combatRound: (newRoom.type === 'combat' || newRoom.type === 'elite') ? 1 : 0,
                 extraActions: 0, // Reset extra actions on room enter
-                history: [...newHistory, `Entered room ${newDepth}: ${newRoom.type.toUpperCase()}`]
+                history: cappedHistory([...newHistory, `Entered room ${newDepth}: ${newRoom.type.toUpperCase()}`])
             };
         } else {
             // Failed - enemies get free attacks
@@ -1091,7 +1100,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
                     ...state,
                     party: newParty,
                     gameOver: true,
-                    history: [...newHistory, 'The entire party has fallen! Game Over.']
+                    history: cappedHistory([...newHistory, 'The entire party has fallen! Game Over.'])
                 };
             }
             
@@ -1099,7 +1108,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
             return {
                 ...state,
                 party: newParty,
-                history: newHistory
+                history: cappedHistory(newHistory)
             };
         }
     }
@@ -1285,7 +1294,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
 
         let nextState = {
             ...state,
-            history: newHistory,
+            history: cappedHistory(newHistory),
             party: newParty,
             currentRoom: { ...room, enemies: aliveEnemies },
             roomResolved,
@@ -1342,7 +1351,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
             ...state,
             inventory: newInventory,
             party: newParty,
-            history: [...state.history, `Item renamed to "${action.newName}".`]
+            history: cappedHistory([...state.history, `Item renamed to "${action.newName}".`])
         };
     }
 

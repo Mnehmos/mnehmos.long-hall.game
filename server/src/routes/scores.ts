@@ -49,6 +49,16 @@ router.post('/', requireAuth(), async (req, res) => {
     const { calculateScore } = await import('../engine/score.js');
     const calculatedScore = calculateScore(runData);
 
+    // Sanitize runData before storing - strip large arrays to save space
+    const sanitizedRunData = {
+      ...runData,
+      history: runData.history?.slice(-20) || [], // Keep only last 20 for audit
+      currentRoom: runData.currentRoom ? {
+        ...runData.currentRoom,
+        enemies: [] // Don't need enemy state for scores
+      } : null
+    };
+
     // Check if user already has a score
     const existing = await pool.query(
       `SELECT id, score FROM scores WHERE user_id = $1`,
@@ -60,7 +70,7 @@ router.post('/', requireAuth(), async (req, res) => {
       if (calculatedScore > existing.rows[0].score) {
         await pool.query(
           `UPDATE scores SET score = $1, run_data = $2, display_name = $3, created_at = CURRENT_TIMESTAMP WHERE user_id = $4`,
-          [calculatedScore, runData, sanitizedName, userId]
+          [calculatedScore, sanitizedRunData, sanitizedName, userId]
         );
         res.json({ success: true, score: calculatedScore, newHighScore: true });
       } else {
@@ -78,7 +88,7 @@ router.post('/', requireAuth(), async (req, res) => {
       await pool.query(
         `INSERT INTO scores (user_id, display_name, score, run_data)
          VALUES ($1, $2, $3, $4)`,
-        [userId, sanitizedName, calculatedScore, runData]
+        [userId, sanitizedName, calculatedScore, sanitizedRunData]
       );
       res.json({ success: true, score: calculatedScore, newHighScore: true });
     }
