@@ -6,10 +6,12 @@ import { hashWithSeed } from '../core/hash';
 
 /**
  * Calculate difficulty scaling based on depth
- * Segment 1 (rooms 1-10): baseline difficulty 1.0
- * Segment 2 (rooms 11-20): difficulty 1.5
- * Segment 3 (rooms 21-30): difficulty 2.0
- * etc.
+ * Segment 1 (rooms 1-10): Power 1-2 enemies
+ * Segment 2 (rooms 11-20): Power 2-4 enemies
+ * Segment 3 (rooms 21-30): Power 3-6 enemies
+ * Segment 4 (rooms 31-40): Power 5-8 enemies
+ * Segment 5 (rooms 41-50): Power 7-10 enemies
+ * Segment 6+ (rooms 51+): Power 9-13 enemies (boss tier included)
  *
  * Within each segment, difficulty ramps up slightly (rooms 1-9)
  */
@@ -34,10 +36,26 @@ export function getDifficulty(depth: number): {
 
     const multiplier = segmentMultiplier * roomRamp;
 
-    // Enemy power tier filtering
-    // Segment 1: power 1-2, Segment 2: power 2-4, Segment 3: power 3-5, etc.
-    const minPower = Math.min(5, segment);
-    const maxPower = Math.min(5, segment + 2);
+    // Enemy power tier filtering - scales up with 6 tiers now
+    // Each segment opens up ~2 more power levels, with overlap for variety
+    // Segment 1: 1-2, Segment 2: 2-4, Segment 3: 3-6, Segment 4: 5-8, Segment 5: 7-10, Segment 6+: 9-13
+    let minPower: number;
+    let maxPower: number;
+    
+    if (segment === 1) {
+        minPower = 1; maxPower = 2;
+    } else if (segment === 2) {
+        minPower = 2; maxPower = 4;
+    } else if (segment === 3) {
+        minPower = 3; maxPower = 6;
+    } else if (segment === 4) {
+        minPower = 5; maxPower = 8;
+    } else if (segment === 5) {
+        minPower = 7; maxPower = 10;
+    } else {
+        // Segment 6+: Boss tier unlocked
+        minPower = 9; maxPower = 13;
+    }
 
     // AC bonus based on segment (enemies get tougher to hit)
     const acBonus = Math.floor((segment - 1) * 1.5); // +0, +1, +3, +4, +6...

@@ -40,23 +40,74 @@ export interface EnemyDef {
 }
 
 export const ENEMIES: EnemyDef[] = [
-  // Tier 1 - Early floors
-  { id: 'rat_swarm', name: 'Rat Swarm', tags: ['vermin'], power: 1, hp: 8, damage: '1d4' },
-  { id: 'slime', name: 'Green Slime', tags: ['slime'], power: 2, hp: 12, damage: '1d6' },
+  // ============================================================================
+  // TIER 1 - Power 1-2: Early floors, weak enemies
+  // ============================================================================
+  { id: 'rat_swarm', name: 'Rat Swarm', tags: ['vermin', 'beast'], power: 1, hp: 8, damage: '1d4' },
+  { id: 'giant_rat', name: 'Giant Rat', tags: ['vermin', 'beast'], power: 1, hp: 6, damage: '1d4' },
+  { id: 'kobold', name: 'Kobold', tags: ['humanoid', 'kobold'], power: 1, hp: 6, damage: '1d4+1' },
+  { id: 'goblin', name: 'Goblin', tags: ['humanoid', 'goblin'], power: 1, hp: 7, damage: '1d4+1' },
+  { id: 'slime', name: 'Green Slime', tags: ['slime', 'ooze'], power: 2, hp: 12, damage: '1d6' },
   { id: 'giant_spider', name: 'Giant Spider', tags: ['vermin', 'beast'], power: 2, hp: 10, damage: '1d6' },
-  { id: 'kobold', name: 'Kobold', tags: ['humanoid'], power: 1, hp: 6, damage: '1d4+1' },
-  
-  // Tier 2 - Mid floors  
+  { id: 'stirge', name: 'Stirge', tags: ['vermin', 'beast'], power: 1, hp: 4, damage: '1d4' },
+  { id: 'bandit', name: 'Bandit', tags: ['humanoid'], power: 2, hp: 11, damage: '1d6' },
+
+  // ============================================================================
+  // TIER 2 - Power 3-4: Mid-early floors
+  // ============================================================================
   { id: 'skeleton', name: 'Skeleton Warrior', tags: ['undead', 'skeleton'], power: 3, hp: 12, damage: '1d6+1' },
-  { id: 'zombie', name: 'Rotting Zombie', tags: ['undead'], power: 2, hp: 14, damage: '1d6' },
-  { id: 'cultist', name: 'Dark Cultist', tags: ['humanoid', 'magic'], power: 3, hp: 10, damage: '1d8' },
+  { id: 'zombie', name: 'Rotting Zombie', tags: ['undead', 'zombie'], power: 3, hp: 14, damage: '1d6' },
   { id: 'dire_wolf', name: 'Dire Wolf', tags: ['beast'], power: 3, hp: 15, damage: '1d6+2' },
-  
-  // Tier 3 - Tough enemies
-  { id: 'orc', name: 'Orc Berserker', tags: ['humanoid', 'orc'], power: 4, hp: 18, damage: '1d8+2' },
-  { id: 'ghoul', name: 'Ghoul', tags: ['undead'], power: 4, hp: 16, damage: '1d8+1' },
-  { id: 'ogre', name: 'Ogre', tags: ['giant'], power: 5, hp: 25, damage: '2d6' },
-  { id: 'wraith', name: 'Wraith', tags: ['undead', 'incorporeal'], power: 5, hp: 14, damage: '1d10' },
+  { id: 'hobgoblin', name: 'Hobgoblin', tags: ['humanoid', 'goblin'], power: 3, hp: 14, damage: '1d8' },
+  { id: 'gnoll', name: 'Gnoll Hunter', tags: ['humanoid', 'gnoll'], power: 3, hp: 16, damage: '1d8' },
+  { id: 'cultist', name: 'Dark Cultist', tags: ['humanoid', 'magic'], power: 3, hp: 10, damage: '1d8' },
+  { id: 'bugbear', name: 'Bugbear', tags: ['humanoid', 'goblin'], power: 4, hp: 18, damage: '1d8+1' },
+  { id: 'harpy', name: 'Harpy', tags: ['monstrosity', 'flying'], power: 4, hp: 14, damage: '1d6+2' },
+
+  // ============================================================================
+  // TIER 3 - Power 5-6: Mid floors, challenging enemies
+  // ============================================================================
+  { id: 'orc', name: 'Orc Berserker', tags: ['humanoid', 'orc'], power: 5, hp: 18, damage: '1d8+2' },
+  { id: 'ghoul', name: 'Ghoul', tags: ['undead'], power: 5, hp: 16, damage: '1d8+1' },
+  { id: 'wight', name: 'Wight', tags: ['undead'], power: 5, hp: 20, damage: '1d10' },
+  { id: 'owlbear', name: 'Owlbear', tags: ['beast', 'monstrosity'], power: 5, hp: 22, damage: '1d10+2' },
+  { id: 'minotaur', name: 'Minotaur', tags: ['monstrosity'], power: 6, hp: 28, damage: '2d6' },
+  { id: 'werewolf', name: 'Werewolf', tags: ['humanoid', 'shapechanger'], power: 6, hp: 24, damage: '1d10+2' },
+  { id: 'troll', name: 'Troll', tags: ['giant'], power: 6, hp: 30, damage: '2d6+2' },
+  { id: 'wraith', name: 'Wraith', tags: ['undead', 'incorporeal'], power: 6, hp: 18, damage: '1d10+2' },
+
+  // ============================================================================
+  // TIER 4 - Power 7-8: Deep floors, dangerous enemies
+  // ============================================================================
+  { id: 'ogre', name: 'Ogre', tags: ['giant'], power: 7, hp: 32, damage: '2d6+2' },
+  { id: 'ettin', name: 'Ettin', tags: ['giant'], power: 7, hp: 36, damage: '2d8' },
+  { id: 'vampire_spawn', name: 'Vampire Spawn', tags: ['undead', 'vampire'], power: 7, hp: 28, damage: '1d10+3' },
+  { id: 'manticore', name: 'Manticore', tags: ['monstrosity', 'flying'], power: 7, hp: 30, damage: '2d6+2' },
+  { id: 'hill_giant', name: 'Hill Giant', tags: ['giant'], power: 8, hp: 45, damage: '2d8+3' },
+  { id: 'flesh_golem', name: 'Flesh Golem', tags: ['construct'], power: 8, hp: 40, damage: '2d8+2' },
+  { id: 'chimera', name: 'Chimera', tags: ['monstrosity', 'flying'], power: 8, hp: 38, damage: '2d8+2' },
+  { id: 'oni', name: 'Oni', tags: ['giant', 'magic'], power: 8, hp: 35, damage: '2d8+3' },
+
+  // ============================================================================
+  // TIER 5 - Power 9-10: Late floors, elite enemies
+  // ============================================================================
+  { id: 'frost_giant', name: 'Frost Giant', tags: ['giant'], power: 9, hp: 55, damage: '3d6+4' },
+  { id: 'fire_giant', name: 'Fire Giant', tags: ['giant'], power: 9, hp: 50, damage: '3d6+4' },
+  { id: 'young_dragon', name: 'Young Dragon', tags: ['dragon', 'flying'], power: 9, hp: 48, damage: '2d10+3' },
+  { id: 'beholder_zombie', name: 'Beholder Zombie', tags: ['undead', 'aberration'], power: 9, hp: 40, damage: '2d10' },
+  { id: 'mind_flayer', name: 'Mind Flayer', tags: ['aberration', 'magic'], power: 10, hp: 42, damage: '2d10+4' },
+  { id: 'death_knight', name: 'Death Knight', tags: ['undead', 'knight'], power: 10, hp: 60, damage: '2d10+5' },
+  { id: 'stone_giant', name: 'Stone Giant', tags: ['giant'], power: 10, hp: 65, damage: '3d8+4' },
+
+  // ============================================================================
+  // TIER 6 - Power 11+: Boss tier, extremely dangerous
+  // ============================================================================
+  { id: 'adult_dragon', name: 'Adult Dragon', tags: ['dragon', 'flying', 'boss'], power: 12, hp: 120, damage: '3d10+6' },
+  { id: 'lich', name: 'Lich', tags: ['undead', 'magic', 'boss'], power: 12, hp: 80, damage: '3d8+6' },
+  { id: 'vampire_lord', name: 'Vampire Lord', tags: ['undead', 'vampire', 'boss'], power: 11, hp: 85, damage: '2d12+5' },
+  { id: 'beholder', name: 'Beholder', tags: ['aberration', 'boss'], power: 11, hp: 75, damage: '2d10+5' },
+  { id: 'demon_lord', name: 'Demon Lord', tags: ['fiend', 'demon', 'boss'], power: 13, hp: 100, damage: '3d10+8' },
+  { id: 'storm_giant', name: 'Storm Giant', tags: ['giant', 'boss'], power: 12, hp: 110, damage: '3d10+6' },
 ];
 
 export const ITEMS: Item[] = [
