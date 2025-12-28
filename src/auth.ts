@@ -24,6 +24,7 @@ export function getToken() {
 export function getDisplayName(): string | undefined {
   const user = clerk.user;
   if (!user) return undefined;
-  // Prefer fullName, then firstName, then username, then email
-  return user.fullName || user.firstName || user.username || user.primaryEmailAddress?.emailAddress?.split('@')[0];
+  // Privacy: Prefer username (chosen by user), then firstName only, never fullName
+  // Last resort: email prefix (still somewhat anonymous)
+  return user.username || user.firstName || user.primaryEmailAddress?.emailAddress?.split('@')[0];
 }
