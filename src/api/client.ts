@@ -8,9 +8,27 @@ export interface ScoreEntry {
   user_id: string;
   display_name: string | null;
   score: number;
+  depth: number;
+  gold: number;
+  total_kills: number;
+  highest_hit: number;
+  critical_hits: number;
+  max_level: number;
   run_data: any;
   created_at: string;
 }
+
+export interface WeaponEntry {
+  name: string;
+  rarity: string;
+  kills: number;
+  damageDealt: number;
+  highestHit: number;
+  criticalHits: number;
+  owner: string;
+}
+
+export type LeaderboardCategory = 'score' | 'depth' | 'gold' | 'kills' | 'hit' | 'crits' | 'level';
 
 export const apiClient = {
   async saveGame(token: string, state: RunState): Promise<{ success: boolean; hash?: string }> {
@@ -76,13 +94,24 @@ export const apiClient = {
     }
   },
 
-  async getHighScores(limit = 10): Promise<ScoreEntry[]> {
+  async getHighScores(limit = 10, category: LeaderboardCategory = 'score'): Promise<ScoreEntry[]> {
     try {
-        const response = await fetch(`${API_BASE}/scores?limit=${limit}`);
+        const response = await fetch(`${API_BASE}/scores?limit=${limit}&category=${category}`);
         if (!response.ok) return [];
         return await response.json();
     } catch (error) {
         console.error('Get scores error:', error);
+        return [];
+    }
+  },
+
+  async getTopWeapons(limit = 10): Promise<WeaponEntry[]> {
+    try {
+        const response = await fetch(`${API_BASE}/scores/weapons?limit=${limit}`);
+        if (!response.ok) return [];
+        return await response.json();
+    } catch (error) {
+        console.error('Get weapons error:', error);
         return [];
     }
   }

@@ -2,7 +2,7 @@ import { createInitialRunState, loadGameState, saveGameState, clearGameState } f
 import { gameReducer } from './engine/reducer';
 import { renderGame, setCachedHighScores } from './ui/render';
 import type { Action } from './engine/types';
-import { apiClient } from './api/client';
+import { apiClient, type LeaderboardCategory } from './api/client';
 import { renderLeaderboard } from './ui/leaderboard';
 
 // State - load from localStorage or create new
@@ -284,12 +284,28 @@ document.addEventListener('click', (e) => {
     }
 });
 
-async function showLeaderboard() {
-    const scores = await apiClient.getHighScores();
-    const html = renderLeaderboard(scores);
+async function showLeaderboard(category: LeaderboardCategory | 'weapons' = 'score') {
+    // Remove existing overlay if any
+    document.getElementById('leaderboard-overlay')?.remove();
+    
+    // Fetch data based on category
+    const [scores, weapons] = await Promise.all([
+        category === 'weapons' ? Promise.resolve([]) : apiClient.getHighScores(10, category),
+        category === 'weapons' ? apiClient.getTopWeapons(10) : Promise.resolve([])
+    ]);
+    
+    const html = renderLeaderboard(scores, category, weapons);
     const div = document.createElement('div');
     div.innerHTML = html;
     document.body.appendChild(div.firstElementChild as Node);
+    
+    // Attach tab handlers
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const newCategory = (e.currentTarget as HTMLElement).getAttribute('data-category') || 'score';
+            showLeaderboard(newCategory as LeaderboardCategory | 'weapons');
+        });
+    });
 }
 
 // Sync saves

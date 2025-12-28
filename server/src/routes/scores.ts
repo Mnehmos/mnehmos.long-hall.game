@@ -13,15 +13,64 @@ function sanitizeDisplayName(name: string | null): string | null {
   return firstWord || null;
 }
 
-// GET /api/scores - Get leaderboard
+// Extract stats from runData for leaderboard categories
+function extractStats(runData: any) {
+  const depth = runData?.depth || 0;
+  const gold = runData?.party?.gold || 0;
+  const maxLevel = Math.max(...(runData?.party?.members?.map((m: any) => m.level) || [1]));
+  
+  // Aggregate weapon stats
+  let totalKills = 0;
+  let highestHit = 0;
+  let criticalHits = 0;
+  
+  // From inventory items
+  runData?.inventory?.items?.forEach((item: any) => {
+    if (item.stats) {
+      totalKills += item.stats.kills || 0;
+      highestHit = Math.max(highestHit, item.stats.highestHit || 0);
+      criticalHits += item.stats.criticalHits || 0;
+    }
+  });
+  
+  // From equipped items on party members
+  runData?.party?.members?.forEach((member: any) => {
+    Object.values(member.equipment || {}).forEach((item: any) => {
+      if (item?.stats) {
+        totalKills += item.stats.kills || 0;
+        highestHit = Math.max(highestHit, item.stats.highestHit || 0);
+        criticalHits += item.stats.criticalHits || 0;
+      }
+    });
+  });
+  
+  return { depth, gold, totalKills, highestHit, criticalHits, maxLevel };
+}
+
+// Valid order-by columns for category leaderboards
+const ORDER_BY_MAP: Record<string, string> = {
+  'score': 'score DESC',
+  'depth': 'depth DESC',
+  'gold': 'gold DESC',
+  'kills': 'total_kills DESC',
+  'hit': 'highest_hit DESC',
+  'crits': 'critical_hits DESC',
+  'level': 'max_level DESC'
+};
+
+// GET /api/scores - Get leaderboard with category support
 router.get('/', async (req, res) => {
   const limit = Math.min(parseInt(req.query.limit as string) || 10, 100);
+  const category = (req.query.category as string) || 'score';
+  
+  // Validate category to prevent SQL injection
+  const orderBy = ORDER_BY_MAP[category] || 'score DESC';
 
   try {
     const result = await pool.query(
-      `SELECT user_id, display_name, score, run_data, created_at
+      `SELECT user_id, display_name, score, depth, gold, total_kills, highest_hit, critical_hits, max_level, run_data, created_at
        FROM scores
-       ORDER BY score DESC
+       ORDER BY ${orderBy}
        LIMIT $1`,
       [limit]
     );
@@ -35,6 +84,66 @@ router.get('/', async (req, res) => {
     res.json(sanitizedRows);
   } catch (error) {
     console.error('Error fetching scores:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// GET /api/scores/weapons - Get top weapons leaderboard
+router.get('/weapons', async (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit as string) || 10, 50);
+  
+  try {
+    const result = await pool.query(`
+      SELECT display_name, run_data
+      FROM scores
+      WHERE run_data IS NOT NULL
+    `);
+    
+    interface WeaponEntry {
+      name: string;
+      rarity: string;
+      kills: number;
+      damageDealt: number;
+      highestHit: number;
+      criticalHits: number;
+      owner: string;
+    }
+    
+    const weapons: WeaponEntry[] = [];
+    
+    result.rows.forEach(row => {
+      const runData = row.run_data;
+      const playerName = sanitizeDisplayName(row.display_name) || 'Anonymous';
+      
+      // Collect weapons from inventory and equipment
+      const collectItems = (items: any[]) => {
+        items?.forEach(item => {
+          if (item?.stats && item.type === 'weapon') {
+            weapons.push({
+              name: item.customName || item.name,
+              rarity: item.rarity || 'common',
+              kills: item.stats.kills || 0,
+              damageDealt: item.stats.damageDealt || 0,
+              highestHit: item.stats.highestHit || 0,
+              criticalHits: item.stats.criticalHits || 0,
+              owner: playerName
+            });
+          }
+        });
+      };
+      
+      collectItems(runData?.inventory?.items);
+      runData?.party?.members?.forEach((m: any) =>
+        collectItems(Object.values(m.equipment || {}))
+      );
+    });
+    
+    // Sort by kills (primary), then by highest hit (secondary)
+    weapons.sort((a, b) => b.kills - a.kills || b.highestHit - a.highestHit);
+    
+    res.json(weapons.slice(0, limit));
+  } catch (error) {
+    console.error('Error fetching weapons:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });
@@ -63,6 +172,9 @@ router.post('/', requireAuth(), async (req, res) => {
     // Anti-Cheat: Calculate score from runData on server
     const { calculateScore } = await import('../engine/score.js');
     const calculatedScore = calculateScore(runData);
+    
+    // Extract stats for category leaderboards
+    const stats = extractStats(runData);
 
     // Sanitize runData before storing - strip large arrays to save space
     const sanitizedRunData = {
@@ -84,8 +196,21 @@ router.post('/', requireAuth(), async (req, res) => {
       // Only update if new score is higher
       if (calculatedScore > existing.rows[0].score) {
         await pool.query(
-          `UPDATE scores SET score = $1, run_data = $2, display_name = $3, created_at = CURRENT_TIMESTAMP WHERE user_id = $4`,
-          [calculatedScore, sanitizedRunData, sanitizedName, userId]
+          `UPDATE scores SET
+            score = $1,
+            run_data = $2,
+            display_name = $3,
+            depth = $4,
+            gold = $5,
+            total_kills = $6,
+            highest_hit = $7,
+            critical_hits = $8,
+            max_level = $9,
+            created_at = CURRENT_TIMESTAMP
+          WHERE user_id = $10`,
+          [calculatedScore, sanitizedRunData, sanitizedName,
+           stats.depth, stats.gold, stats.totalKills, stats.highestHit, stats.criticalHits, stats.maxLevel,
+           userId]
         );
         res.json({ success: true, score: calculatedScore, newHighScore: true });
       } else {
@@ -101,9 +226,10 @@ router.post('/', requireAuth(), async (req, res) => {
     } else {
       // First score for this user
       await pool.query(
-        `INSERT INTO scores (user_id, display_name, score, run_data)
-         VALUES ($1, $2, $3, $4)`,
-        [userId, sanitizedName, calculatedScore, sanitizedRunData]
+        `INSERT INTO scores (user_id, display_name, score, run_data, depth, gold, total_kills, highest_hit, critical_hits, max_level)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+        [userId, sanitizedName, calculatedScore, sanitizedRunData,
+         stats.depth, stats.gold, stats.totalKills, stats.highestHit, stats.criticalHits, stats.maxLevel]
       );
       res.json({ success: true, score: calculatedScore, newHighScore: true });
     }
