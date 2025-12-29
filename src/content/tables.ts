@@ -272,28 +272,39 @@ export const RECRUITS: RecruitDef[] = [
     { id: 'recruit_wizard2', name: 'Merlin Jr.', role: 'wizard', cost: 45, description: 'A prodigy of magical talent.' },
 ];
 
-// Enchantment name suffixes by slot
+// Enchantment name suffixes by slot (6 Tiers: Common to Godly)
 export const ENCHANT_NAMES: Record<string, string[][]> = {
     weapon: [
-        ['of Striking'],           // Tier 1
-        ['of Wounding'],          // Tier 2
-        ['of Slaying'],           // Tier 3
-        ['of Destruction'],       // Tier 4
-        ['of the Divine'],        // Tier 5
+        ['of Striking'],           // Tier 1 - Common
+        ['of Wounding'],           // Tier 2 - Uncommon
+        ['of Slaying'],            // Tier 3 - Rare
+        ['of Destruction'],        // Tier 4 - Epic
+        ['of Annihilation'],       // Tier 5 - Legendary
+        ['of the Apocalypse'],     // Tier 6 - Godly
     ],
     armor: [
-        ['of Protection'],        // Tier 1
-        ['of Warding'],          // Tier 2
-        ['of the Fortress'],     // Tier 3
-        ['of Invulnerability'],  // Tier 4
-        ['of Immortality'],      // Tier 5
+        ['of Protection'],         // Tier 1
+        ['of Warding'],            // Tier 2
+        ['of the Fortress'],       // Tier 3
+        ['of Invulnerability'],    // Tier 4
+        ['of Immortality'],        // Tier 5
+        ['of the Divine Aegis'],   // Tier 6
     ],
     trinket: [
-        ['of Power'],            // Tier 1
-        ['of Might'],           // Tier 2
-        ['of Glory'],           // Tier 3
-        ['of Legends'],         // Tier 4
-        ['of the Gods'],        // Tier 5
+        ['of Power'],              // Tier 1
+        ['of Might'],              // Tier 2
+        ['of Glory'],              // Tier 3
+        ['of Legends'],            // Tier 4
+        ['of Eternity'],           // Tier 5
+        ['of the Gods'],           // Tier 6
+    ],
+    utility: [
+        ['of Fortune'],            // Tier 1 - Escape/Luck
+        ['of Swiftness'],          // Tier 2 - Escape
+        ['of Prosperity'],         // Tier 3 - Gold
+        ['of the Windwalker'],     // Tier 4 - Escape + Stats
+        ['of the Midas Touch'],    // Tier 5 - Gold + Loot
+        ['of the Cosmic Wanderer'],// Tier 6 - All Utility
     ],
 };
 

@@ -115,10 +115,15 @@ export interface ItemStats {
   damageBonus?: number;    // +damage
   acBonus?: number;        // +AC  
   maxHpBonus?: number;     // +max HP
+  // Utility Enchantments
+  escapeBonus?: number;    // +escape chance %
+  lootBonus?: number;      // +loot drop chance %
+  goldBonus?: number;      // +gold find %
+  skillBonus?: { skill: string; amount: number }; // +stat bonus
 }
 
 export interface Enchantment {
-  tier: 1 | 2 | 3 | 4 | 5; // Minor to Godlike
+  tier: 1 | 2 | 3 | 4 | 5 | 6; // Common to Godly
   name: string;
   effect: ItemStats;
 }
@@ -137,7 +142,7 @@ export interface Item {
     maxHpBonus?: number;
   };
   enchantment?: {
-    tier: 1 | 2 | 3 | 4 | 5; // Minor to Legendary
+    tier: 1 | 2 | 3 | 4 | 5 | 6; // Common to Godly
     name: string;
     description: string;
     effect: {
@@ -145,6 +150,9 @@ export interface Item {
       damageBonus?: number;
       acBonus?: number;
       maxHpBonus?: number;
+      escapeBonus?: number;
+      lootBonus?: number;
+      goldBonus?: number;
     };
   };
   // Mastery Stats - tracked during combat

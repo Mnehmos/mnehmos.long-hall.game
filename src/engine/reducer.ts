@@ -543,7 +543,10 @@ export function gameReducer(state: RunState, action: Action): RunState {
         }
         
         const item = state.inventory.items[itemIndex];
-        const sellPrice = 10; // Flat rate for all items
+        // Sell price: 25% of base cost + enchantment bonus (tier * 10g)
+        const baseSellPrice = Math.floor((item.cost || 10) * 0.25);
+        const enchantBonus = item.enchantment ? item.enchantment.tier * 10 : 0;
+        const sellPrice = baseSellPrice + enchantBonus;
         
         // Remove item from inventory
         const newItems = [...state.inventory.items];
@@ -842,27 +845,38 @@ export function gameReducer(state: RunState, action: Action): RunState {
             });
         }
 
-        // Enchantment suffix tables by tier and type
+        // Enchantment suffix tables by tier and type (6 Tiers: Common to Godly)
         const WEAPON_SUFFIXES: Record<number, string[]> = {
             1: ['of Striking', 'of the Blade', 'of Sharpness'],
             2: ['of Might', 'of Slaying', 'of the Warrior'],
             3: ['of Fury', 'of Destruction', 'of the Champion'],
             4: ['of Annihilation', 'of the Titan', 'of Doom'],
-            5: ['of the Gods', 'of Legends', 'Godslayer']
+            5: ['of Legends', 'of the Godslayer', 'of Ruin'],
+            6: ['of the Apocalypse', 'of Oblivion', 'Worldender']
         };
         const ARMOR_SUFFIXES: Record<number, string[]> = {
             1: ['of Protection', 'of Warding', 'of the Guard'],
             2: ['of Defense', 'of the Sentinel', 'of Resilience'],
             3: ['of Fortitude', 'of the Bulwark', 'of Endurance'],
             4: ['of Invincibility', 'of the Immortal', 'of Iron Will'],
-            5: ['of the Divine', 'of Eternity', 'Godshield']
+            5: ['of Eternity', 'of the Divine', 'Godshield'],
+            6: ['of the Divine Aegis', 'of Immortality', 'Cosmic Bulwark']
         };
         const JEWELRY_SUFFIXES: Record<number, string[]> = {
             1: ['of Minor Power', 'of the Apprentice', 'of Focus'],
             2: ['of Enhancement', 'of the Adept', 'of Clarity'],
             3: ['of Mastery', 'of the Sage', 'of Potency'],
             4: ['of Supremacy', 'of the Archmage', 'of Domination'],
-            5: ['of Omnipotence', 'of the Infinite', 'Godstone']
+            5: ['of Omnipotence', 'of the Infinite', 'Godstone'],
+            6: ['of the Gods', 'of Cosmic Power', 'Starbound']
+        };
+        const UTILITY_SUFFIXES: Record<number, string[]> = {
+            1: ['of Fortune', 'of Luck', 'of the Traveler'],
+            2: ['of Swiftness', 'of Haste', 'of the Runner'],
+            3: ['of Prosperity', 'of Riches', 'of the Merchant'],
+            4: ['of the Windwalker', 'of Agility', 'of the Scout'],
+            5: ['of the Midas Touch', 'of Avarice', 'of Treasure'],
+            6: ['of the Cosmic Wanderer', 'of Infinite Fortune', 'Starstrider']
         };
 
         if (equippedItems.length > 0) {
@@ -888,28 +902,32 @@ export function gameReducer(state: RunState, action: Action): RunState {
                     if (state.depth < 10 && tierRoll > 95) {
                         tierRoll = 95; // Cap at max Epic
                     }
-                    let baseTier: 1 | 2 | 3 | 4 | 5;
+                    let baseTier: 1 | 2 | 3 | 4 | 5 | 6;
                     let tierName: string;
-                    if (tierRoll < 50) { baseTier = 1; tierName = 'Minor'; }
-                    else if (tierRoll < 75) { baseTier = 2; tierName = 'Lesser'; }
-                    else if (tierRoll < 90) { baseTier = 3; tierName = 'Greater'; }
-                    else if (tierRoll < 98) { baseTier = 4; tierName = 'Epic'; }
-                    else { baseTier = 5; tierName = 'Legendary'; }
+                    if (tierRoll < 40) { baseTier = 1; tierName = 'Common'; }
+                    else if (tierRoll < 65) { baseTier = 2; tierName = 'Uncommon'; }
+                    else if (tierRoll < 82) { baseTier = 3; tierName = 'Rare'; }
+                    else if (tierRoll < 93) { baseTier = 4; tierName = 'Epic'; }
+                    else if (tierRoll < 99) { baseTier = 5; tierName = 'Legendary'; }
+                    else { baseTier = 6; tierName = 'Godly'; }
 
-                    // If upgrading, ensure new tier is at least +1 (capped at 5)
+                    // If upgrading, ensure new tier is at least +1 (capped at 6)
                     const tier = isUpgrade
-                        ? Math.min(5, Math.max(baseTier, existingTier + 1)) as 1 | 2 | 3 | 4 | 5
+                        ? Math.min(6, Math.max(baseTier, existingTier + 1)) as 1 | 2 | 3 | 4 | 5 | 6
                         : baseTier;
                     if (tier > baseTier) {
-                        tierName = ['Minor', 'Lesser', 'Greater', 'Epic', 'Legendary'][tier - 1];
+                        tierName = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary', 'Godly'][tier - 1];
                     }
 
                     // Generate enchantment based on slot
                     const bonusValue = tier + Math.floor(Math.random() * tier); // tier to tier*2
 
-                    // Pick suffix based on item slot type
+                    // Pick suffix based on item slot type and utility check
                     let suffixTable = JEWELRY_SUFFIXES;
-                    if (target.slot === 'main_hand' || target.slot === 'off_hand') {
+                    const isUtilityCheck = ['ring1', 'ring2', 'neck'].includes(target.slot) && Math.random() < 0.15;
+                    if (isUtilityCheck) {
+                        suffixTable = UTILITY_SUFFIXES;
+                    } else if (target.slot === 'main_hand' || target.slot === 'off_hand') {
                         suffixTable = target.item.type === 'shield' ? ARMOR_SUFFIXES : WEAPON_SUFFIXES;
                     } else if (['chest', 'legs', 'head', 'feet'].includes(target.slot)) {
                         suffixTable = ARMOR_SUFFIXES;
@@ -917,10 +935,26 @@ export function gameReducer(state: RunState, action: Action): RunState {
                     const suffix = suffixTable[tier][Math.floor(Math.random() * suffixTable[tier].length)];
 
                     // Create enchantment effect based on slot type
-                    const effect: { attackBonus?: number; damageBonus?: number; acBonus?: number; maxHpBonus?: number } = {};
+                    const effect: { 
+                        attackBonus?: number; damageBonus?: number; acBonus?: number; maxHpBonus?: number;
+                        escapeBonus?: number; lootBonus?: number; goldBonus?: number;
+                    } = {};
 
-                    // Weapon slots
-                    if (target.slot === 'main_hand' || target.slot === 'off_hand') {
+                    // 15% chance for utility enchantment on jewelry
+                    const isUtility = ['ring1', 'ring2', 'neck'].includes(target.slot) && Math.random() < 0.15;
+                    
+                    if (isUtility) {
+                        // Utility enchantment - escape, loot, or gold
+                        const utilRoll = Math.random();
+                        if (utilRoll < 0.33) {
+                            effect.escapeBonus = tier * 3; // +3% to +18% escape
+                        } else if (utilRoll < 0.66) {
+                            effect.lootBonus = tier * 2; // +2% to +12% loot
+                        } else {
+                            effect.goldBonus = tier * 5; // +5% to +30% gold
+                        }
+                    } else if (target.slot === 'main_hand' || target.slot === 'off_hand') {
+                        // Weapon/Shield
                         if (target.item.type === 'shield') {
                              effect.acBonus = bonusValue;
                              if (tier >= 3) effect.maxHpBonus = tier;
@@ -929,17 +963,15 @@ export function gameReducer(state: RunState, action: Action): RunState {
                              effect.damageBonus = bonusValue;
                         }
                     } else if (['chest', 'legs', 'head', 'feet'].includes(target.slot)) {
+                        // Armor - Defense only
                         effect.acBonus = bonusValue;
                         if (tier >= 3) effect.maxHpBonus = tier * 2;
                     } else {
-                        // Jewelry (neck, rings) - random bonus type
-                        const roll = Math.random();
-                        if (roll < 0.33) {
+                        // Jewelry (neck, rings) - Offensive only
+                        if (Math.random() < 0.5) {
                             effect.attackBonus = bonusValue;
-                        } else if (roll < 0.66) {
-                            effect.damageBonus = bonusValue;
                         } else {
-                            effect.maxHpBonus = bonusValue * 2;
+                            effect.damageBonus = bonusValue;
                         }
                     }
 
@@ -1021,19 +1053,20 @@ export function gameReducer(state: RunState, action: Action): RunState {
                         const isUpgrade = existingTier > 0 && Math.random() < 0.5;
 
                         const tierRoll = Math.random() * 100 + faithBonus;
-                        let baseTier: 1 | 2 | 3 | 4 | 5;
+                        let baseTier: 1 | 2 | 3 | 4 | 5 | 6;
                         let tierName: string;
-                        if (tierRoll < 50) { baseTier = 1; tierName = 'Minor'; }
-                        else if (tierRoll < 75) { baseTier = 2; tierName = 'Lesser'; }
-                        else if (tierRoll < 90) { baseTier = 3; tierName = 'Greater'; }
-                        else if (tierRoll < 98) { baseTier = 4; tierName = 'Epic'; }
-                        else { baseTier = 5; tierName = 'Legendary'; }
+                        if (tierRoll < 40) { baseTier = 1; tierName = 'Common'; }
+                        else if (tierRoll < 65) { baseTier = 2; tierName = 'Uncommon'; }
+                        else if (tierRoll < 82) { baseTier = 3; tierName = 'Rare'; }
+                        else if (tierRoll < 93) { baseTier = 4; tierName = 'Epic'; }
+                        else if (tierRoll < 99) { baseTier = 5; tierName = 'Legendary'; }
+                        else { baseTier = 6; tierName = 'Godly'; }
 
                         const tier = isUpgrade
-                            ? Math.min(5, Math.max(baseTier, existingTier + 1)) as 1 | 2 | 3 | 4 | 5
+                            ? Math.min(6, Math.max(baseTier, existingTier + 1)) as 1 | 2 | 3 | 4 | 5 | 6
                             : baseTier;
                         if (tier > baseTier) {
-                            tierName = ['Minor', 'Lesser', 'Greater', 'Epic', 'Legendary'][tier - 1];
+                            tierName = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary', 'Godly'][tier - 1];
                         }
 
                         const bonusValue = tier + Math.floor(Math.random() * tier);
