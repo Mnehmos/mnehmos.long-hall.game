@@ -32,14 +32,15 @@ const FIGHTER_ABILITIES: AbilityDef[] = [
         id: 'champion_strike',
         name: 'Champion Strike',
         role: 'fighter',
-        description: '+2d6 damage on next hit',
+        description: 'Powerful strike for Weapon + 2d6 damage',
         cooldownType: 'turns',
         cooldownValue: 3,
         effect: {
-            type: 'buff',
-            target: 'self',
-            status: 'champion_strike',
-            dice: '2d6'
+            type: 'attack',
+            target: 'enemy',
+            dice: '2d6',
+            useWeaponDamage: true,
+            attackBonus: 2
         }
     }
 ];

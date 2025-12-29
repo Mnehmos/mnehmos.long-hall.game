@@ -1318,9 +1318,17 @@ export function gameReducer(state: RunState, action: Action): RunState {
 
         // Skill mapping based on ability type
         if (abilityDef.effect.type === 'attack') {
-            // Weapon-based abilities (like Aimed Shot) use ranged skill + equipment
-            accuracyBonus = skills.ranged + equipAtkBonus;
-            powerBonus = skills.ranged + equipDmgBonus;
+            // Weapon-based abilities
+            if (abilityDef.role === 'ranger') {
+                accuracyBonus = skills.ranged + equipAtkBonus;
+                powerBonus = skills.ranged + equipDmgBonus;
+            } else {
+                // Default to Melee (Fighter, etc)
+                accuracyBonus = skills.attack + equipAtkBonus;
+                powerBonus = skills.strength + equipDmgBonus;
+            }
+            if (abilityDef.effect.attackBonus) accuracyBonus += abilityDef.effect.attackBonus;
+            if (abilityDef.effect.damageBonus) powerBonus += abilityDef.effect.damageBonus;
         } else if (abilityDef.effect.type === 'damage') {
             // Spells use magic skill + equipment
             powerBonus = skills.magic + equipDmgBonus;
@@ -1350,12 +1358,37 @@ export function gameReducer(state: RunState, action: Action): RunState {
                      const target = room.enemies[targetIndex];
                      // Attack Roll if it's an attack, or auto-hit for some spells?
                      // Let's do attack roll for EVERYTHING offensive to keep it consistent with skills
-                     const attackRoll = roll('1d20').total + accuracyBonus;
-                     if (attackRoll >= target.ac) {
-                         const dmg = roll(abilityDef.effect.dice || '1d6').total + powerBonus;
-                         newEnemies[targetIndex] = { ...target, hp: Math.max(0, target.hp - dmg) };
-                         newHistory.push(`${actor.name} uses ${abilityDef.name} on ${target.name}: [${attackRoll} vs AC] HIT! ${dmg} damage.`);
-                     } else {
+                      const attackRoll = roll('1d20').total + accuracyBonus;
+                      if (attackRoll >= target.ac) {
+                          let dmg = 0;
+                          
+                          // Weapon Damage Logic
+                          if (abilityDef.effect.useWeaponDamage) {
+                               const weapon = actor.equipment?.main_hand;
+                               let weaponDice = '1d4';
+                               if (weapon) {
+                                   const name = weapon.name.toLowerCase();
+                                   if (name.includes('sword') || name.includes('axe') || name.includes('mace')) weaponDice = '1d8';
+                                   else if (name.includes('dagger')) weaponDice = '1d4';
+                                   else if (name.includes('great')) weaponDice = '2d6';
+                                   else if (name.includes('bow') || name.includes('cross')) weaponDice = '1d8';
+                                   else if (name.includes('staff')) weaponDice = '1d6';
+                               }
+                               dmg += roll(weaponDice).total;
+                          }
+                          
+                          // Ability Bonus Dice
+                          if (abilityDef.effect.dice) {
+                              dmg += roll(abilityDef.effect.dice).total;
+                          } else if (!abilityDef.effect.useWeaponDamage) {
+                              dmg += roll('1d6').total; // Fallback
+                          }
+                          
+                          dmg += powerBonus;
+                          
+                          newEnemies[targetIndex] = { ...target, hp: Math.max(0, target.hp - dmg) };
+                          newHistory.push(`${actor.name} uses ${abilityDef.name} on ${target.name}: [${attackRoll} vs AC] HIT! ${dmg} damage.`);
+                      } else {
                          newHistory.push(`${actor.name} uses ${abilityDef.name} on ${target.name}: [${attackRoll} vs AC] MISS!`);
                      }
                  }

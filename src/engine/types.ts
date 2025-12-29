@@ -25,6 +25,7 @@ export interface AbilityDef {
     status?: string; // For buffs that apply a status (e.g. 'hidden')
     attackBonus?: number; // For Aimed Shot
     damageBonus?: number; // For Aimed Shot
+    useWeaponDamage?: boolean; // For physical attacks (Champion Strike) that add to weapon dmg
   };
 }
 
