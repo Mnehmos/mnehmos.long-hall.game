@@ -1,0 +1,278 @@
+---
+/**
+ * ItemCard.astro - Detailed item display with stats and enchantments
+ * Task ID: C2.4.2
+ * 
+ * Displays detailed item information including stats, enchantments, and cost.
+ * Supports full and compact display modes.
+ * 
+ * @example
+ * <ItemCard item={droppedItem} showStats={true} />
+ * <ItemCard item={inventoryItem} compact={true} />
+ */
+
+import type { Item } from '@engine/types';
+import Badge from '@components/shared/Badge.astro';
+
+interface Props {
+  item: Item;
+  showStats?: boolean;
+  compact?: boolean;
+  class?: string;
+}
+
+const { 
+  item, 
+  showStats = false, 
+  compact = false,
+  class: className = '' 
+} = Astro.props;
+
+/**
+ * Format item type for display (capitalize first letter)
+ */
+function formatType(type: string): string {
+  return type.charAt(0).toUpperCase() + type.slice(1);
+}
+
+/**
+ * Build stat display strings from baseStats
+ */
+function getStatStrings(baseStats: Item['baseStats']): string[] {
+  const stats: string[] = [];
+  
+  if (baseStats.attackBonus && baseStats.attackBonus !== 0) {
+    const sign = baseStats.attackBonus > 0 ? '+' : '';
+    stats.push(`${sign}${baseStats.attackBonus} Attack`);
+  }
+  if (baseStats.damageBonus && baseStats.damageBonus !== 0) {
+    const sign = baseStats.damageBonus > 0 ? '+' : '';
+    stats.push(`${sign}${baseStats.damageBonus} Damage`);
+  }
+  if (baseStats.acBonus && baseStats.acBonus !== 0) {
+    const sign = baseStats.acBonus > 0 ? '+' : '';
+    stats.push(`${sign}${baseStats.acBonus} AC`);
+  }
+  if (baseStats.maxHpBonus && baseStats.maxHpBonus !== 0) {
+    const sign = baseStats.maxHpBonus > 0 ? '+' : '';
+    stats.push(`${sign}${baseStats.maxHpBonus} HP`);
+  }
+  
+  return stats;
+}
+
+const statStrings = getStatStrings(item.baseStats);
+const hasStats = statStrings.length > 0;
+const displayName = item.customName || item.name;
+const classes = ['item-card', compact && 'item-card--compact', className].filter(Boolean).join(' ');
+---
+
+<div 
+  class={classes}
+  data-rarity={item.rarity}
+  style={`--rarity-color: var(--rarity-${item.rarity})`}
+>
+  <header class="item-header">
+    <h3 class="item-name">{displayName}</h3>
+    <Badge text={item.rarity} variant="rarity" rarity={item.rarity} />
+  </header>
+  
+  <div class="item-type">{formatType(item.type)}</div>
+  
+  {!compact && showStats && hasStats && (
+    <div class="item-stats">
+      {statStrings.map((stat) => (
+        <span class="stat-item">{stat}</span>
+      ))}
+    </div>
+  )}
+  
+  {!compact && item.enchantment && (
+    <div class="item-enchantment">
+      <span class="enchant-name">{item.enchantment.name}</span>
+      <span class="enchant-desc">{item.enchantment.description}</span>
+    </div>
+  )}
+  
+  {!compact && (
+    <div class="item-cost">
+      <span class="cost-icon">💰</span>
+      <span class="cost-value">{item.cost}</span>
+    </div>
+  )}
+</div>
+
+<style>
+  /* === ITEM CARD CONTAINER === */
+  .item-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background-color: var(--bg-card);
+    border: 2px solid var(--rarity-color, var(--border-light));
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    transition: 
+      transform var(--transition-fast),
+      box-shadow var(--transition-fast);
+  }
+
+  .item-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+  }
+
+  /* === RARITY GLOW EFFECTS === */
+  .item-card[data-rarity="legendary"] {
+    box-shadow: 
+      var(--shadow-md),
+      0 0 12px rgba(245, 158, 11, 0.25);
+  }
+
+  .item-card[data-rarity="legendary"]:hover {
+    box-shadow: 
+      var(--shadow-lg),
+      0 0 16px rgba(245, 158, 11, 0.35);
+  }
+
+  .item-card[data-rarity="godly"] {
+    box-shadow: 
+      var(--shadow-md),
+      0 0 16px rgba(239, 68, 68, 0.35);
+    animation: godly-pulse 2s ease-in-out infinite;
+  }
+
+  .item-card[data-rarity="godly"]:hover {
+    box-shadow: 
+      var(--shadow-lg),
+      0 0 20px rgba(239, 68, 68, 0.45);
+  }
+
+  @keyframes godly-pulse {
+    0%, 100% {
+      box-shadow: 
+        var(--shadow-md),
+        0 0 16px rgba(239, 68, 68, 0.35);
+    }
+    50% {
+      box-shadow: 
+        var(--shadow-md),
+        0 0 24px rgba(239, 68, 68, 0.5);
+    }
+  }
+
+  /* === COMPACT MODE === */
+  .item-card--compact {
+    gap: var(--space-2);
+    padding: var(--space-3);
+  }
+
+  .item-card--compact .item-header {
+    gap: var(--space-2);
+  }
+
+  .item-card--compact .item-name {
+    font-size: 0.875rem;
+  }
+
+  .item-card--compact .item-type {
+    font-size: 0.6875rem;
+  }
+
+  /* === ITEM HEADER === */
+  .item-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+  }
+
+  .item-name {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* === ITEM TYPE === */
+  .item-type {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+  }
+
+  /* === ITEM STATS === */
+  .item-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    padding: var(--space-2) 0;
+    border-top: 1px solid var(--border-light);
+  }
+
+  .stat-item {
+    font-family: var(--font-body);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--heal); /* Green for positive bonuses */
+    padding: var(--space-1) var(--space-2);
+    background-color: rgba(34, 197, 94, 0.1);
+    border-radius: var(--radius-sm);
+  }
+
+  /* === ENCHANTMENT === */
+  .item-enchantment {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-3);
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-sm);
+    border-left: 3px solid var(--rarity-color, var(--xp));
+  }
+
+  .enchant-name {
+    font-family: var(--font-display);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .enchant-desc {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-style: italic;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+
+  /* === ITEM COST === */
+  .item-cost {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--border-light);
+  }
+
+  .cost-icon {
+    font-size: 0.875rem;
+    line-height: 1;
+  }
+
+  .cost-value {
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--gold);
+  }
+</style>

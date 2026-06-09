@@ -1,0 +1,11 @@
+id: ranger_armor_rare
+name: Woodland Armor
+type: chest
+rarity: rare
+cost: 80
+baseStats:
+  attackBonus: 1
+  acBonus: 3
+tags:
+  - ranger
+  - armor

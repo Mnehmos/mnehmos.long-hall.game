@@ -1,0 +1,10 @@
+id: hill_giant
+name: "Hill Giant"
+hp: 45
+maxHp: 45
+power: 8
+damage: "2d8+3"
+ac: 10
+xp: 80
+tags:
+  - giant

@@ -1,0 +1,10 @@
+id: fighter_armor_common
+name: Chainmail
+type: chest
+rarity: common
+cost: 20
+baseStats:
+  acBonus: 1
+tags:
+  - fighter
+  - armor

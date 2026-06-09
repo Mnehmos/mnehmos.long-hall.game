@@ -1,0 +1,13 @@
+id: vampire_lord
+name: "Vampire Lord"
+hp: 85
+maxHp: 85
+power: 11
+damage: "2d12+5"
+ac: 10
+xp: 110
+tags:
+  - undead
+  - vampire
+  - boss
+isBoss: true

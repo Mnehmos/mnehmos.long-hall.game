@@ -1,0 +1,12 @@
+id: cleric_mace_rare
+name: Divine Scepter
+type: weapon
+rarity: rare
+cost: 72
+baseStats:
+  attackBonus: 3
+  damageBonus: 3
+tags:
+  - cleric
+  - mace
+  - weapon

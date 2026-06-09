@@ -1,0 +1,15 @@
+id: dungeon_start
+name: "Ancient Sewers"
+description: "A damp, moss-covered sewer system beneath the city."
+enemyTags:
+  - vermin
+  - slime
+trapTags:
+  - tripwire
+  - spikes
+bossPool:
+  - sewer_king
+ambiance:
+  - "The smell of rot is overpowering."
+  - "Scurrying sounds echo in the darkness."
+  - "Slime drips from the ceiling."

@@ -1,0 +1,106 @@
+---
+/**
+ * Badge.astro - Compact pill-shaped badge for rarity, class, and level indicators
+ * Task ID: C2.1.5
+ * 
+ * @example
+ * <Badge text="Legendary" variant="rarity" rarity="legendary" />
+ * <Badge text="Wizard" variant="class" role="wizard" />
+ * <Badge text="Lv.5" variant="level" />
+ */
+
+interface Props {
+  text: string;
+  variant: 'rarity' | 'class' | 'level';
+  /** For rarity variant - determines background color */
+  rarity?: 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary' | 'godly';
+  /** For class variant - determines background color */
+  role?: 'fighter' | 'wizard' | 'rogue' | 'cleric' | 'ranger';
+  class?: string;
+}
+
+const {
+  text,
+  variant,
+  rarity,
+  role,
+  class: className = '',
+} = Astro.props;
+
+/**
+ * Get the CSS variable name for the badge background color based on variant
+ */
+function getColorVar(): string {
+  if (variant === 'rarity' && rarity) {
+    return `var(--rarity-${rarity})`;
+  }
+  if (variant === 'class' && role) {
+    return `var(--class-${role})`;
+  }
+  if (variant === 'level') {
+    return 'var(--copper)';
+  }
+  // Fallback to common rarity color
+  return 'var(--rarity-common)';
+}
+
+const colorVar = getColorVar();
+
+const classes = [
+  'badge',
+  `badge--${variant}`,
+  className,
+].filter(Boolean).join(' ');
+---
+
+<span 
+  class={classes}
+  style={`--badge-color: ${colorVar};`}
+>
+  {text}
+</span>
+
+<style>
+  .badge {
+    /* Layout */
+    display: inline-block;
+    
+    /* Typography */
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    line-height: 1;
+    
+    /* Spacing - compact pill shape */
+    padding: var(--space-1) var(--space-2);
+    
+    /* Shape - pill with small radius */
+    border-radius: var(--radius-sm);
+    
+    /* Colors */
+    background-color: var(--badge-color);
+    color: white;
+    
+    /* Slight transparency for polish */
+    opacity: 0.95;
+  }
+
+  /* === VARIANT MODIFIERS === */
+  
+  /* Rarity badges - standard styling */
+  .badge--rarity {
+    /* Could add glow effects for legendary/godly here */
+  }
+
+  /* Class badges - standard styling */
+  .badge--class {
+    /* Could add class-specific styling here */
+  }
+
+  /* Level badges - slightly different styling */
+  .badge--level {
+    /* Level uses copper, matches brand */
+  }
+</style>

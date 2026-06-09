@@ -1,0 +1,10 @@
+role: rogue
+hitDie: 8
+startingSkills:
+  strength: 0
+  attack: 1
+  defense: 0
+  magic: 0
+  ranged: 2
+  faith: 0
+  agility: 3

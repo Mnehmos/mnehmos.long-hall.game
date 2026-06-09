@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- The Long Hall Favicon - Dungeon Archway with Torch -->
+  <defs>
+    <!-- Gradient for stone texture -->
+    <linearGradient id="stoneGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#4a4a4a"/>
+      <stop offset="50%" style="stop-color:#3d3d3d"/>
+      <stop offset="100%" style="stop-color:#2d2d2d"/>
+    </linearGradient>
+    <!-- Gradient for the dark hallway -->
+    <linearGradient id="darkHall" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" style="stop-color:#1c1917"/>
+      <stop offset="100%" style="stop-color:#0c0a09"/>
+    </linearGradient>
+    <!-- Torch flame gradient -->
+    <radialGradient id="flameGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" style="stop-color:#fbbf24"/>
+      <stop offset="50%" style="stop-color:#f97316"/>
+      <stop offset="100%" style="stop-color:#dc2626;stop-opacity:0"/>
+    </radialGradient>
+  </defs>
+  
+  <!-- Base circle background -->
+  <circle cx="64" cy="64" r="60" fill="#1c1917"/>
+  
+  <!-- Stone archway frame -->
+  <path d="M28 110 L28 50 Q28 25 64 25 Q100 25 100 50 L100 110" 
+        fill="none" stroke="url(#stoneGrad)" stroke-width="12" stroke-linecap="round"/>
+  
+  <!-- Dark hallway interior -->
+  <path d="M36 108 L36 52 Q36 32 64 32 Q92 32 92 52 L92 108 Z" 
+        fill="url(#darkHall)"/>
+  
+  <!-- Archway keystone -->
+  <polygon points="64,20 54,32 74,32" fill="#4a4a4a"/>
+  
+  <!-- Left torch bracket -->
+  <rect x="40" y="55" width="4" height="8" fill="#6b4423"/>
+  <ellipse cx="42" cy="52" rx="5" ry="7" fill="url(#flameGlow)"/>
+  
+  <!-- Right torch bracket -->
+  <rect x="84" y="55" width="4" height="8" fill="#6b4423"/>
+  <ellipse cx="86" cy="52" rx="5" ry="7" fill="url(#flameGlow)"/>
+  
+  <!-- Decorative floor tiles hint -->
+  <line x1="50" y1="108" x2="50" y2="95" stroke="#2d2d2d" stroke-width="2"/>
+  <line x1="64" y1="108" x2="64" y2="90" stroke="#2d2d2d" stroke-width="2"/>
+  <line x1="78" y1="108" x2="78" y2="95" stroke="#2d2d2d" stroke-width="2"/>
+  
+  <style>
+    @media (prefers-color-scheme: light) {
+      circle:first-of-type { fill: #f5f5f4; }
+    }
+  </style>
+</svg>

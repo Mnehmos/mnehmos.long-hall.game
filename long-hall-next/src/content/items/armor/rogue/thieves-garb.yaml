@@ -1,0 +1,10 @@
+id: rogue_armor_uncommon
+name: "Thieves' Garb"
+type: chest
+rarity: uncommon
+cost: 40
+baseStats:
+  acBonus: 2
+tags:
+  - rogue
+  - armor

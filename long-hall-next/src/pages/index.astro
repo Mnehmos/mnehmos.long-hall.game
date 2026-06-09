@@ -1,0 +1,143 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+
+<Layout title="Design System">
+  <main class="max-w-4xl mx-auto p-8">
+    <!-- Header -->
+    <header class="mb-12 text-center">
+      <h1 class="font-display text-4xl font-bold mb-4">
+        <span class="gradient-text">The Long Hall</span>
+      </h1>
+      <p class="text-secondary text-lg">Design System & Tokens Preview</p>
+    </header>
+
+    <!-- Copper Brand Colors -->
+    <section class="mb-12">
+      <h2 class="font-display text-2xl font-semibold mb-6 text-copper">Brand Colors</h2>
+      <div class="flex gap-4 flex-wrap">
+        <div class="flex flex-col items-center">
+          <div class="w-20 h-20 rounded-lg bg-copper shadow-copper"></div>
+          <span class="text-sm mt-2 text-muted">Copper</span>
+          <span class="text-xs font-mono text-muted">#b87333</span>
+        </div>
+        <div class="flex flex-col items-center">
+          <div class="w-20 h-20 rounded-lg bg-copper-light"></div>
+          <span class="text-sm mt-2 text-muted">Copper Light</span>
+          <span class="text-xs font-mono text-muted">#d4956a</span>
+        </div>
+        <div class="flex flex-col items-center">
+          <div class="w-20 h-20 rounded-lg bg-copper-dark"></div>
+          <span class="text-sm mt-2 text-muted">Copper Dark</span>
+          <span class="text-xs font-mono text-muted">#8b5a2b</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Rarity Colors -->
+    <section class="mb-12">
+      <h2 class="font-display text-2xl font-semibold mb-6 text-copper">Rarity Colors</h2>
+      <div class="flex gap-3 flex-wrap">
+        <span class="px-4 py-2 rounded-lg bg-parchment-dark border border-rarity-common rarity-common font-medium">Common</span>
+        <span class="px-4 py-2 rounded-lg bg-parchment-dark border border-rarity-uncommon rarity-uncommon font-medium">Uncommon</span>
+        <span class="px-4 py-2 rounded-lg bg-parchment-dark border border-rarity-rare rarity-rare font-medium">Rare</span>
+        <span class="px-4 py-2 rounded-lg bg-parchment-dark border border-rarity-epic rarity-epic font-medium">Epic</span>
+        <span class="px-4 py-2 rounded-lg bg-parchment-dark border border-rarity-legendary rarity-legendary font-medium glow-legendary">Legendary</span>
+        <span class="px-4 py-2 rounded-lg bg-parchment-dark border border-rarity-godly rarity-godly font-medium glow-godly">Godly</span>
+      </div>
+    </section>
+
+    <!-- Class Colors -->
+    <section class="mb-12">
+      <h2 class="font-display text-2xl font-semibold mb-6 text-copper">Class Colors</h2>
+      <div class="flex gap-3 flex-wrap">
+        <span class="px-4 py-2 rounded-lg bg-class-fighter text-white font-medium">Fighter</span>
+        <span class="px-4 py-2 rounded-lg bg-class-wizard text-white font-medium">Wizard</span>
+        <span class="px-4 py-2 rounded-lg bg-class-rogue text-white font-medium">Rogue</span>
+        <span class="px-4 py-2 rounded-lg bg-class-cleric text-white font-medium">Cleric</span>
+        <span class="px-4 py-2 rounded-lg bg-class-ranger text-white font-medium">Ranger</span>
+      </div>
+    </section>
+
+    <!-- Combat Colors -->
+    <section class="mb-12">
+      <h2 class="font-display text-2xl font-semibold mb-6 text-copper">Combat Colors</h2>
+      <div class="flex gap-4 flex-wrap">
+        <span class="text-damage font-bold text-lg">-25 damage</span>
+        <span class="text-heal font-bold text-lg">+15 heal</span>
+        <span class="text-buff font-bold text-lg">↑ buff</span>
+        <span class="text-debuff font-bold text-lg">↓ debuff</span>
+        <span class="text-miss font-bold text-lg">MISS</span>
+        <span class="text-crit font-bold text-lg">CRIT!</span>
+      </div>
+    </section>
+
+    <!-- Stat Bars -->
+    <section class="mb-12">
+      <h2 class="font-display text-2xl font-semibold mb-6 text-copper">Stat Bars</h2>
+      <div class="space-y-4 max-w-md">
+        <div>
+          <div class="flex justify-between mb-1">
+            <span class="text-sm font-medium text-hp">HP</span>
+            <span class="text-sm text-muted">75/100</span>
+          </div>
+          <div class="stat-bar stat-bar-hp">
+            <div class="stat-bar-fill" style="width: 75%"></div>
+          </div>
+        </div>
+        <div>
+          <div class="flex justify-between mb-1">
+            <span class="text-sm font-medium text-xp">XP</span>
+            <span class="text-sm text-muted">450/1000</span>
+          </div>
+          <div class="stat-bar stat-bar-xp">
+            <div class="stat-bar-fill" style="width: 45%"></div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-gold font-bold">💰</span>
+          <span class="text-gold font-bold">2,450 gold</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Typography -->
+    <section class="mb-12">
+      <h2 class="font-display text-2xl font-semibold mb-6 text-copper">Typography</h2>
+      <div class="space-y-4">
+        <p class="font-display text-3xl font-bold">Space Grotesk (Display)</p>
+        <p class="font-body text-xl">Inter (Body Text)</p>
+        <p class="font-mono text-base bg-parchment-dark p-2 rounded">JetBrains Mono (Code)</p>
+      </div>
+    </section>
+
+    <!-- Card Example -->
+    <section class="mb-12">
+      <h2 class="font-display text-2xl font-semibold mb-6 text-copper">Card Component</h2>
+      <div class="bg-card border border-light rounded-lg p-6 card-hover max-w-sm">
+        <h3 class="font-display text-lg font-semibold mb-2">Iron Sword</h3>
+        <p class="text-secondary text-sm mb-3">A sturdy blade forged in the depths of the Long Hall.</p>
+        <div class="flex justify-between items-center">
+          <span class="rarity-uncommon font-medium">Uncommon</span>
+          <span class="text-gold font-medium">150 gold</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Animations Preview -->
+    <section class="mb-12">
+      <h2 class="font-display text-2xl font-semibold mb-6 text-copper">Animations</h2>
+      <div class="flex gap-6 items-center">
+        <div class="w-12 h-12 bg-copper rounded-lg animate-float"></div>
+        <span class="text-muted">Float</span>
+        <div class="w-12 h-12 bg-copper rounded-lg animate-pulse-slow"></div>
+        <span class="text-muted">Pulse</span>
+      </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="mt-16 pt-8 border-t border-light text-center text-muted">
+      <p>Design System v1.0 • Mnehmos Brand Aligned</p>
+    </footer>
+  </main>
+</Layout>

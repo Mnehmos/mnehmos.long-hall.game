@@ -1,0 +1,10 @@
+id: ranger_armor_uncommon
+name: "Hunter's Mail"
+type: chest
+rarity: uncommon
+cost: 38
+baseStats:
+  acBonus: 2
+tags:
+  - ranger
+  - armor

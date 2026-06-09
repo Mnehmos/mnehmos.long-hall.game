@@ -1,0 +1,10 @@
+id: neck_uncommon
+name: Amulet of Strength
+type: neck
+rarity: uncommon
+cost: 38
+baseStats:
+  attackBonus: 1
+  damageBonus: 2
+tags:
+  - accessory

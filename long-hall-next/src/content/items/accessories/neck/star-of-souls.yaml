@@ -1,0 +1,11 @@
+id: neck_legendary
+name: Star of Souls
+type: neck
+rarity: legendary
+cost: 320
+baseStats:
+  attackBonus: 4
+  damageBonus: 5
+  maxHpBonus: 6
+tags:
+  - accessory

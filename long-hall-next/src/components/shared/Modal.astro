@@ -1,0 +1,174 @@
+---
+/**
+ * Modal.astro - Overlay dialog component for game UI (game over, victory, loot, etc.)
+ * Task ID: C2.1.4
+ * 
+ * @example
+ * <Modal open={isOpen} title="Victory!" size="md">
+ *   <p>You defeated the goblin!</p>
+ *   <div slot="footer">
+ *     <Button variant="primary">Continue</Button>
+ *   </div>
+ * </Modal>
+ */
+
+interface Props {
+  open?: boolean;
+  title: string;
+  size?: 'sm' | 'md' | 'lg';
+  class?: string;
+}
+
+const {
+  open = false,
+  title,
+  size = 'md',
+  class: className = '',
+} = Astro.props;
+
+// Generate unique ID for aria-labelledby
+const titleId = `modal-title-${Math.random().toString(36).substring(2, 9)}`;
+
+const backdropClasses = [
+  'modal-backdrop',
+  open ? 'modal-backdrop--open' : '',
+  className,
+].filter(Boolean).join(' ');
+
+const modalClasses = [
+  'modal',
+  `modal--${size}`,
+].filter(Boolean).join(' ');
+---
+
+<div 
+  class={backdropClasses}
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby={titleId}
+>
+  <div class={modalClasses}>
+    <header class="modal-header">
+      <h2 id={titleId} class="modal-title">{title}</h2>
+    </header>
+    <div class="modal-body">
+      <slot />
+    </div>
+    <footer class="modal-footer">
+      <slot name="footer" />
+    </footer>
+  </div>
+</div>
+
+<style>
+  /* === MODAL BACKDROP === */
+  .modal-backdrop {
+    /* Positioning - Full viewport overlay */
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    
+    /* Layout - Center modal */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* Appearance */
+    background-color: rgba(0, 0, 0, 0.5);
+    
+    /* Hidden by default */
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    
+    /* Transition */
+    transition: 
+      opacity var(--transition-normal),
+      visibility var(--transition-normal);
+  }
+
+  /* === OPEN STATE === */
+  .modal-backdrop--open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .modal-backdrop--open .modal {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  /* === MODAL CONTAINER === */
+  .modal {
+    /* Sizing */
+    width: 90%;
+    max-height: 90vh;
+    overflow-y: auto;
+    
+    /* Appearance */
+    background-color: var(--bg-card);
+    border: 2px solid var(--border-copper);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    
+    /* Animation */
+    opacity: 0;
+    transform: scale(0.95);
+    transition: 
+      opacity var(--transition-normal),
+      transform var(--transition-normal);
+  }
+
+  /* === SIZE VARIANTS === */
+  .modal--sm {
+    max-width: 400px;
+  }
+
+  .modal--md {
+    max-width: 500px;
+  }
+
+  .modal--lg {
+    max-width: 700px;
+  }
+
+  /* === MODAL HEADER === */
+  .modal-header {
+    padding: var(--space-4) var(--space-6);
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .modal-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 600;
+    line-height: 1.2;
+    color: var(--text-primary);
+  }
+
+  /* === MODAL BODY === */
+  .modal-body {
+    padding: var(--space-6);
+    color: var(--text-secondary);
+    font-family: var(--font-body);
+    line-height: 1.6;
+  }
+
+  /* === MODAL FOOTER === */
+  .modal-footer {
+    padding: var(--space-4) var(--space-6);
+    border-top: 1px solid var(--border-light);
+    
+    /* Layout for action buttons */
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--space-3);
+  }
+
+  /* Hide footer when empty (no slot content) */
+  .modal-footer:empty {
+    display: none;
+  }
+</style>

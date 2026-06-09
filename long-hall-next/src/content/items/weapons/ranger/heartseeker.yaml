@@ -1,0 +1,12 @@
+id: ranger_bow_legendary
+name: Heartseeker
+type: weapon
+rarity: legendary
+cost: 280
+baseStats:
+  attackBonus: 6
+  damageBonus: 4
+tags:
+  - ranger
+  - bow
+  - weapon

@@ -1,0 +1,16 @@
+# The Long Hall - robots.txt
+# https://longhall.game
+
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Sitemap location
+Sitemap: https://longhall.game/sitemap.xml
+
+# Crawl delay (optional, be nice to servers)
+Crawl-delay: 1
+
+# Disallow internal/API routes (if any in future)
+Disallow: /api/
+Disallow: /_astro/

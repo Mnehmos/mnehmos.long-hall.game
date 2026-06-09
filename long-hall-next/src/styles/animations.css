@@ -1,0 +1,486 @@
+/* ============================================================
+   ANIMATIONS.CSS - CSS Idle & Continuous Animations
+   ============================================================
+   Task: S3.4.1 - CSS Idle Animations
+   Run: refactor-astro-svg-001
+   
+   Performance Requirements:
+   - GPU-accelerated properties ONLY (transform, opacity)
+   - NO width, height, top, left (causes reflow)
+   - will-change hints for composited layers
+   - prefers-reduced-motion support
+   
+   Timing Tokens (from ANIMATION-STATES.md Section 4.2):
+   - --anim-idle-loop: 3000ms
+   - --anim-idle-float: 2000ms
+   ============================================================ */
+
+/* === ANIMATION TIMING TOKENS === */
+:root {
+  /* Idle loop timing (continuous animations) */
+  --anim-idle-loop: 3000ms;
+  --anim-idle-float: 2000ms;
+  --anim-pulse: 1500ms;
+  --anim-glow-pulse: 2000ms;
+  
+  /* Easing functions */
+  --ease-idle: ease-in-out;
+  --ease-breathe: cubic-bezier(0.4, 0, 0.6, 1);
+}
+
+/* ============================================================
+   KEYFRAME ANIMATIONS
+   ============================================================ */
+
+/**
+ * @keyframes breathe
+ * Subtle scale animation for idle characters
+ * Creates a "living" feel for heroes/enemies at rest
+ * 
+ * Scale: 0.98 → 1.02 → 0.98 (3s loop)
+ * Uses transform: scale() - GPU accelerated
+ */
+@keyframes breathe {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+/**
+ * @keyframes breathe-subtle
+ * More subtle variant for smaller characters or secondary elements
+ * Scale: 0.99 → 1.01 → 0.99
+ */
+@keyframes breathe-subtle {
+  0%, 100% {
+    transform: scale(0.99);
+  }
+  50% {
+    transform: scale(1.01);
+  }
+}
+
+/**
+ * @keyframes float
+ * Vertical bob animation for flying enemies or magical effects
+ * 
+ * Movement: 2px up/down (2s loop)
+ * Uses transform: translateY() - GPU accelerated
+ */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+/**
+ * @keyframes float-deep
+ * More pronounced float for ghosts, spirits, or magical entities
+ * Movement: 4px up/down
+ */
+@keyframes float-deep {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+/**
+ * @keyframes pulse
+ * Target highlight animation for selecting/targeting indicators
+ * Opacity pulse: 1 → 0.6 → 1
+ * 
+ * Uses opacity - GPU accelerated
+ */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+/**
+ * @keyframes pulse-scale
+ * Combined opacity + scale pulse for emphasis
+ * Good for clickable targets or important UI elements
+ */
+@keyframes pulse-scale {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+/**
+ * @keyframes glow-pulse
+ * Boss aura effect using box-shadow animation
+ * Note: box-shadow is NOT GPU-accelerated but acceptable for
+ * single boss element (not applied to many elements)
+ * 
+ * Uses CSS variable --glow-color for flexibility:
+ * - Default: legendary orange
+ * - Can override with class colors
+ */
+@keyframes glow-pulse {
+  0%, 100% {
+    filter: drop-shadow(0 0 4px var(--glow-color, var(--rarity-legendary)));
+  }
+  50% {
+    filter: drop-shadow(0 0 12px var(--glow-color, var(--rarity-legendary)));
+  }
+}
+
+/**
+ * @keyframes glow-pulse-intense
+ * More dramatic glow for boss enrage or critical moments
+ */
+@keyframes glow-pulse-intense {
+  0%, 100% {
+    filter: drop-shadow(0 0 6px var(--glow-color, var(--class-fighter)));
+    opacity: 1;
+  }
+  50% {
+    filter: drop-shadow(0 0 20px var(--glow-color, var(--class-fighter)));
+    opacity: 0.9;
+  }
+}
+
+/**
+ * @keyframes status-glow
+ * For status effect indicators (buffs/debuffs)
+ * Uses --status-color CSS variable for flexibility
+ */
+@keyframes status-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 3px var(--status-color, var(--buff)));
+  }
+  50% {
+    filter: drop-shadow(0 0 8px var(--status-color, var(--buff)));
+  }
+}
+
+/* ============================================================
+   UTILITY CLASSES - IDLE ANIMATIONS
+   ============================================================ */
+
+/**
+ * .animate-idle
+ * Primary idle animation using breathing effect
+ * Apply to character sprites in idle state
+ */
+.animate-idle {
+  animation: breathe var(--anim-idle-loop) var(--ease-breathe) infinite;
+  will-change: transform;
+}
+
+/**
+ * .animate-idle-subtle
+ * Subtle idle for secondary characters or UI elements
+ */
+.animate-idle-subtle {
+  animation: breathe-subtle var(--anim-idle-loop) var(--ease-breathe) infinite;
+  will-change: transform;
+}
+
+/**
+ * .animate-float
+ * Float animation for flying enemies, ghosts, magic effects
+ */
+.animate-float {
+  animation: float var(--anim-idle-float) var(--ease-idle) infinite;
+  will-change: transform;
+}
+
+/**
+ * .animate-float-deep
+ * More pronounced float for ethereal entities
+ */
+.animate-float-deep {
+  animation: float-deep var(--anim-idle-float) var(--ease-idle) infinite;
+  will-change: transform;
+}
+
+/**
+ * .animate-breathe-float
+ * Combined breathing + floating for magical characters (wizard, cleric)
+ * Uses composite animation for both effects
+ */
+.animate-breathe-float {
+  animation: 
+    breathe var(--anim-idle-loop) var(--ease-breathe) infinite,
+    float var(--anim-idle-float) var(--ease-idle) infinite;
+  will-change: transform;
+}
+
+/* ============================================================
+   UTILITY CLASSES - TARGET/HIGHLIGHT ANIMATIONS
+   ============================================================ */
+
+/**
+ * .animate-pulse-target
+ * For targetable/selected enemies or interactive elements
+ * Draws attention without being too distracting
+ */
+.animate-pulse-target {
+  animation: pulse var(--anim-pulse) var(--ease-idle) infinite;
+  will-change: opacity;
+}
+
+/**
+ * .animate-pulse-scale-target
+ * More prominent target indicator with scale effect
+ */
+.animate-pulse-scale-target {
+  animation: pulse-scale var(--anim-pulse) var(--ease-idle) infinite;
+  will-change: transform, opacity;
+}
+
+/**
+ * .animate-glow-boss
+ * Boss aura effect - legendary orange by default
+ * Override --glow-color for different boss types
+ */
+.animate-glow-boss {
+  --glow-color: var(--rarity-legendary);
+  animation: glow-pulse var(--anim-glow-pulse) var(--ease-idle) infinite;
+  will-change: filter;
+}
+
+/**
+ * .animate-glow-enrage
+ * Enraged boss or critical state - red glow
+ */
+.animate-glow-enrage {
+  --glow-color: var(--class-fighter);
+  animation: glow-pulse-intense var(--anim-glow-pulse) var(--ease-idle) infinite;
+  will-change: filter, opacity;
+}
+
+/**
+ * .animate-status
+ * Status effect glow for buffs/debuffs
+ * Set --status-color to match buff/debuff type
+ */
+.animate-status {
+  animation: status-glow var(--anim-pulse) var(--ease-idle) infinite;
+  will-change: filter;
+}
+
+/* === Status-specific glow colors === */
+.animate-status-buff {
+  --status-color: var(--buff);
+}
+
+.animate-status-debuff {
+  --status-color: var(--debuff);
+}
+
+.animate-status-heal {
+  --status-color: var(--heal);
+}
+
+/* ============================================================
+   STATE VISIBILITY CLASSES
+   ============================================================ */
+
+/**
+ * .state-visible
+ * Explicit visible state for animation state management
+ * Use with SVG state groups (#state-idle, #state-attack, etc.)
+ */
+.state-visible {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/**
+ * .state-hidden
+ * Hidden state - removed from interaction
+ * Does not trigger reflow (uses opacity + visibility)
+ */
+.state-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/**
+ * .state-faded
+ * Semi-visible state for stealth or ghostly effects
+ */
+.state-faded {
+  opacity: 0.5;
+  pointer-events: auto;
+}
+
+/**
+ * .state-dying
+ * Death animation resting state
+ */
+.state-dying {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* ============================================================
+   SVG ANIMATION STATE CLASSES
+   Per ANIMATION-STATES.md Section 7.2
+   ============================================================ */
+
+/**
+ * .anim-state
+ * Base class for SVG animation state groups
+ * All states start hidden; active state gets .active
+ */
+.anim-state {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/**
+ * .anim-state.active
+ * Currently active animation state
+ */
+.anim-state.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/**
+ * Apply breathing to idle state body layer
+ * Targets .layer-body within active #state-idle
+ */
+.anim-state.active#state-idle .layer-body {
+  animation: breathe var(--anim-idle-loop) var(--ease-breathe) infinite;
+  will-change: transform;
+  transform-origin: center bottom;
+}
+
+/**
+ * Floating idle for magic users and ghosts
+ * Applied via character class modifiers
+ */
+.character--wizard .anim-state.active#state-idle,
+.character--cleric .anim-state.active#state-idle,
+.enemy--ghost .anim-state.active#state-idle,
+.enemy--wraith .anim-state.active#state-idle,
+.enemy--specter .anim-state.active#state-idle {
+  animation: float var(--anim-idle-float) var(--ease-idle) infinite;
+  will-change: transform;
+}
+
+/**
+ * Status effect glow on effects layer
+ */
+.has-status .layer-effects {
+  animation: status-glow var(--anim-pulse) var(--ease-idle) infinite;
+  will-change: filter;
+}
+
+/* ============================================================
+   CLASS-SPECIFIC GLOW COLORS
+   Use class tokens for thematic consistency
+   ============================================================ */
+
+.glow-fighter { --glow-color: var(--class-fighter); }
+.glow-wizard { --glow-color: var(--class-wizard); }
+.glow-rogue { --glow-color: var(--class-rogue); }
+.glow-cleric { --glow-color: var(--class-cleric); }
+.glow-ranger { --glow-color: var(--class-ranger); }
+
+.glow-legendary { --glow-color: var(--rarity-legendary); }
+.glow-godly { --glow-color: var(--rarity-godly); }
+
+/* ============================================================
+   REDUCED MOTION SUPPORT
+   Respects user preference for reduced motion
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  /* Disable all continuous animations */
+  .animate-idle,
+  .animate-idle-subtle,
+  .animate-float,
+  .animate-float-deep,
+  .animate-breathe-float,
+  .animate-pulse-target,
+  .animate-pulse-scale-target,
+  .animate-glow-boss,
+  .animate-glow-enrage,
+  .animate-status,
+  .anim-state.active#state-idle .layer-body,
+  .character--wizard .anim-state.active#state-idle,
+  .character--cleric .anim-state.active#state-idle,
+  .enemy--ghost .anim-state.active#state-idle,
+  .enemy--wraith .anim-state.active#state-idle,
+  .enemy--specter .anim-state.active#state-idle,
+  .has-status .layer-effects {
+    animation: none;
+    will-change: auto;
+  }
+  
+  /* Remove will-change hints when animations disabled */
+  * {
+    will-change: auto !important;
+  }
+  
+  /* Keep visibility states functional (no animation needed) */
+  .state-visible {
+    opacity: 1;
+  }
+  
+  .state-hidden {
+    opacity: 0;
+  }
+  
+  /* Static glow for boss (no pulse, but visible) */
+  .animate-glow-boss,
+  .animate-glow-enrage {
+    filter: drop-shadow(0 0 8px var(--glow-color, var(--rarity-legendary)));
+  }
+  
+  /* Static opacity for targets (no pulse) */
+  .animate-pulse-target {
+    opacity: 0.8;
+  }
+}
+
+/* ============================================================
+   DEBUG UTILITIES (development only)
+   ============================================================ */
+
+/**
+ * .debug-animation-bounds
+ * Shows transform bounds for debugging animation issues
+ * Remove in production
+ */
+.debug-animation-bounds {
+  outline: 1px dashed rgba(255, 0, 0, 0.5);
+  outline-offset: 2px;
+}
+
+/**
+ * .debug-animation-paused
+ * Pause all animations for inspection
+ */
+.debug-animation-paused,
+.debug-animation-paused * {
+  animation-play-state: paused !important;
+}

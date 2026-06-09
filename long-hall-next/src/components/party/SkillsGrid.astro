@@ -1,0 +1,163 @@
+---
+/**
+ * SkillsGrid.astro - Display hero skill stats in a grid layout
+ * Task ID: C2.3.2
+ * 
+ * Shows all 7 skills (STR, ATK, DEF, MAG, RNG, FTH, AGI) with values.
+ * Supports compact (2-column, short labels) and full (full labels, icons) modes.
+ * 
+ * @example
+ * <SkillsGrid skills={hero.skills} compact={true} />
+ * <SkillsGrid skills={hero.skills} />
+ */
+
+import type { Skills } from '@engine/types';
+
+interface Props {
+  skills: Skills;
+  compact?: boolean;
+  class?: string;
+}
+
+const {
+  skills,
+  compact = false,
+  class: className = '',
+} = Astro.props;
+
+/**
+ * Skill label definitions with short codes, full names, and icons
+ */
+const skillLabels: Record<keyof Skills, { short: string; full: string; icon: string }> = {
+  strength: { short: 'STR', full: 'Strength', icon: '💪' },
+  attack:   { short: 'ATK', full: 'Attack',   icon: '⚔️' },
+  defense:  { short: 'DEF', full: 'Defense',  icon: '🛡️' },
+  magic:    { short: 'MAG', full: 'Magic',    icon: '✨' },
+  ranged:   { short: 'RNG', full: 'Ranged',   icon: '🏹' },
+  faith:    { short: 'FTH', full: 'Faith',    icon: '🙏' },
+  agility:  { short: 'AGI', full: 'Agility',  icon: '💨' },
+};
+
+/**
+ * Get the display label for a skill based on compact mode
+ */
+function getLabel(skill: keyof Skills): string {
+  const labels = skillLabels[skill];
+  return compact ? labels.short : labels.full;
+}
+
+/**
+ * Get the icon for a skill (only used in full mode)
+ */
+function getIcon(skill: keyof Skills): string {
+  return skillLabels[skill].icon;
+}
+
+const classes = [
+  'skills-grid',
+  compact && 'skills-grid--compact',
+  className,
+].filter(Boolean).join(' ');
+---
+
+<div class={classes}>
+  {Object.entries(skills).map(([skill, value]) => (
+    <div class="skill-item">
+      {!compact && <span class="skill-icon">{getIcon(skill as keyof Skills)}</span>}
+      <span class="skill-label">{getLabel(skill as keyof Skills)}</span>
+      <span class="skill-value">{value}</span>
+    </div>
+  ))}
+</div>
+
+<style>
+  .skills-grid {
+    /* Layout - single column by default */
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: var(--space-1);
+    
+    /* Appearance */
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    padding: var(--space-2);
+  }
+
+  /* === COMPACT MODE: 2-column grid === */
+  .skills-grid--compact {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-1);
+    padding: var(--space-1);
+  }
+
+  /* === SKILL ITEM === */
+  .skill-item {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-1);
+    border-radius: var(--radius-sm);
+    
+    /* Subtle hover effect */
+    transition: background-color var(--transition-fast);
+  }
+
+  .skill-item:hover {
+    background-color: var(--bg-card);
+  }
+
+  /* === SKILL ICON (full mode only) === */
+  .skill-icon {
+    flex-shrink: 0;
+    width: 1.25rem;
+    text-align: center;
+    font-size: 0.875rem;
+    line-height: 1;
+  }
+
+  /* === SKILL LABEL === */
+  .skill-label {
+    flex: 1;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    text-transform: capitalize;
+  }
+
+  /* Compact mode: smaller labels */
+  .skills-grid--compact .skill-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+    color: var(--text-muted);
+  }
+
+  /* === SKILL VALUE === */
+  .skill-value {
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: right;
+    min-width: 1.5rem;
+  }
+
+  /* Compact mode: smaller values */
+  .skills-grid--compact .skill-value {
+    font-size: 0.75rem;
+    min-width: 1.25rem;
+  }
+
+  /* === VALUE HIGHLIGHT STATES === */
+  /* Values above 10 get a subtle highlight */
+  .skill-value[data-high] {
+    color: var(--copper);
+  }
+
+  /* Compact mode: even tighter spacing */
+  .skills-grid--compact .skill-item {
+    padding: var(--space-1);
+    gap: var(--space-1);
+  }
+</style>

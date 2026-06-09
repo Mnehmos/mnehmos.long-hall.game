@@ -1,0 +1,9 @@
+id: shield_uncommon
+name: Iron Shield
+type: shield
+rarity: uncommon
+cost: 35
+baseStats:
+  acBonus: 2
+tags:
+  - accessory

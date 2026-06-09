@@ -1,0 +1,10 @@
+id: minotaur
+name: "Minotaur"
+hp: 28
+maxHp: 28
+power: 6
+damage: "2d6"
+ac: 10
+xp: 60
+tags:
+  - monstrosity

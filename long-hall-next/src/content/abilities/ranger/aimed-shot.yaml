@@ -1,0 +1,11 @@
+id: aimed_shot
+name: "Aimed Shot"
+role: ranger
+description: "High accuracy ranged attack"
+cooldownType: turns
+cooldownValue: 2
+effect:
+  type: attack
+  target: enemy
+  damageBonus: 2
+  attackBonus: 5

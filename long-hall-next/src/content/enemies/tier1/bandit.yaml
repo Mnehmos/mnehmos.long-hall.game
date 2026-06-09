@@ -1,0 +1,10 @@
+id: bandit
+name: "Bandit"
+hp: 11
+maxHp: 11
+power: 2
+damage: "1d6"
+ac: 10
+xp: 20
+tags:
+  - humanoid

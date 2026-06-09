@@ -1,0 +1,12 @@
+id: ranger_bow_uncommon
+name: Longbow
+type: weapon
+rarity: uncommon
+cost: 34
+baseStats:
+  attackBonus: 3
+  damageBonus: 1
+tags:
+  - ranger
+  - bow
+  - weapon

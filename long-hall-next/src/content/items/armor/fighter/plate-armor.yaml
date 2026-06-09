@@ -1,0 +1,11 @@
+id: fighter_armor_uncommon
+name: Plate Armor
+type: chest
+rarity: uncommon
+cost: 45
+baseStats:
+  acBonus: 2
+  maxHpBonus: 2
+tags:
+  - fighter
+  - armor

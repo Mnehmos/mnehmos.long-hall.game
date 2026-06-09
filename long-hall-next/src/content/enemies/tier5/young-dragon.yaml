@@ -1,0 +1,11 @@
+id: young_dragon
+name: "Young Dragon"
+hp: 48
+maxHp: 48
+power: 9
+damage: "2d10+3"
+ac: 10
+xp: 90
+tags:
+  - dragon
+  - flying

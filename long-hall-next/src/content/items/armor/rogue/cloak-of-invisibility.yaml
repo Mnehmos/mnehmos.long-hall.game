@@ -1,0 +1,11 @@
+id: rogue_armor_godly
+name: Cloak of Invisibility
+type: chest
+rarity: godly
+cost: 680
+baseStats:
+  attackBonus: 5
+  acBonus: 7
+tags:
+  - rogue
+  - armor

@@ -1,0 +1,10 @@
+id: shield_godly
+name: Shield of the Gods
+type: shield
+rarity: godly
+cost: 600
+baseStats:
+  acBonus: 7
+  maxHpBonus: 10
+tags:
+  - accessory

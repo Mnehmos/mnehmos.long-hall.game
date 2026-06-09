@@ -1,0 +1,9 @@
+id: helm_common
+name: Iron Helm
+type: head
+rarity: common
+cost: 15
+baseStats:
+  acBonus: 1
+tags:
+  - accessory

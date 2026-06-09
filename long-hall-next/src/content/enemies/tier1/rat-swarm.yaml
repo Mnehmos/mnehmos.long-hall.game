@@ -1,0 +1,11 @@
+id: rat_swarm
+name: "Rat Swarm"
+hp: 8
+maxHp: 8
+power: 1
+damage: "1d4"
+ac: 10
+xp: 10
+tags:
+  - vermin
+  - beast

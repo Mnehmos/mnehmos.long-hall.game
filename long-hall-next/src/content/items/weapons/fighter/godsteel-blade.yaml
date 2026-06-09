@@ -1,0 +1,12 @@
+id: fighter_sword_godly
+name: Godsteel Blade
+type: weapon
+rarity: godly
+cost: 600
+baseStats:
+  attackBonus: 7
+  damageBonus: 7
+tags:
+  - fighter
+  - sword
+  - weapon

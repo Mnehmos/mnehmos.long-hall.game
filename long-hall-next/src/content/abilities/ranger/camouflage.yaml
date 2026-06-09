@@ -1,0 +1,10 @@
+id: camouflage
+name: "Camouflage"
+role: ranger
+description: "Become Hidden (Stealth)"
+cooldownType: combat
+cooldownValue: 1
+effect:
+  type: buff
+  target: self
+  status: hidden

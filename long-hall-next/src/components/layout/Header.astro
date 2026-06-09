@@ -1,0 +1,301 @@
+---
+/**
+ * Header.astro - Game header displaying run information
+ * Task ID: C2.2.1
+ * 
+ * Displays depth (room/floor), gold amount, and seed for the current game run.
+ * 
+ * @example
+ * <Header depth={7} gold={250} seed="abc123def456" />
+ */
+
+interface Props {
+  depth: number;
+  gold: number;
+  seed: string;
+  class?: string;
+}
+
+const {
+  depth,
+  gold,
+  seed,
+  class: className = '',
+} = Astro.props;
+
+// Calculate room and floor from depth
+// segmentIndex = Math.floor(depth / 10) → Floor number (0-indexed)
+// roomInSegment = (depth % 10) + 1 → Room within floor (1-10)
+const floor = Math.floor(depth / 10) + 1;
+const room = (depth % 10) + 1;
+
+// Truncate seed for display (first 8 characters)
+const displaySeed = seed.length > 8 ? seed.slice(0, 8) : seed;
+
+const classes = ['game-header', className].filter(Boolean).join(' ');
+---
+
+<header class={classes}>
+  <div class="header-left">
+    <span class="title">
+      <span class="title-full">The Long Hall</span>
+      <span class="title-short">TLH</span>
+    </span>
+  </div>
+  
+  <div class="header-center">
+    <span class="depth-display">
+      <span class="depth-icon" aria-hidden="true">📍</span>
+      <span class="depth-label">Room</span>
+      <span class="depth-value">{room}</span>
+      <span class="depth-separator">•</span>
+      <span class="depth-label">Floor</span>
+      <span class="depth-value">{floor}</span>
+    </span>
+  </div>
+  
+  <div class="header-right">
+    <span class="gold" title="Gold">
+      <span class="gold-icon" aria-hidden="true">💰</span>
+      <span class="gold-label">Gold:</span>
+      <span class="gold-value">{gold.toLocaleString()}</span>
+    </span>
+    <span class="seed">
+      <span class="seed-label">Seed:</span>
+      <span class="seed-value">{displaySeed}</span>
+    </span>
+  </div>
+</header>
+
+<style>
+  .game-header {
+    /* Layout */
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    
+    /* Sizing */
+    padding: var(--space-3) var(--space-4);
+    width: 100%;
+    
+    /* Appearance */
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* === LEFT SECTION === */
+  .header-left {
+    display: flex;
+    align-items: center;
+  }
+
+  .title {
+    font-family: var(--font-display);
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    letter-spacing: -0.02em;
+  }
+  
+  .title-full {
+    display: inline;
+  }
+  
+  .title-short {
+    display: none;
+  }
+
+  /* === CENTER SECTION === */
+  .header-center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .depth-display {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-family: var(--font-display);
+  }
+  
+  .depth-icon {
+    display: none;
+    font-size: 0.875rem;
+  }
+
+  .depth-label {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+  }
+
+  .depth-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .depth-separator {
+    color: var(--text-muted);
+    font-size: 0.75rem;
+  }
+
+  /* === RIGHT SECTION === */
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+  }
+
+  .gold {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-family: var(--font-display);
+  }
+
+  .gold-icon {
+    font-size: 1rem;
+  }
+
+  .gold-label {
+    display: none;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+
+  .gold-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--gold);
+  }
+
+  .seed {
+    display: flex;
+    align-items: center;
+    gap: var(--space-1);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+  }
+
+  .seed-label {
+    color: var(--text-muted);
+  }
+
+  .seed-value {
+    color: var(--text-secondary);
+  }
+
+  /* === RESPONSIVE: Stack on mobile === */
+  @media (max-width: 640px) {
+    .game-header {
+      flex-wrap: wrap;
+      gap: var(--space-2);
+      padding: var(--space-2) var(--space-3);
+      /* Safe area support */
+      padding-left: max(var(--space-3), env(safe-area-inset-left));
+      padding-right: max(var(--space-3), env(safe-area-inset-right));
+    }
+
+    .header-left {
+      order: 1;
+      flex: 1 1 auto;
+    }
+
+    .header-right {
+      order: 2;
+      flex: 0 0 auto;
+    }
+
+    .header-center {
+      order: 3;
+      width: 100%;
+      justify-content: flex-start;
+      padding-top: var(--space-1);
+      border-top: 1px solid var(--border-light);
+    }
+
+    .title {
+      font-size: 1rem;
+    }
+
+    .seed {
+      display: none; /* Hide seed on mobile for space */
+    }
+    
+    .gold-label {
+      display: none;
+    }
+  }
+
+  /* Extra compact at 400px */
+  @media (max-width: 400px) {
+    .header-right {
+      gap: var(--space-2);
+    }
+
+    .gold-value {
+      font-size: 0.875rem;
+    }
+    
+    .depth-display {
+      gap: var(--space-1);
+    }
+    
+    .depth-label {
+      font-size: 0.75rem;
+    }
+  }
+  
+  /* 375px - iPhone SE and similar */
+  @media (max-width: 375px) {
+    .game-header {
+      padding: var(--space-1) var(--space-2);
+    }
+    
+    /* Show short title only */
+    .title-full {
+      display: none;
+    }
+    
+    .title-short {
+      display: inline;
+    }
+    
+    .title {
+      font-size: 0.875rem;
+    }
+    
+    /* Compact depth display */
+    .header-center {
+      padding-top: 0;
+      border-top: none;
+    }
+    
+    .depth-icon {
+      display: inline;
+    }
+    
+    .depth-label {
+      display: none;
+    }
+    
+    .depth-separator {
+      margin: 0 2px;
+    }
+    
+    .depth-value {
+      font-size: 0.875rem;
+    }
+    
+    .gold-icon {
+      font-size: 0.875rem;
+    }
+    
+    .gold-value {
+      font-size: 0.75rem;
+    }
+  }
+</style>

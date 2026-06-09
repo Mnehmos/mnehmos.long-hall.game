@@ -1,0 +1,11 @@
+id: gnoll
+name: "Gnoll Hunter"
+hp: 16
+maxHp: 16
+power: 3
+damage: "1d8"
+ac: 10
+xp: 30
+tags:
+  - humanoid
+  - gnoll

@@ -1,0 +1,255 @@
+---
+/**
+ * CombatPanel.astro - Combat panel for displaying enemies during combat
+ * Task ID: C2.5.2
+ * 
+ * Displays a list of enemies with their HP bars, AC, and damage stats.
+ * Supports targeting via slots and visual distinction for dead enemies.
+ * 
+ * @example
+ * <CombatPanel enemies={room.enemies} />
+ * 
+ * @example With targeting slot
+ * <CombatPanel enemies={room.enemies}>
+ *   <button slot="target-0" onclick="targetEnemy('goblin-1')">Target</button>
+ * </CombatPanel>
+ */
+
+import type { Enemy } from '@engine/types';
+import StatBar from '@components/shared/StatBar.astro';
+
+interface Props {
+  enemies: Enemy[];
+  class?: string;
+}
+
+const { enemies, class: className = '' } = Astro.props;
+
+const containerClasses = ['combat-panel', className].filter(Boolean).join(' ');
+---
+
+<div class={containerClasses}>
+  <h3 class="panel-title">Enemies</h3>
+  
+  <div class="enemy-list">
+    {enemies.length === 0 ? (
+      <p class="no-enemies">No enemies present</p>
+    ) : (
+      enemies.map((enemy, index) => (
+        <div
+          class:list={['enemy-slot', { 'enemy-slot--dead': enemy.hp <= 0 }]}
+          data-index={index}
+          data-enemy-id={enemy.id}
+        >
+          <div class="enemy-header">
+            <span class="enemy-name">{enemy.name}</span>
+            {enemy.hp <= 0 && <span class="enemy-status">Defeated</span>}
+          </div>
+          
+          <div class="enemy-hp">
+            <StatBar
+              current={enemy.hp}
+              max={enemy.maxHp}
+              type="hp"
+              showValues
+            />
+          </div>
+          
+          <div class="enemy-stats">
+            <span class="stat">
+              <span class="stat-label">AC:</span>
+              <span class="stat-value">{enemy.ac}</span>
+            </span>
+            <span class="stat-divider">|</span>
+            <span class="stat">
+              <span class="stat-label">DMG:</span>
+              <span class="stat-value">{enemy.damage}</span>
+            </span>
+          </div>
+          
+          {/* Slot for target handler button */}
+          <div class="enemy-actions">
+            <slot name={`target-${index}`} />
+          </div>
+        </div>
+      ))
+    )}
+  </div>
+</div>
+
+<style>
+  .combat-panel {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    padding: var(--space-4);
+    box-shadow: var(--shadow-md);
+  }
+
+  .panel-title {
+    font-family: var(--font-display);
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 var(--space-3) 0;
+    padding-bottom: var(--space-2);
+    border-bottom: 2px solid var(--damage);
+  }
+
+  .enemy-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  .no-enemies {
+    color: var(--text-muted);
+    font-style: italic;
+    text-align: center;
+    padding: var(--space-4);
+    margin: 0;
+  }
+
+  .enemy-slot {
+    background-color: var(--bg-secondary);
+    border: 2px solid var(--damage);
+    border-radius: var(--radius-md);
+    padding: var(--space-3);
+    transition: 
+      transform var(--transition-fast),
+      box-shadow var(--transition-fast),
+      border-color var(--transition-fast);
+    cursor: pointer;
+  }
+
+  .enemy-slot:hover:not(.enemy-slot--dead) {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--copper);
+  }
+
+  .enemy-slot:focus-within:not(.enemy-slot--dead) {
+    outline: 2px solid var(--copper);
+    outline-offset: 2px;
+  }
+
+  /* Dead enemy styling */
+  .enemy-slot--dead {
+    opacity: 0.5;
+    border-color: var(--border-light);
+    cursor: default;
+    background-color: var(--bg-primary);
+  }
+
+  .enemy-slot--dead .enemy-name {
+    text-decoration: line-through;
+    color: var(--text-muted);
+  }
+
+  .enemy-slot--dead .enemy-stats {
+    color: var(--text-muted);
+  }
+
+  .enemy-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--space-2);
+  }
+
+  .enemy-name {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .enemy-status {
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    background-color: var(--border-light);
+    padding: var(--space-1) var(--space-2);
+    border-radius: var(--radius-sm);
+  }
+
+  .enemy-hp {
+    margin-bottom: var(--space-2);
+  }
+
+  .enemy-stats {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+  }
+
+  .stat {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+  }
+
+  .stat-label {
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .stat-value {
+    color: var(--text-primary);
+    font-weight: 600;
+  }
+
+  .stat-divider {
+    color: var(--border-light);
+  }
+
+  .enemy-actions {
+    margin-top: var(--space-2);
+  }
+
+  .enemy-actions:empty {
+    display: none;
+  }
+
+  /* Targeting hover effect */
+  .enemy-slot:not(.enemy-slot--dead)::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(
+      135deg,
+      transparent 0%,
+      rgba(239, 68, 68, 0.05) 50%,
+      transparent 100%
+    );
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+    pointer-events: none;
+  }
+
+  .enemy-slot {
+    position: relative;
+  }
+
+  .enemy-slot:hover:not(.enemy-slot--dead)::before {
+    opacity: 1;
+  }
+
+  /* Target indicator animation */
+  @keyframes target-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+    }
+  }
+
+  .enemy-slot[data-targeted="true"] {
+    animation: target-pulse 1.5s ease-in-out infinite;
+    border-color: var(--damage);
+  }
+</style>

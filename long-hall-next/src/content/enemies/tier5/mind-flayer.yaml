@@ -1,0 +1,11 @@
+id: mind_flayer
+name: "Mind Flayer"
+hp: 42
+maxHp: 42
+power: 10
+damage: "2d10+4"
+ac: 10
+xp: 100
+tags:
+  - aberration
+  - magic

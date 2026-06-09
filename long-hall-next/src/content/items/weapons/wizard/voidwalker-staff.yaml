@@ -1,0 +1,12 @@
+id: wizard_staff_epic
+name: Voidwalker Staff
+type: weapon
+rarity: epic
+cost: 130
+baseStats:
+  attackBonus: 5
+  damageBonus: 3
+tags:
+  - wizard
+  - staff
+  - weapon

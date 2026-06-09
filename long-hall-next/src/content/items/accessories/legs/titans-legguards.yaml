@@ -1,0 +1,10 @@
+id: legs_legendary
+name: "Titan's Legguards"
+type: legs
+rarity: legendary
+cost: 270
+baseStats:
+  acBonus: 5
+  maxHpBonus: 6
+tags:
+  - accessory

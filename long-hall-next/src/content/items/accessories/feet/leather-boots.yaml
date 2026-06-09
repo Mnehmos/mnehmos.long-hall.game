@@ -1,0 +1,9 @@
+id: boots_common
+name: Leather Boots
+type: feet
+rarity: common
+cost: 12
+baseStats:
+  maxHpBonus: 2
+tags:
+  - accessory

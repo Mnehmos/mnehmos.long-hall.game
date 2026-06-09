@@ -1,0 +1,166 @@
+---
+/**
+ * HeroPanel.astro - Party member summary card with HP, name, role, and level
+ * Task ID: C2.3.1
+ * 
+ * @example
+ * <HeroPanel hero={partyMember} selected={selectedId === partyMember.id}>
+ *   <button onclick={() => selectHero(partyMember.id)}>Select</button>
+ * </HeroPanel>
+ */
+
+import type { Actor } from '@engine/types';
+import Badge from '../shared/Badge.astro';
+import StatBar from '../shared/StatBar.astro';
+
+interface Props {
+  hero: Actor;
+  selected?: boolean;
+  class?: string;
+}
+
+const {
+  hero,
+  selected = false,
+  class: className = '',
+} = Astro.props;
+
+/**
+ * Capitalize first letter of role for display
+ */
+function capitalize(str: string): string {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+const classes = [
+  'hero-panel',
+  selected && 'hero-panel--selected',
+  !hero.isAlive && 'hero-panel--dead',
+  className,
+].filter(Boolean).join(' ');
+---
+
+<div class={classes}>
+  <div class="hero-header">
+    <span class="hero-name">{hero.name}</span>
+    <Badge text={capitalize(hero.role)} variant="class" role={hero.role} />
+  </div>
+  
+  <div class="hero-level">Lv. {hero.level}</div>
+  
+  <StatBar 
+    current={hero.hp.current} 
+    max={hero.hp.max} 
+    type="hp" 
+    showValues 
+  />
+  
+  <slot />
+</div>
+
+<style>
+  .hero-panel {
+    /* Layout */
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    
+    /* Spacing */
+    padding: var(--space-3);
+    
+    /* Appearance */
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    
+    /* Transition for interactive states */
+    transition: 
+      border-color var(--transition-fast),
+      box-shadow var(--transition-fast),
+      opacity var(--transition-fast);
+  }
+
+  /* === HEADER: Name + Role Badge === */
+  .hero-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+  }
+
+  .hero-name {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    
+    /* Truncate long names */
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* === LEVEL DISPLAY === */
+  .hero-level {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* === SELECTED STATE === */
+  .hero-panel--selected {
+    border-color: var(--border-copper);
+    box-shadow: var(--shadow-copper), var(--shadow-sm);
+  }
+
+  /* Add a subtle left border indicator when selected */
+  .hero-panel--selected::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: var(--space-2);
+    bottom: var(--space-2);
+    width: 3px;
+    background-color: var(--copper);
+    border-radius: var(--radius-sm);
+  }
+
+  /* Position relative for the ::before indicator */
+  .hero-panel {
+    position: relative;
+  }
+
+  /* === DEAD STATE === */
+  .hero-panel--dead {
+    opacity: 0.5;
+    filter: grayscale(0.7);
+  }
+
+  .hero-panel--dead .hero-name {
+    color: var(--text-muted);
+    text-decoration: line-through;
+  }
+
+  /* === HOVER STATE (for interactive panels) === */
+  .hero-panel:hover:not(.hero-panel--dead) {
+    border-color: var(--copper-light);
+    box-shadow: var(--shadow-md);
+  }
+
+  /* Selected hover gets enhanced glow */
+  .hero-panel--selected:hover {
+    box-shadow: 0 6px 16px rgba(184, 115, 51, 0.25), var(--shadow-md);
+  }
+
+  /* === FOCUS-WITHIN for slotted interactive elements === */
+  .hero-panel:focus-within:not(.hero-panel--dead) {
+    outline: 2px solid var(--copper);
+    outline-offset: 2px;
+  }
+</style>

@@ -1,0 +1,10 @@
+id: boots_godly
+name: Boots of the Cosmos
+type: feet
+rarity: godly
+cost: 550
+baseStats:
+  attackBonus: 5
+  maxHpBonus: 15
+tags:
+  - accessory

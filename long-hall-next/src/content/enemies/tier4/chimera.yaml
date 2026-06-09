@@ -1,0 +1,11 @@
+id: chimera
+name: "Chimera"
+hp: 38
+maxHp: 38
+power: 8
+damage: "2d8+2"
+ac: 10
+xp: 80
+tags:
+  - monstrosity
+  - flying

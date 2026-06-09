@@ -1,0 +1,9 @@
+id: cunning_action
+name: "Cunning Action"
+role: rogue
+description: "Hide - Become untargetable"
+cooldownType: turns
+cooldownValue: 0
+effect:
+  type: special
+  target: self

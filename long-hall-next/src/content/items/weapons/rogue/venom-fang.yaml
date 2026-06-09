@@ -1,0 +1,12 @@
+id: rogue_dagger_epic
+name: Venom Fang
+type: weapon
+rarity: epic
+cost: 135
+baseStats:
+  attackBonus: 4
+  damageBonus: 4
+tags:
+  - rogue
+  - dagger
+  - weapon

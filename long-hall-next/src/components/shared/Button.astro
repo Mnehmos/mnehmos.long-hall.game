@@ -1,0 +1,158 @@
+---
+/**
+ * Button.astro - Reusable button component for The Long Hall game UI
+ * Task ID: C2.1.1
+ * 
+ * @example
+ * <Button variant="primary" size="md">Attack</Button>
+ * <Button variant="danger" disabled>Flee</Button>
+ */
+
+interface Props {
+  variant?: 'primary' | 'secondary' | 'danger';
+  size?: 'sm' | 'md' | 'lg';
+  disabled?: boolean;
+  type?: 'button' | 'submit';
+  class?: string;
+}
+
+const {
+  variant = 'primary',
+  size = 'md',
+  disabled = false,
+  type = 'button',
+  class: className = '',
+} = Astro.props;
+
+const classes = [
+  'btn',
+  `btn--${variant}`,
+  `btn--${size}`,
+  className,
+].filter(Boolean).join(' ');
+---
+
+<button
+  type={type}
+  class={classes}
+  disabled={disabled}
+>
+  <slot />
+</button>
+
+<style>
+  .btn {
+    /* Base styles */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    
+    /* Typography */
+    font-family: var(--font-display);
+    font-weight: 500;
+    line-height: 1;
+    text-decoration: none;
+    white-space: nowrap;
+    
+    /* Shape */
+    border: none;
+    border-radius: var(--radius-md);
+    cursor: pointer;
+    
+    /* Transitions */
+    transition: 
+      background-color var(--transition-fast),
+      box-shadow var(--transition-fast),
+      transform var(--transition-fast),
+      opacity var(--transition-fast);
+  }
+
+  /* === SIZE VARIANTS === */
+  .btn--sm {
+    padding: var(--space-1) var(--space-2);
+    font-size: 0.875rem;
+  }
+
+  .btn--md {
+    padding: var(--space-2) var(--space-4);
+    font-size: 1rem;
+  }
+
+  .btn--lg {
+    padding: var(--space-3) var(--space-6);
+    font-size: 1.125rem;
+  }
+
+  /* === COLOR VARIANTS === */
+  
+  /* Primary - Copper theme */
+  .btn--primary {
+    background-color: var(--copper);
+    color: white;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .btn--primary:hover:not(:disabled) {
+    background-color: var(--copper-light);
+    box-shadow: var(--shadow-copper);
+  }
+
+  .btn--primary:active:not(:disabled) {
+    background-color: var(--copper-dark);
+    transform: scale(0.98);
+  }
+
+  .btn--primary:focus-visible {
+    outline: 2px solid var(--copper);
+    outline-offset: 2px;
+  }
+
+  /* Secondary - Subtle parchment */
+  .btn--secondary {
+    background-color: var(--bg-secondary);
+    color: var(--text-secondary);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .btn--secondary:hover:not(:disabled) {
+    background-color: var(--border-light);
+  }
+
+  .btn--secondary:active:not(:disabled) {
+    transform: scale(0.98);
+  }
+
+  .btn--secondary:focus-visible {
+    outline: 2px solid var(--copper);
+    outline-offset: 2px;
+  }
+
+  /* Danger - Red/damage theme */
+  .btn--danger {
+    background-color: var(--damage);
+    color: white;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .btn--danger:hover:not(:disabled) {
+    background-color: #f87171; /* Lighter red */
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.25);
+  }
+
+  .btn--danger:active:not(:disabled) {
+    background-color: #dc2626; /* Darker red */
+    transform: scale(0.98);
+  }
+
+  .btn--danger:focus-visible {
+    outline: 2px solid var(--damage);
+    outline-offset: 2px;
+  }
+
+  /* === DISABLED STATE === */
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+</style>

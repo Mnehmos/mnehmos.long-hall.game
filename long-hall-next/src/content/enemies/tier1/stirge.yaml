@@ -1,0 +1,11 @@
+id: stirge
+name: "Stirge"
+hp: 4
+maxHp: 4
+power: 1
+damage: "1d4"
+ac: 10
+xp: 10
+tags:
+  - vermin
+  - beast

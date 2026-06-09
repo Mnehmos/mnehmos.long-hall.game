@@ -1,0 +1,10 @@
+role: cleric
+hitDie: 8
+startingSkills:
+  strength: 1
+  attack: 0
+  defense: 1
+  magic: 0
+  ranged: 0
+  faith: 3
+  agility: 0

@@ -1,0 +1,182 @@
+---
+/**
+ * StatBar.astro - Progress bar component for displaying HP, XP, Mana, and Stress
+ * Task ID: C2.1.2
+ * 
+ * @example
+ * <StatBar current={24} max={30} type="hp" label="HP" showValues />
+ * <StatBar current={150} max={500} type="xp" />
+ * <StatBar current={8} max={10} type="mana" label="Mana" showValues />
+ * <StatBar current={3} max={10} type="stress" label="Stress" />
+ */
+
+interface Props {
+  current: number;
+  max: number;
+  type: 'hp' | 'xp' | 'mana' | 'stress';
+  label?: string;
+  showValues?: boolean;
+  class?: string;
+}
+
+const {
+  current,
+  max,
+  type,
+  label,
+  showValues = false,
+  class: className = '',
+} = Astro.props;
+
+// Calculate fill percentage with edge case handling
+const safeMax = Math.max(max, 0);
+const safeCurrent = Math.max(0, Math.min(current, safeMax));
+const fillPercent = safeMax > 0 ? (safeCurrent / safeMax) * 100 : 0;
+
+// Type-based color mapping for CSS custom properties
+const colorMap = {
+  hp: { fill: 'var(--hp)', bg: 'var(--hp-bg)' },
+  xp: { fill: 'var(--xp)', bg: 'var(--xp-bg)' },
+  mana: { fill: 'var(--buff)', bg: 'var(--mana-bg)' },
+  stress: { fill: 'var(--debuff)', bg: 'var(--stress-bg)' },
+};
+
+const colors = colorMap[type];
+
+const containerClasses = [
+  'stat-bar',
+  `stat-bar--${type}`,
+  className,
+].filter(Boolean).join(' ');
+
+// Determine ARIA label
+const ariaLabel = label ? `${label}: ${safeCurrent} of ${safeMax}` : `${type}: ${safeCurrent} of ${safeMax}`;
+---
+
+<div class={containerClasses}>
+  {label && <span class="stat-bar__label">{label}</span>}
+  
+  <div
+    class="stat-bar__track"
+    role="progressbar"
+    aria-valuenow={safeCurrent}
+    aria-valuemin={0}
+    aria-valuemax={safeMax}
+    aria-label={ariaLabel}
+  >
+    <div
+      class="stat-bar__fill"
+      style={`width: ${fillPercent}%; --fill-color: ${colors.fill}; --bg-color: ${colors.bg};`}
+    />
+  </div>
+  
+  {showValues && (
+    <span class="stat-bar__values">
+      {safeCurrent} / {safeMax}
+    </span>
+  )}
+</div>
+
+<style>
+  .stat-bar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    width: 100%;
+  }
+
+  .stat-bar__label {
+    font-family: var(--font-display);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    min-width: 3rem;
+    flex-shrink: 0;
+  }
+
+  .stat-bar__track {
+    flex: 1;
+    height: 0.75rem;
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* Type-specific track backgrounds */
+  .stat-bar--hp .stat-bar__track {
+    background-color: var(--hp-bg);
+  }
+
+  .stat-bar--xp .stat-bar__track {
+    background-color: var(--xp-bg);
+  }
+
+  .stat-bar--mana .stat-bar__track {
+    background-color: var(--mana-bg, rgba(59, 130, 246, 0.2));
+  }
+
+  .stat-bar--stress .stat-bar__track {
+    background-color: var(--stress-bg, rgba(249, 115, 22, 0.2));
+  }
+
+  .stat-bar__fill {
+    height: 100%;
+    border-radius: var(--radius-sm);
+    transition: width var(--transition-fast);
+    min-width: 0;
+  }
+
+  /* Type-specific fill colors */
+  .stat-bar--hp .stat-bar__fill {
+    background-color: var(--hp);
+  }
+
+  .stat-bar--xp .stat-bar__fill {
+    background-color: var(--xp);
+  }
+
+  .stat-bar--mana .stat-bar__fill {
+    background-color: var(--buff);
+  }
+
+  .stat-bar--stress .stat-bar__fill {
+    background-color: var(--debuff);
+  }
+
+  .stat-bar__values {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    min-width: 4rem;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* Low value warning states (optional visual feedback) */
+  .stat-bar--hp .stat-bar__fill[style*="width: 0%"],
+  .stat-bar--hp .stat-bar__fill[style*="width: 1%"],
+  .stat-bar--hp .stat-bar__fill[style*="width: 2%"],
+  .stat-bar--hp .stat-bar__fill[style*="width: 3%"],
+  .stat-bar--hp .stat-bar__fill[style*="width: 4%"],
+  .stat-bar--hp .stat-bar__fill[style*="width: 5%"],
+  .stat-bar--hp .stat-bar__fill[style*="width: 6%"],
+  .stat-bar--hp .stat-bar__fill[style*="width: 7%"],
+  .stat-bar--hp .stat-bar__fill[style*="width: 8%"],
+  .stat-bar--hp .stat-bar__fill[style*="width: 9%"] {
+    animation: pulse-danger 1s ease-in-out infinite;
+  }
+
+  @keyframes pulse-danger {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+
+  /* High stress warning state */
+  .stat-bar--stress .stat-bar__fill {
+    /* Stress at high levels could pulse - handled by component logic if needed */
+  }
+</style>

@@ -1,0 +1,10 @@
+id: ring_rare
+name: Ring of Mastery
+type: ring
+rarity: rare
+cost: 85
+baseStats:
+  damageBonus: 2
+  maxHpBonus: 6
+tags:
+  - accessory

@@ -1,0 +1,9 @@
+id: action_surge
+name: "Action Surge"
+role: fighter
+description: "Take an extra attack this turn"
+cooldownType: rest
+cooldownValue: 1
+effect:
+  type: special
+  target: self

@@ -1,0 +1,11 @@
+id: fighter_armor_rare
+name: Crusader Plate
+type: chest
+rarity: rare
+cost: 90
+baseStats:
+  acBonus: 3
+  maxHpBonus: 4
+tags:
+  - fighter
+  - armor

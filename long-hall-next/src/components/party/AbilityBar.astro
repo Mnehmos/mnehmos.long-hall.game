@@ -1,0 +1,190 @@
+---
+/**
+ * AbilityBar.astro - Display hero abilities with cooldown states
+ * Task ID: C2.3.4
+ * 
+ * Shows abilities in a horizontal bar with visual cooldown indicators.
+ * Ready abilities have copper styling; on-cooldown abilities are grayed
+ * with a number overlay showing remaining cooldown turns.
+ * 
+ * @example
+ * <AbilityBar abilities={hero.abilities} />
+ */
+
+import type { AbilityState } from '@engine/types';
+
+interface Props {
+  abilities: AbilityState[];
+  class?: string;
+}
+
+const {
+  abilities,
+  class: className = '',
+} = Astro.props;
+
+/**
+ * Get placeholder icon for an ability based on its ID pattern.
+ * This is a temporary solution - proper icons will be added later.
+ * 
+ * @param abilityId - The ability identifier
+ * @returns Unicode icon character
+ */
+function getAbilityIcon(abilityId: string): string {
+  // Match common ability patterns to icons
+  const iconMap: Record<string, string> = {
+    'strike': '⚔️',
+    'slash': '🗡️',
+    'smite': '✝️',
+    'heal': '💚',
+    'shield': '🛡️',
+    'fireball': '🔥',
+    'ice': '❄️',
+    'lightning': '⚡',
+    'arrow': '🏹',
+    'sneak': '👤',
+    'poison': '☠️',
+    'blessing': '✨',
+    'curse': '💀',
+    'rage': '😤',
+  };
+
+  // Check if abilityId contains any of the pattern keys
+  const lowerAbilityId = abilityId.toLowerCase();
+  for (const [pattern, icon] of Object.entries(iconMap)) {
+    if (lowerAbilityId.includes(pattern)) {
+      return icon;
+    }
+  }
+
+  // Default icon for unknown abilities
+  return '⚡';
+}
+
+const classes = [
+  'ability-bar',
+  className,
+].filter(Boolean).join(' ');
+---
+
+<div class={classes}>
+  {abilities.map((ability) => {
+    const isReady = ability.currentCooldown === 0;
+    return (
+      <div 
+        class="ability-slot" 
+        data-ready={isReady}
+        data-ability-id={ability.abilityId}
+      >
+        <div class="ability-icon">
+          {getAbilityIcon(ability.abilityId)}
+        </div>
+        {!isReady && (
+          <div class="cooldown-overlay">
+            <span class="cooldown-number">{ability.currentCooldown}</span>
+          </div>
+        )}
+      </div>
+    );
+  })}
+  <slot />
+</div>
+
+<style>
+  /* === ABILITY BAR CONTAINER === */
+  .ability-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    padding: var(--space-2);
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+  }
+
+  /* === ABILITY SLOT === */
+  .ability-slot {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* Size */
+    width: 2.5rem;
+    height: 2.5rem;
+    
+    /* Appearance - default (on cooldown) state */
+    background-color: var(--bg-card);
+    border: 2px solid var(--border-light);
+    border-radius: var(--radius-md);
+    
+    /* Interaction */
+    cursor: default;
+    transition: 
+      border-color var(--transition-fast),
+      box-shadow var(--transition-fast),
+      transform var(--transition-fast);
+  }
+
+  /* === READY STATE === */
+  .ability-slot[data-ready="true"] {
+    border-color: var(--copper);
+    cursor: pointer;
+    box-shadow: var(--shadow-copper);
+  }
+
+  .ability-slot[data-ready="true"]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(184, 115, 51, 0.25);
+  }
+
+  .ability-slot[data-ready="true"]:active {
+    transform: translateY(0);
+    box-shadow: var(--shadow-copper);
+  }
+
+  /* === ABILITY ICON === */
+  .ability-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+    text-align: center;
+    
+    /* Transition for opacity change */
+    transition: opacity var(--transition-fast);
+  }
+
+  /* Dim icon when on cooldown */
+  .ability-slot:not([data-ready="true"]) .ability-icon {
+    opacity: 0.4;
+    filter: grayscale(80%);
+  }
+
+  /* === COOLDOWN OVERLAY === */
+  .cooldown-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* Semi-transparent dark overlay */
+    background-color: rgba(28, 25, 23, 0.7);
+    border-radius: calc(var(--radius-md) - 2px);
+  }
+
+  .cooldown-number {
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    font-weight: 700;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+  }
+
+  /* === EMPTY STATE === */
+  .ability-bar:empty::before {
+    content: 'No abilities';
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    font-style: italic;
+  }
+</style>

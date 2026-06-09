@@ -1,0 +1,12 @@
+id: ranger_bow_godly
+name: Star Shot
+type: weapon
+rarity: godly
+cost: 600
+baseStats:
+  attackBonus: 8
+  damageBonus: 6
+tags:
+  - ranger
+  - bow
+  - weapon

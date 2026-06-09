@@ -1,0 +1,10 @@
+id: ogre
+name: "Ogre"
+hp: 32
+maxHp: 32
+power: 7
+damage: "2d6+2"
+ac: 10
+xp: 70
+tags:
+  - giant

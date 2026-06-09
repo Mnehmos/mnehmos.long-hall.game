@@ -1,0 +1,10 @@
+id: wight
+name: "Wight"
+hp: 20
+maxHp: 20
+power: 5
+damage: "1d10"
+ac: 10
+xp: 50
+tags:
+  - undead

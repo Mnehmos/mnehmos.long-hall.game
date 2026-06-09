@@ -1,0 +1,138 @@
+---
+/**
+ * ActionButtons.astro - Player action button group for The Long Hall game
+ * Task ID: C2.5.3
+ * 
+ * Displays available player actions as styled buttons with icons.
+ * Maps action names to appropriate variants and icons.
+ * 
+ * @example
+ * <ActionButtons actions={['Attack', 'Flee', 'Rest']}>
+ *   <Button variant="secondary">Inventory</Button>
+ * </ActionButtons>
+ */
+
+import Button from '../shared/Button.astro';
+
+interface Props {
+  actions: string[];
+  class?: string;
+}
+
+const { actions, class: className = '' } = Astro.props;
+
+/**
+ * Maps action names to button variants based on action type
+ */
+function getVariant(action: string): 'primary' | 'secondary' | 'danger' {
+  const normalizedAction = action.toLowerCase();
+  
+  // Offensive actions → primary (copper theme)
+  if (['attack', 'strike'].includes(normalizedAction)) {
+    return 'primary';
+  }
+  
+  // Escape/retreat actions → danger (red theme)
+  if (['flee', 'escape', 'run'].includes(normalizedAction)) {
+    return 'danger';
+  }
+  
+  // All other actions → secondary (subtle theme)
+  // Includes: rest, heal, pray, buy, open, continue, etc.
+  return 'secondary';
+}
+
+/**
+ * Maps action names to Unicode icons for visual identification
+ */
+function getIcon(action: string): string {
+  const normalizedAction = action.toLowerCase();
+  
+  const iconMap: Record<string, string> = {
+    attack: '⚔️',
+    strike: '⚔️',
+    flee: '🏃',
+    escape: '🏃',
+    run: '🏃',
+    rest: '🛏️',
+    heal: '❤️',
+    pray: '🙏',
+    buy: '💰',
+    open: '📦',
+    continue: '➡️',
+    search: '🔍',
+    loot: '💎',
+    talk: '💬',
+    defend: '🛡️',
+  };
+  
+  return iconMap[normalizedAction] || '▶️';
+}
+
+const classes = ['action-buttons', className].filter(Boolean).join(' ');
+---
+
+<div class={classes}>
+  {actions.map((action) => (
+    <Button 
+      variant={getVariant(action)} 
+      size="md"
+      data-action={action.toLowerCase()}
+    >
+      <span class="action-icon">{getIcon(action)}</span>
+      <span class="action-label">{action}</span>
+    </Button>
+  ))}
+  <slot />
+</div>
+
+<style>
+  .action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+    justify-content: center;
+    padding: var(--space-2);
+  }
+
+  .action-icon {
+    display: inline-block;
+    font-size: 1.1em;
+    line-height: 1;
+  }
+
+  .action-label {
+    display: inline-block;
+  }
+
+  /* Right-aligned variant for layouts that need it */
+  .action-buttons.align-right {
+    justify-content: flex-end;
+  }
+
+  /* Left-aligned variant */
+  .action-buttons.align-left {
+    justify-content: flex-start;
+  }
+
+  /* Spread buttons to fill container */
+  .action-buttons.spread {
+    justify-content: space-between;
+  }
+
+  /* Compact variant with smaller gap */
+  .action-buttons.compact {
+    gap: var(--space-2);
+    padding: var(--space-1);
+  }
+
+  /* Stacked variant for vertical layouts */
+  .action-buttons.stacked {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .action-buttons.stacked :global(.btn) {
+    width: 100%;
+  }
+</style>

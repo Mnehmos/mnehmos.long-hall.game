@@ -1,0 +1,11 @@
+id: neck_epic
+name: Heart of the Dragon
+type: neck
+rarity: epic
+cost: 160
+baseStats:
+  attackBonus: 3
+  damageBonus: 4
+  maxHpBonus: 4
+tags:
+  - accessory

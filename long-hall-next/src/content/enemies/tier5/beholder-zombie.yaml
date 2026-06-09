@@ -1,0 +1,11 @@
+id: beholder_zombie
+name: "Beholder Zombie"
+hp: 40
+maxHp: 40
+power: 9
+damage: "2d10"
+ac: 10
+xp: 90
+tags:
+  - undead
+  - aberration

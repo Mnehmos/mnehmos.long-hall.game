@@ -1,0 +1,9 @@
+id: boots_uncommon
+name: Iron Boots
+type: feet
+rarity: uncommon
+cost: 30
+baseStats:
+  maxHpBonus: 4
+tags:
+  - accessory

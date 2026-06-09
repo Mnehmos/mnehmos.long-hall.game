@@ -1,0 +1,103 @@
+/* === MNEHMOS DESIGN TOKENS === */
+/* The Long Hall - Roguelike Game Design System */
+/* Aligned with Mnehmos brand: weathered parchment with copper accents */
+
+:root {
+  /* === BRAND COLORS === */
+  --copper: #b87333;
+  --copper-light: #d4956a;
+  --copper-dark: #8b5a2b;
+  
+  /* === BACKGROUNDS (Parchment Theme) === */
+  --bg-primary: #faf8f5;       /* Warm parchment */
+  --bg-secondary: #f5f0e8;     /* Aged parchment */
+  --bg-dark: #1c1917;          /* Stone-900 */
+  --bg-card: #fffdf9;          /* Light parchment card */
+  
+  /* === TEXT === */
+  --text-primary: #1c1917;     /* Stone-900 */
+  --text-secondary: #44403c;   /* Stone-700 */
+  --text-muted: #78716c;       /* Stone-500 */
+  
+  /* === BORDERS === */
+  --border-light: #e7e5e4;     /* Stone-200 */
+  --border-copper: var(--copper);
+  
+  /* === RARITY COLORS === */
+  /* Common → Godly progression for item/ability rarity */
+  --rarity-common: #78716c;    /* Gray/stone */
+  --rarity-uncommon: #22c55e;  /* Green */
+  --rarity-rare: #3b82f6;      /* Blue */
+  --rarity-epic: #a855f7;      /* Purple */
+  --rarity-legendary: #f59e0b; /* Orange/gold */
+  --rarity-godly: #ef4444;     /* Red/crimson */
+  
+  /* === CLASS COLORS === */
+  /* D&D-inspired character class theming */
+  --class-fighter: #dc2626;    /* Red - martial strength */
+  --class-wizard: #7c3aed;     /* Violet - arcane magic */
+  --class-rogue: #10b981;      /* Emerald - stealth */
+  --class-cleric: #f59e0b;     /* Amber - divine light */
+  --class-ranger: #059669;     /* Teal - nature */
+  
+  /* === STAT COLORS === */
+  --hp: #ef4444;               /* Red for health */
+  --hp-bg: #fecaca;            /* Light red background */
+  --xp: #8b5cf6;               /* Purple for experience */
+  --xp-bg: #ddd6fe;            /* Light purple background */
+  --gold: #f59e0b;             /* Amber for gold */
+  
+  /* === COMBAT COLORS === */
+  --damage: #ef4444;           /* Red for damage dealt */
+  --heal: #22c55e;             /* Green for healing */
+  --buff: #3b82f6;             /* Blue for buffs */
+  --debuff: #f97316;           /* Orange for debuffs */
+  --miss: #9ca3af;             /* Gray for misses */
+  --crit: #fbbf24;             /* Yellow/gold for crits */
+  
+  /* === SPACING SCALE === */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  
+  /* === TYPOGRAPHY === */
+  --font-display: 'Space Grotesk', sans-serif;
+  --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+  
+  /* === SHADOWS === */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+  --shadow-copper: 0 4px 12px rgba(184, 115, 51, 0.15);
+  
+  /* === BORDERS === */
+  --radius-sm: 0.25rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  
+  /* === ANIMATIONS === */
+  --transition-fast: 150ms ease;
+  --transition-normal: 200ms ease;
+  --transition-slow: 300ms ease;
+}
+
+/* === DARK MODE OVERRIDES === */
+.dark {
+  --bg-primary: #1c1917;
+  --bg-secondary: #292524;
+  --bg-card: #292524;
+  --text-primary: #fafaf9;
+  --text-secondary: #e7e5e4;
+  --text-muted: #a8a29e;
+  --border-light: #44403c;
+  
+  /* Slightly brighter colors for dark mode visibility */
+  --hp-bg: rgba(239, 68, 68, 0.2);
+  --xp-bg: rgba(139, 92, 246, 0.2);
+}

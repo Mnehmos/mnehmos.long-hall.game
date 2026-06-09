@@ -1,0 +1,12 @@
+id: rogue_dagger_uncommon
+name: Assassin Blade
+type: weapon
+rarity: uncommon
+cost: 32
+baseStats:
+  attackBonus: 2
+  damageBonus: 2
+tags:
+  - rogue
+  - dagger
+  - weapon

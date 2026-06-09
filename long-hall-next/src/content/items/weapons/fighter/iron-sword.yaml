@@ -1,0 +1,12 @@
+id: fighter_sword_common
+name: Iron Sword
+type: weapon
+rarity: common
+cost: 15
+baseStats:
+  attackBonus: 1
+  damageBonus: 1
+tags:
+  - fighter
+  - sword
+  - weapon

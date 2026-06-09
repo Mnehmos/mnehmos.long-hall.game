@@ -1,0 +1,11 @@
+id: cleric_armor_rare
+name: Holy Raiment
+type: chest
+rarity: rare
+cost: 88
+baseStats:
+  acBonus: 2
+  maxHpBonus: 7
+tags:
+  - cleric
+  - armor

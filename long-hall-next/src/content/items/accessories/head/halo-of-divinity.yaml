@@ -1,0 +1,10 @@
+id: helm_godly
+name: Halo of Divinity
+type: head
+rarity: godly
+cost: 580
+baseStats:
+  acBonus: 7
+  maxHpBonus: 10
+tags:
+  - accessory

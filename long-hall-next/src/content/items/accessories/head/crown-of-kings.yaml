@@ -1,0 +1,10 @@
+id: helm_legendary
+name: Crown of Kings
+type: head
+rarity: legendary
+cost: 280
+baseStats:
+  acBonus: 5
+  maxHpBonus: 6
+tags:
+  - accessory

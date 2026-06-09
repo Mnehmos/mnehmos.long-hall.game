@@ -1,0 +1,10 @@
+id: helm_epic
+name: Dragon Helm
+type: head
+rarity: epic
+cost: 140
+baseStats:
+  acBonus: 4
+  maxHpBonus: 4
+tags:
+  - accessory

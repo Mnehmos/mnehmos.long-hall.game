@@ -1,0 +1,15 @@
+id: crypt
+name: "Forgotten Crypt"
+description: "Rows of silent tombs line the walls."
+enemyTags:
+  - undead
+  - skeleton
+trapTags:
+  - darts
+  - curse
+bossPool:
+  - lich_acolyte
+ambiance:
+  - "A cold draft chills your bones."
+  - "Dust motes dance in the torchlight."
+  - "You feel watched by the statues."

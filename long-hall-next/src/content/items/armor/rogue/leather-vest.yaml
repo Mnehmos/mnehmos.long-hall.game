@@ -1,0 +1,10 @@
+id: rogue_armor_common
+name: Leather Vest
+type: chest
+rarity: common
+cost: 18
+baseStats:
+  acBonus: 1
+tags:
+  - rogue
+  - armor

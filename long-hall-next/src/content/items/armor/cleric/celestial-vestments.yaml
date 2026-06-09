@@ -1,0 +1,11 @@
+id: cleric_armor_godly
+name: Celestial Vestments
+type: chest
+rarity: godly
+cost: 720
+baseStats:
+  acBonus: 6
+  maxHpBonus: 18
+tags:
+  - cleric
+  - armor

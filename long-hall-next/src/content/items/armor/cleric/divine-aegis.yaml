@@ -1,0 +1,11 @@
+id: cleric_armor_legendary
+name: Divine Aegis
+type: chest
+rarity: legendary
+cost: 360
+baseStats:
+  acBonus: 4
+  maxHpBonus: 12
+tags:
+  - cleric
+  - armor

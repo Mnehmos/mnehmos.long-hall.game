@@ -1,0 +1,11 @@
+id: oni
+name: "Oni"
+hp: 35
+maxHp: 35
+power: 8
+damage: "2d8+3"
+ac: 10
+xp: 80
+tags:
+  - giant
+  - magic

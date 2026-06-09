@@ -1,0 +1,10 @@
+id: fireball
+name: "Fireball"
+role: wizard
+description: "6d6 fire damage to all enemies"
+cooldownType: rest
+cooldownValue: 1
+effect:
+  type: damage
+  target: all_enemies
+  dice: "6d6"

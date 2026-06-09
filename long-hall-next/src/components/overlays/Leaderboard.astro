@@ -1,0 +1,571 @@
+---
+/**
+ * Leaderboard.astro - Overlay component for displaying high scores
+ * Task ID: C2.6.4
+ * 
+ * Displays leaderboard entries with rankings, scores, and depths.
+ * Features medal emojis for top 3 and special highlighting for current player.
+ * 
+ * @example
+ * <Leaderboard entries={topScores} category="All Time" currentPlayerRank={5}>
+ *   <Button variant="secondary" onclick={() => closeLeaderboard()}>Close</Button>
+ * </Leaderboard>
+ */
+
+interface LeaderboardEntry {
+  rank: number;
+  playerName: string;
+  score: number;
+  depth: number;
+  date?: string;
+}
+
+interface Props {
+  entries: LeaderboardEntry[];
+  category?: string; // e.g., "Daily", "Weekly", "All Time"
+  currentPlayerRank?: number;
+  class?: string;
+}
+
+const { 
+  entries, 
+  category,
+  currentPlayerRank, 
+  class: className = '' 
+} = Astro.props;
+
+const overlayClasses = [
+  'leaderboard-overlay',
+  className,
+].filter(Boolean).join(' ');
+
+/**
+ * Get rank display with medal emoji for top 3
+ */
+function getRankMedal(rank: number): string {
+  switch (rank) {
+    case 1: return '🥇';
+    case 2: return '🥈';
+    case 3: return '🥉';
+    default: return `#${rank}`;
+  }
+}
+
+/**
+ * Get rank tier class for styling
+ */
+function getRankTier(rank: number): string {
+  switch (rank) {
+    case 1: return 'gold';
+    case 2: return 'silver';
+    case 3: return 'bronze';
+    default: return '';
+  }
+}
+---
+
+<div class={overlayClasses} role="dialog" aria-modal="true" aria-labelledby="leaderboard-title">
+  <div class="leaderboard-modal">
+    <!-- Header with trophy decoration -->
+    <header class="leaderboard-header">
+      <h1 id="leaderboard-title" class="title">🏆 Leaderboard</h1>
+      {category && <span class="category">{category}</span>}
+    </header>
+    
+    <!-- Entries List -->
+    {entries.length > 0 ? (
+      <div class="entries-list">
+        {entries.map((entry) => {
+          const isCurrentPlayer = entry.rank === currentPlayerRank;
+          const rankTier = getRankTier(entry.rank);
+          
+          return (
+            <div 
+              class:list={[
+                'entry',
+                rankTier,
+                { 'current-player': isCurrentPlayer }
+              ]}
+              data-rank={entry.rank}
+              data-current={isCurrentPlayer ? 'true' : undefined}
+            >
+              <span class:list={['rank', rankTier]}>
+                {getRankMedal(entry.rank)}
+              </span>
+              <span class="player-name" title={entry.playerName}>
+                {entry.playerName}
+              </span>
+              <span class="score">
+                {entry.score.toLocaleString()}
+              </span>
+              <span class="depth">
+                Depth {entry.depth}
+              </span>
+              {entry.date && (
+                <span class="date">{entry.date}</span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    ) : (
+      <div class="empty-state">
+        <span class="empty-icon">📜</span>
+        <p>No entries yet. Be the first!</p>
+      </div>
+    )}
+    
+    <!-- Action Buttons Slot -->
+    <div class="actions">
+      <slot />
+    </div>
+  </div>
+</div>
+
+<style>
+  /* === OVERLAY BACKDROP === */
+  .leaderboard-overlay {
+    /* Positioning - Full viewport overlay */
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    
+    /* Layout - Center modal */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* Dark overlay with gold tint for leaderboard theme */
+    background: linear-gradient(
+      to bottom,
+      rgba(25, 20, 10, 0.92),
+      rgba(18, 15, 8, 0.95)
+    );
+    
+    /* Entrance animation */
+    animation: fade-in var(--transition-slow) ease-out forwards;
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* === MODAL CONTAINER === */
+  .leaderboard-modal {
+    /* Sizing */
+    width: 90%;
+    max-width: 550px;
+    max-height: 85vh;
+    overflow-y: auto;
+    
+    /* Appearance */
+    background-color: var(--bg-card);
+    border: 2px solid var(--gold);
+    border-radius: var(--radius-lg);
+    box-shadow: 
+      var(--shadow-lg),
+      0 0 50px rgba(245, 158, 11, 0.2),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    
+    /* Layout */
+    padding: var(--space-6);
+    
+    /* Entrance animation */
+    animation: modal-entrance var(--transition-slow) ease-out forwards;
+  }
+
+  @keyframes modal-entrance {
+    from {
+      opacity: 0;
+      transform: translateY(-20px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* === HEADER === */
+  .leaderboard-header {
+    text-align: center;
+    margin-bottom: var(--space-6);
+  }
+
+  .title {
+    margin: 0 0 var(--space-2);
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--gold);
+    text-shadow: 0 2px 10px rgba(245, 158, 11, 0.3);
+    letter-spacing: 0.05em;
+  }
+
+  .category {
+    display: inline-block;
+    padding: var(--space-1) var(--space-3);
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border-light);
+  }
+
+  /* === ENTRIES LIST === */
+  .entries-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    margin-bottom: var(--space-6);
+    max-height: 400px;
+    overflow-y: auto;
+    padding: var(--space-2);
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+  }
+
+  /* === ENTRY ROW === */
+  .entry {
+    display: grid;
+    grid-template-columns: 48px 1fr auto auto;
+    gap: var(--space-3);
+    align-items: center;
+    padding: var(--space-3) var(--space-4);
+    background-color: var(--bg-card);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+    transition: 
+      transform var(--transition-fast),
+      box-shadow var(--transition-fast);
+  }
+
+  .entry:hover {
+    transform: translateX(4px);
+  }
+
+  /* Alternating row colors */
+  .entry:nth-child(even) {
+    background-color: rgba(0, 0, 0, 0.02);
+  }
+
+  /* === RANK MEDAL/NUMBER === */
+  .rank {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 700;
+    text-align: center;
+    color: var(--text-muted);
+  }
+
+  .rank.gold {
+    font-size: 1.5rem;
+  }
+
+  .rank.silver {
+    font-size: 1.4rem;
+  }
+
+  .rank.bronze {
+    font-size: 1.3rem;
+  }
+
+  /* === PLAYER NAME === */
+  .player-name {
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* === SCORE === */
+  .score {
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--xp);
+    white-space: nowrap;
+  }
+
+  /* === DEPTH === */
+  .depth {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    white-space: nowrap;
+  }
+
+  /* === DATE (optional) === */
+  .date {
+    display: none; /* Hidden by default, shown on larger screens */
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    grid-column: span 4;
+    margin-top: calc(-1 * var(--space-2));
+    padding-left: calc(48px + var(--space-3));
+  }
+
+  /* === TOP 3 SPECIAL STYLING === */
+  
+  /* Gold - 1st place */
+  .entry.gold {
+    background: linear-gradient(
+      135deg,
+      rgba(245, 158, 11, 0.15),
+      rgba(245, 158, 11, 0.05)
+    );
+    border-color: var(--gold);
+    box-shadow: 0 0 15px rgba(245, 158, 11, 0.15);
+  }
+
+  .entry.gold .player-name {
+    color: var(--gold);
+    font-weight: 700;
+  }
+
+  .entry.gold .score {
+    color: var(--gold);
+  }
+
+  /* Silver - 2nd place */
+  .entry.silver {
+    background: linear-gradient(
+      135deg,
+      rgba(156, 163, 175, 0.15),
+      rgba(156, 163, 175, 0.05)
+    );
+    border-color: #9ca3af;
+    box-shadow: 0 0 12px rgba(156, 163, 175, 0.15);
+  }
+
+  .entry.silver .player-name {
+    color: #6b7280;
+    font-weight: 600;
+  }
+
+  /* Bronze - 3rd place */
+  .entry.bronze {
+    background: linear-gradient(
+      135deg,
+      rgba(184, 115, 51, 0.15),
+      rgba(184, 115, 51, 0.05)
+    );
+    border-color: var(--copper);
+    box-shadow: 0 0 10px rgba(184, 115, 51, 0.15);
+  }
+
+  .entry.bronze .player-name {
+    color: var(--copper);
+    font-weight: 600;
+  }
+
+  /* === CURRENT PLAYER HIGHLIGHT === */
+  .entry.current-player {
+    position: relative;
+    border-width: 2px;
+    animation: pulse-highlight 2s ease-in-out infinite;
+  }
+
+  .entry.current-player::before {
+    content: '👉';
+    position: absolute;
+    left: -28px;
+    font-size: 1rem;
+    animation: point-bounce 1s ease-in-out infinite;
+  }
+
+  @keyframes pulse-highlight {
+    0%, 100% {
+      box-shadow: 0 0 8px rgba(139, 92, 246, 0.3);
+    }
+    50% {
+      box-shadow: 0 0 20px rgba(139, 92, 246, 0.5);
+    }
+  }
+
+  @keyframes point-bounce {
+    0%, 100% {
+      transform: translateX(0);
+    }
+    50% {
+      transform: translateX(4px);
+    }
+  }
+
+  .entry.current-player:not(.gold):not(.silver):not(.bronze) {
+    border-color: var(--xp);
+    background: linear-gradient(
+      135deg,
+      rgba(139, 92, 246, 0.1),
+      rgba(139, 92, 246, 0.05)
+    );
+  }
+
+  /* === EMPTY STATE === */
+  .empty-state {
+    text-align: center;
+    padding: var(--space-8) var(--space-4);
+    margin-bottom: var(--space-6);
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    border: 1px dashed var(--border-light);
+  }
+
+  .empty-icon {
+    display: block;
+    font-size: 3rem;
+    margin-bottom: var(--space-4);
+    opacity: 0.6;
+  }
+
+  .empty-state p {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-style: italic;
+    color: var(--text-muted);
+  }
+
+  /* === ACTION BUTTONS === */
+  .actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  /* Responsive: horizontal on larger screens */
+  @media (min-width: 400px) {
+    .actions {
+      flex-direction: row;
+      justify-content: center;
+    }
+  }
+
+  /* Hide actions when empty (no slot content) */
+  .actions:empty {
+    display: none;
+  }
+
+  /* === RESPONSIVE ADJUSTMENTS === */
+  
+  /* Mobile: Stack layout */
+  @media (max-width: 480px) {
+    .entry {
+      grid-template-columns: 40px 1fr;
+      grid-template-rows: auto auto;
+      gap: var(--space-1) var(--space-2);
+      padding: var(--space-2) var(--space-3);
+    }
+
+    .rank {
+      grid-row: span 2;
+      align-self: center;
+      font-size: 1rem;
+    }
+
+    .rank.gold { font-size: 1.25rem; }
+    .rank.silver { font-size: 1.2rem; }
+    .rank.bronze { font-size: 1.15rem; }
+
+    .player-name {
+      grid-column: 2;
+      font-size: 0.875rem;
+    }
+
+    .score {
+      grid-column: 2;
+      font-size: 0.75rem;
+    }
+
+    .depth {
+      display: none;
+    }
+
+    .entry.current-player::before {
+      display: none;
+    }
+
+    .title {
+      font-size: 1.5rem;
+    }
+  }
+
+  /* Tablet and up: Show date if available */
+  @media (min-width: 640px) {
+    .entry {
+      grid-template-columns: 48px 1fr auto auto auto;
+    }
+
+    .date {
+      display: block;
+      grid-column: auto;
+      padding-left: 0;
+      margin-top: 0;
+    }
+  }
+
+  /* === DARK MODE ADJUSTMENTS === */
+  :global(.dark) .leaderboard-overlay {
+    background: linear-gradient(
+      to bottom,
+      rgba(12, 10, 5, 0.95),
+      rgba(8, 6, 3, 0.98)
+    );
+  }
+
+  :global(.dark) .entries-list {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-color: var(--border-light);
+  }
+
+  :global(.dark) .entry {
+    background-color: var(--bg-card);
+    border-color: var(--border-light);
+  }
+
+  :global(.dark) .entry:nth-child(even) {
+    background-color: rgba(255, 255, 255, 0.02);
+  }
+
+  :global(.dark) .entry.gold {
+    background: linear-gradient(
+      135deg,
+      rgba(245, 158, 11, 0.2),
+      rgba(245, 158, 11, 0.08)
+    );
+  }
+
+  :global(.dark) .entry.silver {
+    background: linear-gradient(
+      135deg,
+      rgba(156, 163, 175, 0.2),
+      rgba(156, 163, 175, 0.08)
+    );
+  }
+
+  :global(.dark) .entry.bronze {
+    background: linear-gradient(
+      135deg,
+      rgba(184, 115, 51, 0.2),
+      rgba(184, 115, 51, 0.08)
+    );
+  }
+
+  :global(.dark) .empty-state {
+    background-color: rgba(0, 0, 0, 0.2);
+  }
+</style>

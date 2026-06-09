@@ -1,0 +1,11 @@
+id: wizard_robe_epic
+name: Ethereal Robe
+type: chest
+rarity: epic
+cost: 150
+baseStats:
+  attackBonus: 3
+  maxHpBonus: 8
+tags:
+  - wizard
+  - armor

@@ -1,0 +1,11 @@
+id: bugbear
+name: "Bugbear"
+hp: 18
+maxHp: 18
+power: 4
+damage: "1d8+1"
+ac: 10
+xp: 40
+tags:
+  - humanoid
+  - goblin

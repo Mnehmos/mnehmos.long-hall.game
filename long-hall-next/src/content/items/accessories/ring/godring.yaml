@@ -1,0 +1,11 @@
+id: ring_godly
+name: Godring
+type: ring
+rarity: godly
+cost: 700
+baseStats:
+  attackBonus: 4
+  damageBonus: 6
+  maxHpBonus: 15
+tags:
+  - accessory

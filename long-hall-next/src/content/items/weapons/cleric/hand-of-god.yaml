@@ -1,0 +1,12 @@
+id: cleric_mace_legendary
+name: Hand of God
+type: weapon
+rarity: legendary
+cost: 290
+baseStats:
+  attackBonus: 5
+  damageBonus: 5
+tags:
+  - cleric
+  - mace
+  - weapon

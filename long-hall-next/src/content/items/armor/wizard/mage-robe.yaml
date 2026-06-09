@@ -1,0 +1,11 @@
+id: wizard_robe_uncommon
+name: Mage Robe
+type: chest
+rarity: uncommon
+cost: 35
+baseStats:
+  attackBonus: 1
+  maxHpBonus: 4
+tags:
+  - wizard
+  - armor

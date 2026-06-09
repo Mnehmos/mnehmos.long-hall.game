@@ -1,0 +1,12 @@
+id: ranger_bow_rare
+name: Elven Bow
+type: weapon
+rarity: rare
+cost: 70
+baseStats:
+  attackBonus: 4
+  damageBonus: 2
+tags:
+  - ranger
+  - bow
+  - weapon

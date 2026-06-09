@@ -1,0 +1,12 @@
+id: fighter_sword_uncommon
+name: Steel Longsword
+type: weapon
+rarity: uncommon
+cost: 35
+baseStats:
+  attackBonus: 2
+  damageBonus: 2
+tags:
+  - fighter
+  - sword
+  - weapon

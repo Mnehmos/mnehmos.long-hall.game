@@ -1,0 +1,204 @@
+---
+/**
+ * EquipmentSlot.astro - Single equipment slot with optional item display
+ * Task ID: C2.4.1
+ * 
+ * Displays a single equipment slot with visual states for empty/filled.
+ * Standalone component (different from PaperDoll) for detailed views.
+ * Includes a slot for equip/change handlers.
+ * 
+ * @example
+ * <EquipmentSlot slot="main_hand" item={hero.equipment.main_hand}>
+ *   <button onclick={() => openEquipMenu('main_hand')}>Change</button>
+ * </EquipmentSlot>
+ */
+
+import type { EquipmentSlot as EquipmentSlotType, Item } from '@engine/types';
+
+interface Props {
+  slot: EquipmentSlotType;
+  item: Item | null;
+  class?: string;
+}
+
+const { slot, item, class: className = '' } = Astro.props;
+
+// Slot labels mapping
+const slotLabels: Record<EquipmentSlotType, string> = {
+  head: 'Head',
+  neck: 'Neck',
+  chest: 'Chest',
+  legs: 'Legs',
+  feet: 'Feet',
+  main_hand: 'Weapon',
+  off_hand: 'Off-hand',
+  ring1: 'Ring',
+  ring2: 'Ring',
+};
+
+// Slot icons mapping
+const slotIcons: Record<EquipmentSlotType, string> = {
+  head: '👒',
+  neck: '📿',
+  chest: '👕',
+  legs: '👖',
+  feet: '👟',
+  main_hand: '⚔️',
+  off_hand: '🛡️',
+  ring1: '💍',
+  ring2: '💍',
+};
+
+function getSlotLabel(slotType: EquipmentSlotType): string {
+  return slotLabels[slotType];
+}
+
+function getSlotIcon(slotType: EquipmentSlotType): string {
+  return slotIcons[slotType];
+}
+
+const isFilled = item !== null;
+const classes = ['equipment-slot', className].filter(Boolean).join(' ');
+---
+
+<div 
+  class={classes}
+  data-slot={slot}
+  data-filled={isFilled}
+>
+  <div class="slot-label">{getSlotLabel(slot)}</div>
+  
+  {item ? (
+    <div 
+      class="item-display"
+      style={`--rarity-color: var(--rarity-${item.rarity})`}
+      data-rarity={item.rarity}
+    >
+      <span class="item-icon">{getSlotIcon(slot)}</span>
+      <span class="item-name">{item.name}</span>
+    </div>
+  ) : (
+    <div class="empty-slot">
+      <span class="empty-icon">{getSlotIcon(slot)}</span>
+      <span class="empty-label">Empty</span>
+    </div>
+  )}
+  
+  <slot />
+</div>
+
+<style>
+  /* === EQUIPMENT SLOT CONTAINER === */
+  .equipment-slot {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    padding: var(--space-3);
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    transition: 
+      transform var(--transition-fast),
+      box-shadow var(--transition-fast);
+  }
+
+  .equipment-slot:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+
+  /* === SLOT LABEL === */
+  .slot-label {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+  }
+
+  /* === ITEM DISPLAY (FILLED STATE) === */
+  .item-display {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background-color: var(--bg-secondary);
+    border: 2px solid var(--rarity-color, var(--border-light));
+    border-radius: var(--radius-md);
+    transition: 
+      border-color var(--transition-fast),
+      box-shadow var(--transition-fast);
+  }
+
+  .equipment-slot:hover .item-display {
+    box-shadow: 0 0 8px color-mix(in srgb, var(--rarity-color) 30%, transparent);
+  }
+
+  .item-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .item-name {
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  /* === RARITY GLOW EFFECTS === */
+  .item-display[data-rarity="legendary"] {
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+  }
+
+  .item-display[data-rarity="godly"] {
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+    animation: godly-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes godly-pulse {
+    0%, 100% {
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+    }
+  }
+
+  /* === EMPTY SLOT STATE === */
+  .empty-slot {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+    background-color: transparent;
+    border: 2px dashed var(--border-light);
+    border-radius: var(--radius-md);
+    transition: border-color var(--transition-fast);
+  }
+
+  .equipment-slot:hover .empty-slot {
+    border-color: var(--copper-light);
+  }
+
+  .empty-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+    flex-shrink: 0;
+    opacity: 0.4;
+    filter: grayscale(100%);
+  }
+
+  .empty-label {
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-style: italic;
+    color: var(--text-muted);
+  }
+</style>

@@ -1,0 +1,10 @@
+id: sacred_flame
+name: "Sacred Flame"
+role: cleric
+description: "1d8 radiant damage"
+cooldownType: turns
+cooldownValue: 0
+effect:
+  type: damage
+  target: enemy
+  dice: "1d8"

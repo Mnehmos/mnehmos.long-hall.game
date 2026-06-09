@@ -1,0 +1,11 @@
+id: ranger_armor_godly
+name: Avatar of the Wild
+type: chest
+rarity: godly
+cost: 660
+baseStats:
+  attackBonus: 5
+  acBonus: 7
+tags:
+  - ranger
+  - armor

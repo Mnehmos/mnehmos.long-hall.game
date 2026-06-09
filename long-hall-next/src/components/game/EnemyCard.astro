@@ -1,0 +1,230 @@
+---
+/**
+ * EnemyCard.astro - Displays detailed enemy information in combat
+ * Task ID: C2.5.4
+ * 
+ * @example
+ * <EnemyCard enemy={goblin} targeted={currentTarget === goblin.id}>
+ *   <Button variant="primary" size="sm">Attack</Button>
+ * </EnemyCard>
+ */
+
+import type { Enemy } from '@engine/types';
+import StatBar from '../shared/StatBar.astro';
+
+interface Props {
+  enemy: Enemy;
+  targeted?: boolean;
+  class?: string;
+}
+
+const {
+  enemy,
+  targeted = false,
+  class: className = '',
+} = Astro.props;
+
+// Determine if enemy is dead
+const isDead = enemy.hp <= 0;
+
+// Build container classes
+const containerClasses = [
+  'enemy-card',
+  targeted && 'enemy-card--targeted',
+  isDead && 'enemy-card--dead',
+  className,
+].filter(Boolean).join(' ');
+---
+
+<div 
+  class={containerClasses}
+  data-targeted={targeted ? 'true' : undefined}
+  data-enemy-id={enemy.id}
+>
+  <header class="enemy-header">
+    <h4 class="enemy-name">
+      {isDead ? <s>{enemy.name}</s> : enemy.name}
+    </h4>
+    <span class="enemy-xp">XP: {enemy.xp}</span>
+  </header>
+
+  {isDead ? (
+    <div class="enemy-defeated">
+      <span class="defeated-label">Defeated</span>
+    </div>
+  ) : (
+    <StatBar 
+      current={enemy.hp} 
+      max={enemy.maxHp} 
+      type="hp" 
+      showValues={true} 
+    />
+  )}
+
+  <div class="enemy-stats">
+    <div class="stat">
+      <span class="stat-label">AC</span>
+      <span class="stat-value">{enemy.ac}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">DMG</span>
+      <span class="stat-value">{enemy.damage}</span>
+    </div>
+    <div class="stat">
+      <span class="stat-label">PWR</span>
+      <span class="stat-value">{enemy.power}</span>
+    </div>
+  </div>
+
+  <slot />
+</div>
+
+<style>
+  .enemy-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    padding: var(--space-4);
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+    transition: 
+      border-color var(--transition-fast),
+      box-shadow var(--transition-fast),
+      opacity var(--transition-fast);
+  }
+
+  /* Targeted state - red danger border with glow and pulse */
+  .enemy-card--targeted {
+    border-color: var(--damage);
+    box-shadow: 
+      var(--shadow-md),
+      0 0 0 2px var(--damage),
+      0 0 12px rgba(239, 68, 68, 0.4);
+    animation: pulse-target 1.5s ease-in-out infinite;
+  }
+
+  @keyframes pulse-target {
+    0%, 100% {
+      box-shadow: 
+        var(--shadow-md),
+        0 0 0 2px var(--damage),
+        0 0 12px rgba(239, 68, 68, 0.4);
+    }
+    50% {
+      box-shadow: 
+        var(--shadow-lg),
+        0 0 0 3px var(--damage),
+        0 0 20px rgba(239, 68, 68, 0.6);
+    }
+  }
+
+  /* Dead state - grayed out */
+  .enemy-card--dead {
+    opacity: 0.6;
+    filter: grayscale(50%);
+  }
+
+  .enemy-card--dead .enemy-stats {
+    opacity: 0.5;
+  }
+
+  /* Header with name and XP */
+  .enemy-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--space-2);
+  }
+
+  .enemy-name {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.2;
+  }
+
+  .enemy-card--targeted .enemy-name {
+    color: var(--damage);
+  }
+
+  .enemy-name s {
+    text-decoration: line-through;
+    opacity: 0.7;
+  }
+
+  .enemy-xp {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    color: var(--xp);
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+
+  /* Defeated label for dead enemies */
+  .enemy-defeated {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-2);
+    background-color: var(--hp-bg);
+    border-radius: var(--radius-sm);
+  }
+
+  .defeated-label {
+    font-family: var(--font-display);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--damage);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* Stats grid - 3 columns for AC, DMG, PWR */
+  .enemy-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: var(--space-2);
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--border-light);
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-1);
+    text-align: center;
+  }
+
+  .stat-label {
+    font-family: var(--font-display);
+    font-size: 0.625rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .stat-value {
+    font-family: var(--font-mono);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  /* Hover effect for interactive cards */
+  .enemy-card:not(.enemy-card--dead):hover {
+    border-color: var(--copper-light);
+  }
+
+  /* Slot area for action buttons */
+  .enemy-card > :global(:last-child:not(.enemy-stats):not(.enemy-header):not(.enemy-defeated)) {
+    margin-top: var(--space-2);
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--border-light);
+  }
+</style>

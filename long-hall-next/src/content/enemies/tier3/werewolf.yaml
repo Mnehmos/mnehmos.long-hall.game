@@ -1,0 +1,11 @@
+id: werewolf
+name: "Werewolf"
+hp: 24
+maxHp: 24
+power: 6
+damage: "1d10+2"
+ac: 10
+xp: 60
+tags:
+  - humanoid
+  - shapechanger

@@ -1,0 +1,10 @@
+role: ranger
+hitDie: 10
+startingSkills:
+  strength: 0
+  attack: 1
+  defense: 0
+  magic: 0
+  ranged: 3
+  faith: 1
+  agility: 2

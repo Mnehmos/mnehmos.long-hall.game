@@ -1,0 +1,11 @@
+id: owlbear
+name: "Owlbear"
+hp: 22
+maxHp: 22
+power: 5
+damage: "1d10+2"
+ac: 10
+xp: 50
+tags:
+  - beast
+  - monstrosity

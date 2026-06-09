@@ -1,0 +1,12 @@
+id: ranger_bow_epic
+name: Windpiercer
+type: weapon
+rarity: epic
+cost: 140
+baseStats:
+  attackBonus: 5
+  damageBonus: 3
+tags:
+  - ranger
+  - bow
+  - weapon

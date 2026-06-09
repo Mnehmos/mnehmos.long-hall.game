@@ -1,0 +1,9 @@
+id: ring_common
+name: Ring of Vigor
+type: ring
+rarity: common
+cost: 18
+baseStats:
+  maxHpBonus: 2
+tags:
+  - accessory

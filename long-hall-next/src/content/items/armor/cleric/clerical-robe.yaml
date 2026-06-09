@@ -1,0 +1,10 @@
+id: cleric_armor_common
+name: Clerical Robe
+type: chest
+rarity: common
+cost: 18
+baseStats:
+  maxHpBonus: 3
+tags:
+  - cleric
+  - armor

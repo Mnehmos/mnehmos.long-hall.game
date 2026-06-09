@@ -1,0 +1,10 @@
+id: legs_rare
+name: Plated Greaves
+type: legs
+rarity: rare
+cost: 68
+baseStats:
+  acBonus: 3
+  maxHpBonus: 2
+tags:
+  - accessory

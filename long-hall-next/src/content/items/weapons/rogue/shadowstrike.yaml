@@ -1,0 +1,12 @@
+id: rogue_dagger_rare
+name: Shadowstrike
+type: weapon
+rarity: rare
+cost: 68
+baseStats:
+  attackBonus: 3
+  damageBonus: 3
+tags:
+  - rogue
+  - dagger
+  - weapon

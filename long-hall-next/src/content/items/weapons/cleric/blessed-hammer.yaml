@@ -1,0 +1,12 @@
+id: cleric_mace_uncommon
+name: Blessed Hammer
+type: weapon
+rarity: uncommon
+cost: 35
+baseStats:
+  attackBonus: 2
+  damageBonus: 2
+tags:
+  - cleric
+  - mace
+  - weapon

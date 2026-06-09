@@ -1,0 +1,78 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Theme Definition Snapshots > should have consistent crypt theme structure 1`] = `
+{
+  "ambiance": [
+    "A cold draft chills your bones.",
+    "Dust motes dance in the torchlight.",
+    "You feel watched by the statues.",
+  ],
+  "bossPool": [
+    "lich_acolyte",
+  ],
+  "description": "Rows of silent tombs line the walls.",
+  "enemyTags": [
+    "undead",
+    "skeleton",
+    "zombie",
+  ],
+  "id": "crypt",
+  "name": "Forgotten Crypt",
+  "trapTags": [
+    "darts",
+    "curse",
+  ],
+}
+`;
+
+exports[`Theme Definition Snapshots > should have consistent dungeon_start theme structure 1`] = `
+{
+  "ambiance": [
+    "The smell of rot is overpowering.",
+    "Scurrying sounds echo in the darkness.",
+    "Slime drips from the ceiling.",
+  ],
+  "bossPool": [
+    "sewer_king",
+  ],
+  "description": "A damp, moss-covered sewer system beneath the city.",
+  "enemyTags": [
+    "vermin",
+    "slime",
+    "humanoid",
+    "beast",
+  ],
+  "id": "dungeon_start",
+  "name": "Ancient Sewers",
+  "trapTags": [
+    "tripwire",
+    "spikes",
+  ],
+}
+`;
+
+exports[`Theme Definition Snapshots > should have consistent sewer theme structure 1`] = `
+{
+  "ambiance": [
+    "Water drips endlessly.",
+    "Something splashes in the distance.",
+    "The air is thick with moisture.",
+  ],
+  "bossPool": [
+    "sewer_beast",
+  ],
+  "description": "Murky water flows through ancient stone passages.",
+  "enemyTags": [
+    "vermin",
+    "slime",
+    "ooze",
+    "beast",
+  ],
+  "id": "sewer",
+  "name": "Flooded Tunnels",
+  "trapTags": [
+    "poison",
+    "spikes",
+  ],
+}
+`;

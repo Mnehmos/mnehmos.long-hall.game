@@ -1,0 +1,11 @@
+id: healing_word
+name: "Healing Word"
+role: cleric
+description: "Heal ally 1d8+level"
+cooldownType: turns
+cooldownValue: 2
+effect:
+  type: heal
+  target: ally
+  dice: "1d8"
+  modifier: 0

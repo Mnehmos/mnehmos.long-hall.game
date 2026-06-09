@@ -1,0 +1,9 @@
+id: turn_undead
+name: "Turn Undead"
+role: cleric
+description: "Fear undead enemies for 2 turns"
+cooldownType: rest
+cooldownValue: 1
+effect:
+  type: debuff
+  target: all_enemies

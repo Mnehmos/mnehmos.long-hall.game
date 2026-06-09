@@ -1,0 +1,12 @@
+id: wizard_staff_uncommon
+name: Arcane Staff
+type: weapon
+rarity: uncommon
+cost: 30
+baseStats:
+  attackBonus: 3
+  damageBonus: 1
+tags:
+  - wizard
+  - staff
+  - weapon

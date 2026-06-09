@@ -1,0 +1,10 @@
+id: boots_legendary
+name: Winged Boots
+type: feet
+rarity: legendary
+cost: 260
+baseStats:
+  attackBonus: 3
+  maxHpBonus: 10
+tags:
+  - accessory

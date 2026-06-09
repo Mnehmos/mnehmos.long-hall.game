@@ -1,0 +1,9 @@
+id: legs_uncommon
+name: Chain Leggings
+type: legs
+rarity: uncommon
+cost: 32
+baseStats:
+  acBonus: 2
+tags:
+  - accessory

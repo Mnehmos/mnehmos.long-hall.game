@@ -1,0 +1,10 @@
+id: shield_epic
+name: Aegis
+type: shield
+rarity: epic
+cost: 145
+baseStats:
+  acBonus: 4
+  maxHpBonus: 4
+tags:
+  - accessory

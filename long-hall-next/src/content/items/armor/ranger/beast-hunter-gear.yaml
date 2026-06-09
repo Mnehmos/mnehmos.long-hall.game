@@ -1,0 +1,11 @@
+id: ranger_armor_epic
+name: Beast Hunter Gear
+type: chest
+rarity: epic
+cost: 160
+baseStats:
+  attackBonus: 2
+  acBonus: 4
+tags:
+  - ranger
+  - armor

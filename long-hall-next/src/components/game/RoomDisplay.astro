@@ -1,0 +1,518 @@
+---
+/**
+ * RoomDisplay.astro - Dungeon room visualization component
+ * Task ID: C2.5.1
+ * 
+ * Displays the current room with type-specific icons, titles, and content.
+ * Visual styling varies by room type with distinct accent colors.
+ * 
+ * @example
+ * <RoomDisplay room={currentRoom} theme="crypt">
+ *   <ActionButtons slot="default" actions={['Attack', 'Flee']} />
+ * </RoomDisplay>
+ */
+
+import type { Room, RoomType } from '@engine/types';
+
+interface Props {
+  room: Room;
+  theme?: string;
+  class?: string;
+}
+
+const { 
+  room, 
+  theme = 'default',
+  class: className = '' 
+} = Astro.props;
+
+/**
+ * Room type icon mapping
+ */
+const ROOM_ICONS: Record<RoomType, string> = {
+  combat: '⚔️',
+  elite: '💀',
+  hazard: '⚠️',
+  trader: '🏪',
+  ally: '🤝',
+  shrine: '⛩️',
+  intermission: '🏕️',
+  boss: '👹',
+};
+
+/**
+ * Room type title mapping
+ */
+const ROOM_TITLES: Record<RoomType, string> = {
+  combat: 'Combat Encounter',
+  elite: 'Elite Enemy',
+  hazard: 'Hazardous Area',
+  trader: 'Traveling Merchant',
+  ally: 'Friendly Encounter',
+  shrine: 'Mysterious Shrine',
+  intermission: 'Rest Area',
+  boss: 'Boss Chamber',
+};
+
+/**
+ * Get the icon for a room type
+ */
+function getRoomIcon(type: RoomType): string {
+  return ROOM_ICONS[type] || '❓';
+}
+
+/**
+ * Get the title for a room type
+ */
+function getRoomTitle(type: RoomType): string {
+  return ROOM_TITLES[type] || 'Unknown Room';
+}
+
+/**
+ * Get flavor text for each room type
+ */
+function getRoomFlavorText(type: RoomType, room: Room): string {
+  switch (type) {
+    case 'combat':
+      const enemyCount = room.enemies?.length || 0;
+      return enemyCount === 1 
+        ? 'An enemy blocks your path' 
+        : `${enemyCount} enemies ahead`;
+    case 'elite':
+      return 'A powerful foe awaits';
+    case 'hazard':
+      return 'Danger lurks in the shadows...';
+    case 'trader':
+      return 'A merchant offers their wares';
+    case 'ally':
+      return 'A potential ally approaches';
+    case 'shrine':
+      return 'A mysterious shrine emanates power...';
+    case 'intermission':
+      return 'A moment of respite';
+    case 'boss':
+      return 'The final challenge awaits';
+    default:
+      return '';
+  }
+}
+
+const icon = getRoomIcon(room.type);
+const title = getRoomTitle(room.type);
+const flavorText = getRoomFlavorText(room.type, room);
+const classes = ['room-display', className].filter(Boolean).join(' ');
+---
+
+<div 
+  class={classes}
+  data-type={room.type}
+  data-theme={theme}
+>
+  <header class="room-header">
+    <span class="room-icon" aria-hidden="true">{icon}</span>
+    <h2 class="room-title">{title}</h2>
+  </header>
+  
+  <div class="room-content">
+    <p class="room-flavor">{flavorText}</p>
+    
+    {/* Combat room content */}
+    {room.type === 'combat' && room.enemies && room.enemies.length > 0 && (
+      <div class="room-enemies">
+        {room.enemies.map((enemy) => (
+          <div class="enemy-preview">
+            <span class="enemy-name">{enemy.name}</span>
+            <span class="enemy-hp">{enemy.hp}/{enemy.maxHp} HP</span>
+          </div>
+        ))}
+      </div>
+    )}
+    
+    {/* Elite room content */}
+    {room.type === 'elite' && room.enemies && room.enemies.length > 0 && (
+      <div class="room-enemies room-enemies--elite">
+        {room.enemies.map((enemy) => (
+          <div class="enemy-preview enemy-preview--elite">
+            <span class="enemy-name">{enemy.name}</span>
+            <span class="enemy-hp">{enemy.hp}/{enemy.maxHp} HP</span>
+            <span class="enemy-power">Power: {enemy.power}</span>
+          </div>
+        ))}
+      </div>
+    )}
+    
+    {/* Boss room content */}
+    {room.type === 'boss' && room.enemies && room.enemies.length > 0 && (
+      <div class="room-enemies room-enemies--boss">
+        {room.enemies.map((enemy) => (
+          <div class="enemy-preview enemy-preview--boss">
+            <span class="enemy-name">{enemy.name}</span>
+            <span class="enemy-hp">{enemy.hp}/{enemy.maxHp} HP</span>
+            <span class="enemy-xp">XP: {enemy.xp}</span>
+          </div>
+        ))}
+      </div>
+    )}
+    
+    {/* Trader room content */}
+    {room.type === 'trader' && (
+      <div class="room-shop">
+        <span class="shop-indicator">💰 Shop Available</span>
+        {room.shopItems && room.shopItems.length > 0 && (
+          <span class="shop-count">{room.shopItems.length} items for sale</span>
+        )}
+      </div>
+    )}
+    
+    {/* Intermission room content */}
+    {room.type === 'intermission' && (
+      <div class="room-intermission">
+        {room.shopItems && room.shopItems.length > 0 && (
+          <span class="shop-indicator">💰 Shop Available</span>
+        )}
+        {room.availableRecruits && room.availableRecruits.length > 0 && (
+          <span class="recruit-indicator">🤝 Recruits Available</span>
+        )}
+        {room.bossRoom && (
+          <span class="boss-indicator">👹 Boss Challenge Available</span>
+        )}
+      </div>
+    )}
+    
+    {/* Shrine room content */}
+    {room.type === 'shrine' && (
+      <div class="room-shrine">
+        <span class="shrine-indicator">✨ Pray for a blessing...</span>
+      </div>
+    )}
+    
+    {/* Hazard room content */}
+    {room.type === 'hazard' && (
+      <div class="room-hazard">
+        <span class="hazard-indicator">⚠️ Proceed with caution</span>
+      </div>
+    )}
+    
+    {/* Ally room content */}
+    {room.type === 'ally' && room.availableRecruits && room.availableRecruits.length > 0 && (
+      <div class="room-ally">
+        {room.availableRecruits.map((recruit) => (
+          <div class="recruit-preview">
+            <span class="recruit-name">{recruit.name}</span>
+            <span class="recruit-role">{recruit.role}</span>
+          </div>
+        ))}
+      </div>
+    )}
+    
+    {/* Loot display (for all room types with loot) */}
+    {room.loot && room.loot.length > 0 && (
+      <div class="room-loot">
+        <span class="loot-indicator">🎁 {room.loot.length} item{room.loot.length > 1 ? 's' : ''} found</span>
+      </div>
+    )}
+  </div>
+  
+  {/* Slot for action buttons */}
+  <slot />
+</div>
+
+<style>
+  /* === ROOM DISPLAY CONTAINER === */
+  .room-display {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-6);
+    background-color: var(--bg-card);
+    border: 2px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+  }
+
+  /* === ROOM TYPE ACCENT COLORS === */
+  .room-display[data-type="combat"] {
+    --room-accent: var(--damage);
+    --room-accent-bg: rgba(239, 68, 68, 0.1);
+    border-color: var(--damage);
+  }
+
+  .room-display[data-type="elite"] {
+    --room-accent: var(--rarity-epic);
+    --room-accent-bg: rgba(168, 85, 247, 0.1);
+    border-color: var(--rarity-epic);
+  }
+
+  .room-display[data-type="hazard"] {
+    --room-accent: var(--debuff);
+    --room-accent-bg: rgba(249, 115, 22, 0.1);
+    border-color: var(--debuff);
+  }
+
+  .room-display[data-type="trader"] {
+    --room-accent: var(--gold);
+    --room-accent-bg: rgba(245, 158, 11, 0.1);
+    border-color: var(--gold);
+  }
+
+  .room-display[data-type="ally"] {
+    --room-accent: var(--heal);
+    --room-accent-bg: rgba(34, 197, 94, 0.1);
+    border-color: var(--heal);
+  }
+
+  .room-display[data-type="shrine"] {
+    --room-accent: var(--buff);
+    --room-accent-bg: rgba(59, 130, 246, 0.1);
+    border-color: var(--buff);
+  }
+
+  .room-display[data-type="intermission"] {
+    --room-accent: var(--copper);
+    --room-accent-bg: rgba(184, 115, 51, 0.1);
+    border-color: var(--copper);
+  }
+
+  .room-display[data-type="boss"] {
+    --room-accent: var(--rarity-godly);
+    --room-accent-bg: rgba(239, 68, 68, 0.15);
+    border-color: var(--rarity-godly);
+    box-shadow: 
+      var(--shadow-md),
+      0 0 20px rgba(239, 68, 68, 0.2);
+  }
+
+  /* === ROOM HEADER === */
+  .room-header {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding-bottom: var(--space-4);
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .room-icon {
+    font-size: 2rem;
+    line-height: 1;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  }
+
+  .room-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--room-accent, var(--text-primary));
+    line-height: 1.2;
+  }
+
+  /* === ROOM CONTENT === */
+  .room-content {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+  }
+
+  .room-flavor {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-style: italic;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  /* === ENEMY PREVIEWS === */
+  .room-enemies {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .enemy-preview {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    background-color: var(--room-accent-bg, var(--bg-secondary));
+    border-radius: var(--radius-md);
+    border-left: 3px solid var(--room-accent, var(--damage));
+  }
+
+  .enemy-preview--elite {
+    border-left-width: 4px;
+    background-color: rgba(168, 85, 247, 0.15);
+  }
+
+  .enemy-preview--boss {
+    border-left-width: 5px;
+    background-color: rgba(239, 68, 68, 0.15);
+    animation: boss-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes boss-pulse {
+    0%, 100% {
+      background-color: rgba(239, 68, 68, 0.15);
+    }
+    50% {
+      background-color: rgba(239, 68, 68, 0.25);
+    }
+  }
+
+  .enemy-name {
+    flex: 1;
+    font-family: var(--font-display);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .enemy-hp {
+    font-family: var(--font-mono);
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--hp);
+    padding: var(--space-1) var(--space-2);
+    background-color: var(--hp-bg);
+    border-radius: var(--radius-sm);
+  }
+
+  .enemy-power,
+  .enemy-xp {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: var(--text-muted);
+  }
+
+  /* === SHOP CONTENT === */
+  .room-shop,
+  .room-intermission {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+  }
+
+  .shop-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-3);
+    background-color: rgba(245, 158, 11, 0.15);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--gold);
+  }
+
+  .shop-count {
+    font-family: var(--font-body);
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    padding: var(--space-2) var(--space-3);
+  }
+
+  .recruit-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-3);
+    background-color: rgba(34, 197, 94, 0.15);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--heal);
+  }
+
+  .boss-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-1);
+    padding: var(--space-2) var(--space-3);
+    background-color: rgba(239, 68, 68, 0.15);
+    border-radius: var(--radius-md);
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--damage);
+  }
+
+  /* === SHRINE CONTENT === */
+  .room-shrine {
+    padding: var(--space-4);
+    background-color: rgba(59, 130, 246, 0.1);
+    border-radius: var(--radius-md);
+    text-align: center;
+  }
+
+  .shrine-indicator {
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    font-style: italic;
+    color: var(--buff);
+  }
+
+  /* === HAZARD CONTENT === */
+  .room-hazard {
+    padding: var(--space-4);
+    background-color: rgba(249, 115, 22, 0.1);
+    border-radius: var(--radius-md);
+    text-align: center;
+  }
+
+  .hazard-indicator {
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--debuff);
+  }
+
+  /* === ALLY/RECRUIT CONTENT === */
+  .room-ally {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+  }
+
+  .recruit-preview {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: var(--space-3);
+    background-color: rgba(34, 197, 94, 0.1);
+    border-radius: var(--radius-md);
+    border-left: 3px solid var(--heal);
+  }
+
+  .recruit-name {
+    font-family: var(--font-display);
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .recruit-role {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+  }
+
+  /* === LOOT CONTENT === */
+  .room-loot {
+    padding: var(--space-3);
+    background-color: rgba(245, 158, 11, 0.1);
+    border-radius: var(--radius-md);
+  }
+
+  .loot-indicator {
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--gold);
+  }
+</style>

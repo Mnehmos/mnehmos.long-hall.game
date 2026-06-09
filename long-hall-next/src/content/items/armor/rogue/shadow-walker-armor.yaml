@@ -1,0 +1,11 @@
+id: rogue_armor_legendary
+name: Shadow Walker Armor
+type: chest
+rarity: legendary
+cost: 340
+baseStats:
+  attackBonus: 3
+  acBonus: 5
+tags:
+  - rogue
+  - armor

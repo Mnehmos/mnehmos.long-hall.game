@@ -1,0 +1,13 @@
+id: lich
+name: "Lich"
+hp: 80
+maxHp: 80
+power: 12
+damage: "3d8+6"
+ac: 10
+xp: 120
+tags:
+  - undead
+  - magic
+  - boss
+isBoss: true

@@ -1,0 +1,10 @@
+id: boots_epic
+name: Boots of Flight
+type: feet
+rarity: epic
+cost: 130
+baseStats:
+  attackBonus: 2
+  maxHpBonus: 8
+tags:
+  - accessory

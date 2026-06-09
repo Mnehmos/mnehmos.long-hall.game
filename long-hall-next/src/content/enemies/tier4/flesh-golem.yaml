@@ -1,0 +1,10 @@
+id: flesh_golem
+name: "Flesh Golem"
+hp: 40
+maxHp: 40
+power: 8
+damage: "2d8+2"
+ac: 10
+xp: 80
+tags:
+  - construct

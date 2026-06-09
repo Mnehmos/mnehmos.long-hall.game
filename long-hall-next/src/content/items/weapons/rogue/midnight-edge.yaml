@@ -1,0 +1,12 @@
+id: rogue_dagger_godly
+name: Midnight Edge
+type: weapon
+rarity: godly
+cost: 580
+baseStats:
+  attackBonus: 7
+  damageBonus: 7
+tags:
+  - rogue
+  - dagger
+  - weapon

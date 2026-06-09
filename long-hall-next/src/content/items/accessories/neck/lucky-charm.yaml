@@ -1,0 +1,9 @@
+id: neck_common
+name: Lucky Charm
+type: neck
+rarity: common
+cost: 15
+baseStats:
+  attackBonus: 1
+tags:
+  - accessory

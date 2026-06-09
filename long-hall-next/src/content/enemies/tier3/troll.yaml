@@ -1,0 +1,10 @@
+id: troll
+name: "Troll"
+hp: 30
+maxHp: 30
+power: 6
+damage: "2d6+2"
+ac: 10
+xp: 60
+tags:
+  - giant

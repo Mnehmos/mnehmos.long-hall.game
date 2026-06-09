@@ -1,0 +1,12 @@
+id: fighter_sword_rare
+name: "Knight's Blade"
+type: weapon
+rarity: rare
+cost: 70
+baseStats:
+  attackBonus: 3
+  damageBonus: 3
+tags:
+  - fighter
+  - sword
+  - weapon

@@ -1,0 +1,11 @@
+id: wraith
+name: "Wraith"
+hp: 18
+maxHp: 18
+power: 6
+damage: "1d10+2"
+ac: 10
+xp: 60
+tags:
+  - undead
+  - incorporeal

@@ -1,0 +1,13 @@
+id: adult_dragon
+name: "Adult Dragon"
+hp: 120
+maxHp: 120
+power: 12
+damage: "3d10+6"
+ac: 10
+xp: 120
+tags:
+  - dragon
+  - flying
+  - boss
+isBoss: true

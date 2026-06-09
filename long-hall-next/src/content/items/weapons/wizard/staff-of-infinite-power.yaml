@@ -1,0 +1,12 @@
+id: wizard_staff_legendary
+name: Staff of Infinite Power
+type: weapon
+rarity: legendary
+cost: 260
+baseStats:
+  attackBonus: 6
+  damageBonus: 4
+tags:
+  - wizard
+  - staff
+  - weapon

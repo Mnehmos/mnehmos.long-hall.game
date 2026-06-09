@@ -1,0 +1,11 @@
+id: neck_godly
+name: Divine Pendant
+type: neck
+rarity: godly
+cost: 680
+baseStats:
+  attackBonus: 6
+  damageBonus: 7
+  maxHpBonus: 10
+tags:
+  - accessory

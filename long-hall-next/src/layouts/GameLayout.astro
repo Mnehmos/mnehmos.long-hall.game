@@ -1,0 +1,240 @@
+---
+import Layout from './Layout.astro';
+
+interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<Layout title={title} description="Explore the depths of the Long Hall">
+  <div class="game-container h-screen flex flex-col overflow-hidden touch-manipulation">
+    <!-- Top Header Bar with safe area -->
+    <header class="game-header shrink-0 border-b border-primary/20 bg-surface/80 backdrop-blur-sm top-bar">
+      <slot name="header" />
+    </header>
+    
+    <!-- Main Game Area - Responsive layout -->
+    <div class="game-layout flex flex-col lg:flex-row flex-1 overflow-hidden">
+      <!-- Left Sidebar (Party) - Hidden on mobile, shown via toggle -->
+      <aside class="game-sidebar hidden lg:block lg:w-64 shrink-0 border-r border-primary/20 bg-surface/50 overflow-y-auto lg:order-1">
+        <slot name="sidebar" />
+      </aside>
+      
+      <!-- Main Content (Room/Combat) - Full width on mobile -->
+      <main class="game-main flex-1 overflow-y-auto p-2 sm:p-3 lg:p-4 order-1 lg:order-2">
+        <slot />
+      </main>
+      
+      <!-- Right Panel (Actions/Inventory) - Slides in on mobile, always visible on desktop -->
+      <aside class="game-panel hidden lg:block lg:w-72 shrink-0 border-l border-primary/20 bg-surface/50 overflow-y-auto lg:order-3">
+        <slot name="panel" />
+      </aside>
+    </div>
+    
+    <!-- Mobile Bottom Navigation Bar -->
+    <nav class="mobile-nav lg:hidden flex justify-around items-center bg-surface/95 backdrop-blur-sm border-t border-primary/20 bottom-bar">
+      <button
+        type="button"
+        class="mobile-nav-btn touch-target"
+        data-panel="sidebar"
+        aria-label="Open party panel"
+      >
+        <span class="text-lg">👥</span>
+        <span class="text-xs">Party</span>
+      </button>
+      <button
+        type="button"
+        class="mobile-nav-btn touch-target"
+        data-panel="combat"
+        aria-label="Focus combat"
+      >
+        <span class="text-lg">⚔️</span>
+        <span class="text-xs">Combat</span>
+      </button>
+      <button
+        type="button"
+        class="mobile-nav-btn touch-target"
+        data-panel="inventory"
+        aria-label="Open inventory"
+      >
+        <span class="text-lg">🎒</span>
+        <span class="text-xs">Inventory</span>
+      </button>
+      <button
+        type="button"
+        class="mobile-nav-btn touch-target"
+        data-panel="menu"
+        aria-label="Open menu"
+      >
+        <span class="text-lg">☰</span>
+        <span class="text-xs">Menu</span>
+      </button>
+    </nav>
+    
+    <!-- Mobile Slide-in Panel (for sidebar/panel content) -->
+    <div class="mobile-overlay hidden lg:hidden fixed inset-0 bg-black/50 z-40" data-close-panel></div>
+    <div class="mobile-panel hidden lg:hidden fixed inset-y-0 right-0 w-[85vw] max-w-sm bg-surface z-50 transform translate-x-full transition-transform duration-300 overflow-y-auto">
+      <div class="mobile-panel-header sticky top-0 flex justify-between items-center p-3 border-b border-primary/20 bg-surface/95 backdrop-blur-sm top-bar">
+        <h2 class="text-lg font-semibold mobile-panel-title">Panel</h2>
+        <button type="button" class="touch-target close-panel-btn" aria-label="Close panel">
+          <span class="text-2xl">×</span>
+        </button>
+      </div>
+      <div class="mobile-panel-content p-3">
+        <!-- Content injected via JS -->
+      </div>
+    </div>
+  </div>
+</Layout>
+
+<style>
+  .game-container {
+    /* Ensure the game fills the viewport exactly */
+    max-height: 100vh;
+    max-height: 100dvh; /* Dynamic viewport height for mobile */
+  }
+  
+  .game-header {
+    min-height: 3rem;
+  }
+  
+  /* Mobile navigation bar */
+  .mobile-nav {
+    min-height: 3.5rem;
+  }
+  
+  .mobile-nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 0.5rem 1rem;
+    color: var(--text-secondary, #d1d5db);
+    transition: color 0.15s ease;
+  }
+  
+  .mobile-nav-btn:hover,
+  .mobile-nav-btn:active,
+  .mobile-nav-btn.active {
+    color: var(--copper, #b87333);
+  }
+  
+  /* Mobile slide panel animations */
+  .mobile-panel.open {
+    transform: translateX(0);
+  }
+  
+  .mobile-overlay.open {
+    display: block;
+  }
+  
+  /* Custom scrollbar styling for game panels */
+  .game-sidebar::-webkit-scrollbar,
+  .game-main::-webkit-scrollbar,
+  .game-panel::-webkit-scrollbar,
+  .mobile-panel::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .game-sidebar::-webkit-scrollbar-thumb,
+  .game-main::-webkit-scrollbar-thumb,
+  .game-panel::-webkit-scrollbar-thumb,
+  .mobile-panel::-webkit-scrollbar-thumb {
+    background-color: var(--color-primary);
+    opacity: 0.3;
+    border-radius: 3px;
+  }
+  
+  .game-sidebar::-webkit-scrollbar-track,
+  .game-main::-webkit-scrollbar-track,
+  .game-panel::-webkit-scrollbar-track,
+  .mobile-panel::-webkit-scrollbar-track {
+    background-color: transparent;
+  }
+  
+  /* Responsive typography for game content */
+  @media (max-width: 639px) {
+    .game-main {
+      font-size: 0.875rem;
+    }
+  }
+</style>
+
+<script>
+  // Mobile panel toggle functionality
+  document.addEventListener('DOMContentLoaded', () => {
+    const mobileNavBtns = document.querySelectorAll('.mobile-nav-btn');
+    const mobilePanel = document.querySelector('.mobile-panel');
+    const mobileOverlay = document.querySelector('.mobile-overlay');
+    const closePanelBtn = document.querySelector('.close-panel-btn');
+    const mobilePanelTitle = document.querySelector('.mobile-panel-title');
+    const mobilePanelContent = document.querySelector('.mobile-panel-content');
+    
+    function openPanel(panelType: string) {
+      if (!mobilePanel || !mobileOverlay || !mobilePanelTitle || !mobilePanelContent) return;
+      
+      // Update title based on panel type
+      const titles: Record<string, string> = {
+        sidebar: 'Party',
+        inventory: 'Inventory',
+        menu: 'Menu',
+        combat: 'Combat',
+      };
+      mobilePanelTitle.textContent = titles[panelType] || 'Panel';
+      
+      // Clone content from appropriate slot
+      let sourceElement: Element | null = null;
+      if (panelType === 'sidebar') {
+        sourceElement = document.querySelector('.game-sidebar');
+      } else if (panelType === 'inventory' || panelType === 'menu') {
+        sourceElement = document.querySelector('.game-panel');
+      }
+      
+      if (sourceElement) {
+        mobilePanelContent.innerHTML = sourceElement.innerHTML;
+      }
+      
+      // Show panel
+      mobilePanel.classList.remove('hidden');
+      mobileOverlay.classList.remove('hidden');
+      requestAnimationFrame(() => {
+        mobilePanel.classList.add('open');
+        mobileOverlay.classList.add('open');
+      });
+      
+      // Prevent body scroll
+      document.body.style.overflow = 'hidden';
+    }
+    
+    function closePanel() {
+      if (!mobilePanel || !mobileOverlay) return;
+      
+      mobilePanel.classList.remove('open');
+      mobileOverlay.classList.remove('open');
+      
+      setTimeout(() => {
+        mobilePanel.classList.add('hidden');
+        mobileOverlay.classList.add('hidden');
+      }, 300);
+      
+      // Restore body scroll
+      document.body.style.overflow = '';
+    }
+    
+    // Event listeners
+    mobileNavBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const panelType = (btn as HTMLElement).dataset.panel;
+        if (panelType) {
+          openPanel(panelType);
+        }
+      });
+    });
+    
+    closePanelBtn?.addEventListener('click', closePanel);
+    mobileOverlay?.addEventListener('click', closePanel);
+  });
+</script>

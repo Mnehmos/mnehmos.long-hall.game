@@ -1,0 +1,10 @@
+id: shield_legendary
+name: Bulwark
+type: shield
+rarity: legendary
+cost: 290
+baseStats:
+  acBonus: 5
+  maxHpBonus: 6
+tags:
+  - accessory

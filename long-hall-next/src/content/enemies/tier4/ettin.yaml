@@ -1,0 +1,10 @@
+id: ettin
+name: "Ettin"
+hp: 36
+maxHp: 36
+power: 7
+damage: "2d8"
+ac: 10
+xp: 70
+tags:
+  - giant

@@ -1,0 +1,10 @@
+id: legs_godly
+name: Celestial Greaves
+type: legs
+rarity: godly
+cost: 580
+baseStats:
+  acBonus: 7
+  maxHpBonus: 10
+tags:
+  - accessory

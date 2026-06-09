@@ -1,0 +1,12 @@
+id: rogue_dagger_legendary
+name: Deathwhisper
+type: weapon
+rarity: legendary
+cost: 270
+baseStats:
+  attackBonus: 5
+  damageBonus: 5
+tags:
+  - rogue
+  - dagger
+  - weapon

@@ -1,0 +1,9 @@
+id: shield_common
+name: Wooden Shield
+type: shield
+rarity: common
+cost: 15
+baseStats:
+  acBonus: 1
+tags:
+  - accessory

@@ -1,0 +1,11 @@
+id: wizard_robe_godly
+name: Astral Vestments
+type: chest
+rarity: godly
+cost: 650
+baseStats:
+  attackBonus: 6
+  maxHpBonus: 15
+tags:
+  - wizard
+  - armor

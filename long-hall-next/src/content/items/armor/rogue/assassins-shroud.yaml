@@ -1,0 +1,11 @@
+id: rogue_armor_epic
+name: "Assassin's Shroud"
+type: chest
+rarity: epic
+cost: 170
+baseStats:
+  attackBonus: 2
+  acBonus: 4
+tags:
+  - rogue
+  - armor

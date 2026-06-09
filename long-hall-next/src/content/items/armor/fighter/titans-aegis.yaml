@@ -1,0 +1,11 @@
+id: fighter_armor_legendary
+name: "Titan's Aegis"
+type: chest
+rarity: legendary
+cost: 350
+baseStats:
+  acBonus: 5
+  maxHpBonus: 8
+tags:
+  - fighter
+  - armor

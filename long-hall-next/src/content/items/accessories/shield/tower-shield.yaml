@@ -1,0 +1,10 @@
+id: shield_rare
+name: Tower Shield
+type: shield
+rarity: rare
+cost: 72
+baseStats:
+  acBonus: 3
+  maxHpBonus: 2
+tags:
+  - accessory

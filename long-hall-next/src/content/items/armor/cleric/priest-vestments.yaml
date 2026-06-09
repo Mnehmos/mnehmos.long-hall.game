@@ -1,0 +1,11 @@
+id: cleric_armor_uncommon
+name: Priest Vestments
+type: chest
+rarity: uncommon
+cost: 42
+baseStats:
+  acBonus: 1
+  maxHpBonus: 5
+tags:
+  - cleric
+  - armor

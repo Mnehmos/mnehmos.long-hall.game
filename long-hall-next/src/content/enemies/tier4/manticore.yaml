@@ -1,0 +1,11 @@
+id: manticore
+name: "Manticore"
+hp: 30
+maxHp: 30
+power: 7
+damage: "2d6+2"
+ac: 10
+xp: 70
+tags:
+  - monstrosity
+  - flying

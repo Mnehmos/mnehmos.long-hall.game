@@ -1,0 +1,12 @@
+id: fighter_sword_legendary
+name: Excalibur
+type: weapon
+rarity: legendary
+cost: 280
+baseStats:
+  attackBonus: 5
+  damageBonus: 5
+tags:
+  - fighter
+  - sword
+  - weapon

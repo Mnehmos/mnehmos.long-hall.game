@@ -1,0 +1,12 @@
+id: storm_giant
+name: "Storm Giant"
+hp: 110
+maxHp: 110
+power: 12
+damage: "3d10+6"
+ac: 10
+xp: 120
+tags:
+  - giant
+  - boss
+isBoss: true

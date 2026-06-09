@@ -1,0 +1,11 @@
+id: orc
+name: "Orc Berserker"
+hp: 18
+maxHp: 18
+power: 5
+damage: "1d8+2"
+ac: 10
+xp: 50
+tags:
+  - humanoid
+  - orc

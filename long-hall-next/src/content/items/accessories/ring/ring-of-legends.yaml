@@ -1,0 +1,11 @@
+id: ring_epic
+name: Ring of Legends
+type: ring
+rarity: epic
+cost: 170
+baseStats:
+  attackBonus: 1
+  damageBonus: 3
+  maxHpBonus: 8
+tags:
+  - accessory

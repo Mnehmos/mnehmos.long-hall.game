@@ -1,0 +1,11 @@
+id: zombie
+name: "Rotting Zombie"
+hp: 14
+maxHp: 14
+power: 3
+damage: "1d6"
+ac: 10
+xp: 30
+tags:
+  - undead
+  - zombie

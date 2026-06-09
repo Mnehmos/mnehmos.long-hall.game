@@ -1,0 +1,11 @@
+id: harpy
+name: "Harpy"
+hp: 14
+maxHp: 14
+power: 4
+damage: "1d6+2"
+ac: 10
+xp: 40
+tags:
+  - monstrosity
+  - flying

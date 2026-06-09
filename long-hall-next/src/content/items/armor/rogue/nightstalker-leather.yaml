@@ -1,0 +1,11 @@
+id: rogue_armor_rare
+name: Nightstalker Leather
+type: chest
+rarity: rare
+cost: 85
+baseStats:
+  attackBonus: 1
+  acBonus: 3
+tags:
+  - rogue
+  - armor

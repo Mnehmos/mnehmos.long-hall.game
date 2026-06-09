@@ -1,0 +1,11 @@
+id: ranger_armor_legendary
+name: "Nature's Warden"
+type: chest
+rarity: legendary
+cost: 320
+baseStats:
+  attackBonus: 3
+  acBonus: 5
+tags:
+  - ranger
+  - armor

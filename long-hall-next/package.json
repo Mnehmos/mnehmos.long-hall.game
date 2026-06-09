@@ -1,0 +1,43 @@
+{
+  "name": "long-hall-next",
+  "type": "module",
+  "version": "0.0.1",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "set NODE_ENV=production && astro build",
+    "preview": "astro preview",
+    "astro": "astro",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:debug": "playwright test --debug",
+    "optimize:svg": "svgo -f ./src/art -r -o ./src/art --config=svgo.config.js",
+    "optimize:svg:preview": "svgo -f ./src/art -r -o ./src/art --config=svgo.config.js --dry-run",
+    "prebuild": "npm run optimize:svg || echo 'SVG optimization skipped'",
+    "analyze": "npx vite-bundle-visualizer",
+    "build:analyze": "npm run build && npm run analyze",
+    "build:size": "npm run build && dir /s dist\\_astro\\*.js"
+  },
+  "dependencies": {
+    "@astrojs/check": "^0.9.6",
+    "@astrojs/preact": "^4.1.3",
+    "@preact/signals": "^2.5.1",
+    "@tailwindcss/vite": "^4.1.18",
+    "@testing-library/preact": "^3.2.4",
+    "astro": "^5.16.6",
+    "gsap": "^3.14.2",
+    "happy-dom": "^20.0.11",
+    "preact": "^10.28.1",
+    "tailwindcss": "^4.1.18",
+    "typescript": "^5.9.3",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.57.0",
+    "svgo": "^3.3.2",
+    "vitest": "^3.0.0"
+  }
+}

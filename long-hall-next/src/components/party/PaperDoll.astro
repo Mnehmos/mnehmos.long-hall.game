@@ -1,0 +1,259 @@
+---
+/**
+ * PaperDoll.astro - Equipment slot visualization for character equipment
+ * Task ID: C2.3.3
+ * 
+ * Displays equipped items on a character silhouette with 9 equipment slots
+ * arranged in a humanoid paper doll layout. Empty slots show placeholder icons,
+ * filled slots show item names with rarity-colored borders.
+ * 
+ * @example
+ * <PaperDoll equipment={hero.equipment} />
+ */
+
+import type { EquipmentSlot, Item } from '@engine/types';
+import Tooltip from '@components/shared/Tooltip.astro';
+
+interface Props {
+  equipment: Partial<Record<EquipmentSlot, Item>>;
+  class?: string;
+}
+
+const { equipment, class: className = '' } = Astro.props;
+
+// Slot configuration with placeholder icons
+const slots: { slot: EquipmentSlot; icon: string; label: string }[] = [
+  { slot: 'head', icon: '👒', label: 'Head' },
+  { slot: 'neck', icon: '📿', label: 'Neck' },
+  { slot: 'main_hand', icon: '⚔️', label: 'Main Hand' },
+  { slot: 'chest', icon: '👕', label: 'Chest' },
+  { slot: 'off_hand', icon: '🛡️', label: 'Off Hand' },
+  { slot: 'legs', icon: '👖', label: 'Legs' },
+  { slot: 'feet', icon: '👟', label: 'Feet' },
+  { slot: 'ring1', icon: '💍', label: 'Ring 1' },
+  { slot: 'ring2', icon: '💍', label: 'Ring 2' },
+];
+
+// Helper to get rarity class
+function getRarityClass(rarity: Item['rarity']): string {
+  return `rarity-${rarity}`;
+}
+
+// Helper to format item tooltip content
+function getTooltipContent(item: Item): string {
+  const parts = [item.name];
+  if (item.rarity !== 'common') {
+    parts.push(`(${item.rarity})`);
+  }
+  return parts.join(' ');
+}
+
+const classes = ['paper-doll', className].filter(Boolean).join(' ');
+---
+
+<div class={classes}>
+  {slots.map(({ slot, icon, label }) => {
+    const item = equipment[slot];
+    const hasItem = !!item;
+    const slotClasses = [
+      'slot',
+      `slot-${slot}`,
+      hasItem ? 'slot--filled' : 'slot--empty',
+      hasItem ? getRarityClass(item.rarity) : '',
+    ].filter(Boolean).join(' ');
+
+    return hasItem ? (
+      <Tooltip content={getTooltipContent(item)} position="top">
+        <div class={slotClasses} data-slot={slot}>
+          <span class="slot-icon">{icon}</span>
+          <span class="slot-label">{item.name}</span>
+        </div>
+      </Tooltip>
+    ) : (
+      <div class={slotClasses} data-slot={slot} title={`Empty ${label}`}>
+        <span class="slot-icon">{icon}</span>
+        <span class="slot-label">{label}</span>
+      </div>
+    );
+  })}
+</div>
+
+<style>
+  /* === PAPER DOLL GRID LAYOUT === */
+  /*
+   * Layout pattern:
+   *       [head]
+   *       [neck]
+   * [main] [chest] [off]
+   *       [legs]
+   *       [feet]
+   * [ring1]    [ring2]
+   */
+  .paper-doll {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(6, auto);
+    gap: var(--space-2);
+    padding: var(--space-3);
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    max-width: 280px;
+  }
+
+  /* === SLOT BASE STYLES === */
+  .slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--space-2);
+    min-height: 60px;
+    border-radius: var(--radius-md);
+    transition: 
+      border-color var(--transition-fast),
+      transform var(--transition-fast),
+      box-shadow var(--transition-fast);
+    cursor: default;
+    text-align: center;
+  }
+
+  .slot-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+    margin-bottom: var(--space-1);
+  }
+
+  .slot-label {
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    line-height: 1.2;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+  }
+
+  /* === EMPTY SLOT STYLES === */
+  .slot--empty {
+    border: 2px dashed var(--border-light);
+    background-color: transparent;
+  }
+
+  .slot--empty .slot-icon {
+    opacity: 0.4;
+    filter: grayscale(100%);
+  }
+
+  .slot--empty .slot-label {
+    color: var(--text-muted);
+    font-size: 0.65rem;
+  }
+
+  /* === FILLED SLOT STYLES === */
+  .slot--filled {
+    border: 2px solid var(--border-light);
+    background-color: var(--bg-secondary);
+  }
+
+  .slot--filled:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .slot--filled .slot-label {
+    font-weight: 500;
+    color: var(--text-primary);
+  }
+
+  /* === RARITY BORDER COLORS === */
+  .rarity-common {
+    border-color: var(--rarity-common);
+  }
+
+  .rarity-uncommon {
+    border-color: var(--rarity-uncommon);
+  }
+
+  .rarity-rare {
+    border-color: var(--rarity-rare);
+  }
+
+  .rarity-epic {
+    border-color: var(--rarity-epic);
+  }
+
+  .rarity-legendary {
+    border-color: var(--rarity-legendary);
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.3);
+  }
+
+  .rarity-godly {
+    border-color: var(--rarity-godly);
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+    animation: godly-pulse 2s ease-in-out infinite;
+  }
+
+  @keyframes godly-pulse {
+    0%, 100% {
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.4);
+    }
+    50% {
+      box-shadow: 0 0 20px rgba(239, 68, 68, 0.6);
+    }
+  }
+
+  /* === SLOT GRID POSITIONING === */
+  /* Row 1: Head (center) */
+  .slot-head {
+    grid-column: 2;
+    grid-row: 1;
+  }
+
+  /* Row 2: Neck (center) */
+  .slot-neck {
+    grid-column: 2;
+    grid-row: 2;
+  }
+
+  /* Row 3: Main Hand, Chest, Off Hand */
+  .slot-main_hand {
+    grid-column: 1;
+    grid-row: 3;
+  }
+
+  .slot-chest {
+    grid-column: 2;
+    grid-row: 3;
+  }
+
+  .slot-off_hand {
+    grid-column: 3;
+    grid-row: 3;
+  }
+
+  /* Row 4: Legs (center) */
+  .slot-legs {
+    grid-column: 2;
+    grid-row: 4;
+  }
+
+  /* Row 5: Feet (center) */
+  .slot-feet {
+    grid-column: 2;
+    grid-row: 5;
+  }
+
+  /* Row 6: Ring 1 (left), Ring 2 (right) */
+  .slot-ring1 {
+    grid-column: 1;
+    grid-row: 6;
+  }
+
+  .slot-ring2 {
+    grid-column: 3;
+    grid-row: 6;
+  }
+</style>

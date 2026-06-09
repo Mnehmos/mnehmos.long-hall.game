@@ -1,0 +1,11 @@
+id: fighter_armor_godly
+name: Armor of the Valkyrie
+type: chest
+rarity: godly
+cost: 700
+baseStats:
+  acBonus: 7
+  maxHpBonus: 12
+tags:
+  - fighter
+  - armor

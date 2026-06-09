@@ -1,0 +1,9 @@
+id: evasion
+name: "Evasion"
+role: rogue
+description: "Dodge one attack completely"
+cooldownType: rest
+cooldownValue: 1
+effect:
+  type: special
+  target: self

@@ -1,0 +1,12 @@
+id: wizard_staff_godly
+name: Cosmic Conduit
+type: weapon
+rarity: godly
+cost: 550
+baseStats:
+  attackBonus: 8
+  damageBonus: 6
+tags:
+  - wizard
+  - staff
+  - weapon

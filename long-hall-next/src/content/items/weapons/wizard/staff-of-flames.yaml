@@ -1,0 +1,12 @@
+id: wizard_staff_rare
+name: Staff of Flames
+type: weapon
+rarity: rare
+cost: 65
+baseStats:
+  attackBonus: 4
+  damageBonus: 2
+tags:
+  - wizard
+  - staff
+  - weapon

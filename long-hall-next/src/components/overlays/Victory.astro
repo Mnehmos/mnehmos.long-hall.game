@@ -1,0 +1,454 @@
+---
+/**
+ * Victory.astro - Overlay component for displaying loot after winning an encounter
+ * Task ID: C2.6.2
+ * 
+ * Displays victory screen with XP/gold rewards and collected loot items.
+ * Features celebratory gold/copper theming with animations.
+ * 
+ * @example
+ * <Victory loot={[sword, potion]} xpGained={150} goldGained={75}>
+ *   <Button variant="primary" onclick={() => collectAndContinue()}>Collect & Continue</Button>
+ * </Victory>
+ */
+
+import type { Item } from '@engine/types';
+import ItemCard from '@components/equipment/ItemCard.astro';
+
+interface Props {
+  loot: Item[];
+  xpGained?: number;
+  goldGained?: number;
+  class?: string;
+}
+
+const { 
+  loot, 
+  xpGained, 
+  goldGained, 
+  class: className = '' 
+} = Astro.props;
+
+const overlayClasses = [
+  'victory-overlay',
+  className,
+].filter(Boolean).join(' ');
+
+const hasRewards = xpGained || goldGained;
+const hasLoot = loot.length > 0;
+---
+
+<div class={overlayClasses} role="dialog" aria-modal="true" aria-labelledby="victory-title">
+  <!-- Confetti decoration -->
+  <div class="confetti-container" aria-hidden="true">
+    {Array.from({ length: 20 }).map((_, i) => (
+      <span 
+        class="confetti" 
+        style={`
+          --delay: ${Math.random() * 2}s;
+          --x: ${Math.random() * 100}%;
+          --rotation: ${Math.random() * 360}deg;
+          --hue: ${Math.random() * 60 + 30};
+        `}
+      />
+    ))}
+  </div>
+  
+  <div class="victory-modal">
+    <!-- Header with trophy decoration -->
+    <div class="victory-header">
+      <span class="trophy-icon">🏆</span>
+      <h1 id="victory-title" class="title">Victory!</h1>
+      <span class="trophy-icon">🏆</span>
+    </div>
+    
+    <!-- XP and Gold Rewards -->
+    {hasRewards && (
+      <div class="rewards">
+        {xpGained && (
+          <span class="xp-reward">
+            <span class="reward-icon">⭐</span>
+            +{xpGained} XP
+          </span>
+        )}
+        {goldGained && (
+          <span class="gold-reward">
+            <span class="reward-icon">💰</span>
+            +{goldGained} Gold
+          </span>
+        )}
+      </div>
+    )}
+    
+    <!-- Loot Section -->
+    {hasLoot && (
+      <div class="loot-section">
+        <h3 class="loot-heading">Loot Found</h3>
+        <div class="loot-grid">
+          {loot.map((item) => (
+            <ItemCard item={item} compact={true} />
+          ))}
+        </div>
+      </div>
+    )}
+    
+    <!-- No loot message -->
+    {!hasLoot && !hasRewards && (
+      <p class="no-loot-message">The enemy carried nothing of value...</p>
+    )}
+    
+    <!-- Action Buttons Slot -->
+    <div class="actions">
+      <slot />
+    </div>
+  </div>
+</div>
+
+<style>
+  /* === OVERLAY BACKDROP === */
+  .victory-overlay {
+    /* Positioning - Full viewport overlay */
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    
+    /* Layout - Center modal */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* Dark overlay with gold/copper tint for victory theme */
+    background: linear-gradient(
+      to bottom,
+      rgba(30, 25, 10, 0.92),
+      rgba(20, 15, 8, 0.95)
+    );
+    
+    /* Overflow for confetti */
+    overflow: hidden;
+    
+    /* Entrance animation */
+    animation: fade-in var(--transition-slow) ease-out forwards;
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* === CONFETTI DECORATION === */
+  .confetti-container {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .confetti {
+    position: absolute;
+    top: -10px;
+    left: var(--x);
+    width: 10px;
+    height: 10px;
+    background-color: hsl(var(--hue), 80%, 60%);
+    transform: rotate(var(--rotation));
+    animation: 
+      confetti-fall 4s linear var(--delay) infinite,
+      confetti-spin 1s linear var(--delay) infinite;
+    opacity: 0.8;
+  }
+
+  .confetti:nth-child(odd) {
+    width: 6px;
+    height: 14px;
+    border-radius: 2px;
+  }
+
+  .confetti:nth-child(even) {
+    border-radius: 50%;
+  }
+
+  @keyframes confetti-fall {
+    0% {
+      top: -5%;
+      opacity: 1;
+    }
+    100% {
+      top: 105%;
+      opacity: 0;
+    }
+  }
+
+  @keyframes confetti-spin {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+
+  /* === MODAL CONTAINER === */
+  .victory-modal {
+    /* Sizing */
+    width: 90%;
+    max-width: 500px;
+    max-height: 90vh;
+    overflow-y: auto;
+    
+    /* Appearance */
+    background-color: var(--bg-card);
+    border: 2px solid var(--copper);
+    border-radius: var(--radius-lg);
+    box-shadow: 
+      var(--shadow-lg),
+      0 0 60px rgba(184, 115, 51, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    
+    /* Layout */
+    padding: var(--space-6);
+    text-align: center;
+    
+    /* Entrance animation */
+    animation: victory-entrance var(--transition-slow) ease-out forwards;
+    
+    /* Position above confetti */
+    position: relative;
+    z-index: 1;
+  }
+
+  @keyframes victory-entrance {
+    from {
+      opacity: 0;
+      transform: translateY(-20px) scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* === HEADER WITH TROPHIES === */
+  .victory-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    margin-bottom: var(--space-4);
+  }
+
+  .trophy-icon {
+    font-size: 1.75rem;
+    animation: trophy-bounce 1s ease-in-out infinite alternate;
+  }
+
+  .trophy-icon:last-child {
+    animation-delay: 0.5s;
+  }
+
+  @keyframes trophy-bounce {
+    0% {
+      transform: translateY(0) rotate(-5deg);
+    }
+    100% {
+      transform: translateY(-4px) rotate(5deg);
+    }
+  }
+
+  /* === TITLE === */
+  .title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 2.5rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--heal);
+    text-shadow: 
+      0 2px 10px rgba(34, 197, 94, 0.4),
+      0 0 40px rgba(34, 197, 94, 0.2);
+    letter-spacing: 0.05em;
+    animation: title-glow 2s ease-in-out infinite alternate;
+  }
+
+  @keyframes title-glow {
+    from {
+      text-shadow: 
+        0 2px 10px rgba(34, 197, 94, 0.4),
+        0 0 40px rgba(34, 197, 94, 0.2);
+    }
+    to {
+      text-shadow: 
+        0 2px 20px rgba(34, 197, 94, 0.6),
+        0 0 60px rgba(34, 197, 94, 0.4);
+    }
+  }
+
+  /* === REWARDS === */
+  .rewards {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+    padding: var(--space-4);
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+  }
+
+  .xp-reward,
+  .gold-reward {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    padding: var(--space-2) var(--space-4);
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 600;
+    border-radius: var(--radius-sm);
+    animation: reward-pop 0.5s ease-out forwards;
+  }
+
+  .xp-reward {
+    color: var(--xp);
+    background-color: var(--xp-bg);
+    animation-delay: 0.2s;
+  }
+
+  .gold-reward {
+    color: var(--gold);
+    background-color: rgba(245, 158, 11, 0.15);
+    animation-delay: 0.4s;
+  }
+
+  .reward-icon {
+    font-size: 1rem;
+    line-height: 1;
+  }
+
+  @keyframes reward-pop {
+    0% {
+      opacity: 0;
+      transform: scale(0.5);
+    }
+    60% {
+      transform: scale(1.1);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  /* === LOOT SECTION === */
+  .loot-section {
+    margin-bottom: var(--space-6);
+  }
+
+  .loot-heading {
+    margin: 0 0 var(--space-4);
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .loot-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: var(--space-3);
+    max-height: 280px;
+    overflow-y: auto;
+    padding: var(--space-2);
+    /* Subtle inner shadow for scrollable area */
+    background-color: var(--bg-secondary);
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light);
+  }
+
+  /* Animate loot items appearing */
+  .loot-grid > :global(*) {
+    animation: loot-appear 0.4s ease-out backwards;
+  }
+
+  .loot-grid > :global(*:nth-child(1)) { animation-delay: 0.3s; }
+  .loot-grid > :global(*:nth-child(2)) { animation-delay: 0.4s; }
+  .loot-grid > :global(*:nth-child(3)) { animation-delay: 0.5s; }
+  .loot-grid > :global(*:nth-child(4)) { animation-delay: 0.6s; }
+  .loot-grid > :global(*:nth-child(5)) { animation-delay: 0.7s; }
+  .loot-grid > :global(*:nth-child(6)) { animation-delay: 0.8s; }
+
+  @keyframes loot-appear {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* === NO LOOT MESSAGE === */
+  .no-loot-message {
+    margin: var(--space-4) 0 var(--space-6);
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-style: italic;
+    color: var(--text-muted);
+  }
+
+  /* === ACTION BUTTONS === */
+  .actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  /* Responsive: horizontal on larger screens */
+  @media (min-width: 400px) {
+    .actions {
+      flex-direction: row;
+      justify-content: center;
+    }
+  }
+
+  /* Hide actions when empty (no slot content) */
+  .actions:empty {
+    display: none;
+  }
+
+  /* === DARK MODE ADJUSTMENTS === */
+  :global(.dark) .victory-overlay {
+    background: linear-gradient(
+      to bottom,
+      rgba(15, 12, 5, 0.95),
+      rgba(10, 8, 3, 0.98)
+    );
+  }
+
+  :global(.dark) .rewards {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-color: var(--border-light);
+  }
+
+  :global(.dark) .loot-grid {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-color: var(--border-light);
+  }
+
+  :global(.dark) .xp-reward {
+    background-color: rgba(139, 92, 246, 0.2);
+  }
+
+  :global(.dark) .gold-reward {
+    background-color: rgba(245, 158, 11, 0.2);
+  }
+</style>

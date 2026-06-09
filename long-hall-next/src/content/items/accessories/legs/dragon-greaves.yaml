@@ -1,0 +1,10 @@
+id: legs_epic
+name: Dragon Greaves
+type: legs
+rarity: epic
+cost: 135
+baseStats:
+  acBonus: 4
+  maxHpBonus: 4
+tags:
+  - accessory

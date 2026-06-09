@@ -1,0 +1,12 @@
+id: cleric_mace_godly
+name: "Heaven's Wrath"
+type: weapon
+rarity: godly
+cost: 620
+baseStats:
+  attackBonus: 7
+  damageBonus: 7
+tags:
+  - cleric
+  - mace
+  - weapon

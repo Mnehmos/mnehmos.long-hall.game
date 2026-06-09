@@ -1,0 +1,11 @@
+id: goblin
+name: "Goblin"
+hp: 7
+maxHp: 7
+power: 1
+damage: "1d4+1"
+ac: 10
+xp: 10
+tags:
+  - humanoid
+  - goblin

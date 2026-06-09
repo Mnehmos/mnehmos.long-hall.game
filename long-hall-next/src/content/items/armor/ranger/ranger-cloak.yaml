@@ -1,0 +1,10 @@
+id: ranger_armor_common
+name: Ranger Cloak
+type: chest
+rarity: common
+cost: 16
+baseStats:
+  acBonus: 1
+tags:
+  - ranger
+  - armor

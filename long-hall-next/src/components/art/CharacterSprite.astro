@@ -1,0 +1,245 @@
+---
+/**
+ * CharacterSprite.astro - Static Wrapper Component
+ * 
+ * Wraps SVG character assets with proper styling and animation classes.
+ * For static characters, inlines SVG content directly.
+ * For interactive characters, hydrates as a Preact island.
+ * 
+ * @module components/art/CharacterSprite
+ * @see {@link file://./../../islands/CharacterSprite.tsx} for interactive version
+ */
+
+import { readFileSync, existsSync } from 'node:fs';
+import { join } from 'node:path';
+
+// Import the Preact island for interactive mode
+import CharacterSpriteIsland from '../../islands/CharacterSprite';
+
+// ============================================================================
+// Types
+// ============================================================================
+
+export type CharacterType = 'hero' | 'enemy';
+export type HeroName = 'fighter' | 'wizard' | 'rogue' | 'cleric' | 'ranger';
+export type EnemyName = 'goblin' | 'skeleton' | 'orc' | 'troll' | 'dark-knight' | 'dragon';
+export type CharacterName = HeroName | EnemyName;
+export type AnimationState = 
+  | 'idle' | 'attack' | 'hurt' | 'death' | 'victory'
+  | 'cast' | 'heal' | 'stealth' | 'shoot' | 'enrage' | 'breath';
+
+interface Props {
+  /** Character category: 'hero' or 'enemy' */
+  type: CharacterType;
+  /** Character name matching SVG filename (e.g., 'fighter', 'goblin') */
+  name: CharacterName;
+  /** Initial animation state (default: 'idle') */
+  state?: AnimationState;
+  /** Mirror horizontally for left-facing (default: false) */
+  flip?: boolean;
+  /** Additional CSS classes */
+  class?: string;
+  /** DOM id for targeting */
+  id?: string;
+  /** If true, hydrate as interactive Preact island (default: false) */
+  interactive?: boolean;
+  /** Width override (default: auto from SVG viewBox) */
+  width?: string | number;
+  /** Height override (default: auto from SVG viewBox) */
+  height?: string | number;
+}
+
+// ============================================================================
+// Props Destructuring
+// ============================================================================
+
+const { 
+  type, 
+  name, 
+  state = 'idle', 
+  flip = false, 
+  class: className = '',
+  id,
+  interactive = false,
+  width,
+  height,
+} = Astro.props;
+
+// ============================================================================
+// SVG Loading (Static Build-Time)
+// ============================================================================
+
+/**
+ * Resolve SVG path based on character type and name
+ */
+function resolveSvgPath(type: CharacterType, name: CharacterName): string {
+  const folder = type === 'hero' ? 'heroes' : 'enemies';
+  // Resolve from project root during Astro build
+  return join(process.cwd(), 'src', 'art', folder, `${name}.svg`);
+}
+
+/**
+ * Load SVG content at build time
+ */
+function loadSvgContent(type: CharacterType, name: CharacterName): string | null {
+  try {
+    const path = resolveSvgPath(type, name);
+    if (existsSync(path)) {
+      return readFileSync(path, 'utf-8');
+    }
+    console.error(`[CharacterSprite] SVG not found: ${path}`);
+    return null;
+  } catch (error) {
+    console.error(`[CharacterSprite] Failed to load SVG for ${type}/${name}:`, error);
+    return null;
+  }
+}
+
+/**
+ * Modify SVG content to set initial state visibility
+ * Adds 'active' class to the specified state group
+ */
+function setSvgInitialState(svgContent: string, targetState: string): string {
+  // Remove any existing 'active' class from anim-state groups
+  let modified = svgContent.replace(
+    /class="anim-state active"/g, 
+    'class="anim-state"'
+  );
+  
+  // Add 'active' class to the target state
+  // Match: id="state-{targetState}" class="anim-state"
+  const statePattern = new RegExp(
+    `(id="state-${targetState}"\\s+class="anim-state)(")`
+  );
+  modified = modified.replace(statePattern, '$1 active$2');
+  
+  // Also handle case where class comes before id
+  const statePatternAlt = new RegExp(
+    `(class="anim-state)(")([^>]*id="state-${targetState}")`
+  );
+  modified = modified.replace(statePatternAlt, '$1 active$2$3');
+  
+  return modified;
+}
+
+// ============================================================================
+// Build Computed Values
+// ============================================================================
+
+// Load SVG content (only for static mode)
+const svgContent = !interactive ? loadSvgContent(type, name) : null;
+const modifiedSvgContent = svgContent ? setSvgInitialState(svgContent, state) : null;
+
+// Build container classes
+const containerClasses = [
+  'character-sprite',
+  `character-sprite--${type}`,
+  `character-sprite--${name}`,
+  state === 'idle' ? 'animate-idle' : '',
+  className,
+].filter(Boolean).join(' ');
+
+// Build container styles
+const containerStyles: Record<string, string> = {
+  display: 'inline-block',
+  'line-height': '0',
+};
+
+if (flip) {
+  containerStyles.transform = 'scaleX(-1)';
+}
+
+if (width) {
+  containerStyles.width = typeof width === 'number' ? `${width}px` : width;
+}
+
+if (height) {
+  containerStyles.height = typeof height === 'number' ? `${height}px` : height;
+}
+
+// Convert styles to string
+const styleString = Object.entries(containerStyles)
+  .map(([key, value]) => `${key}: ${value}`)
+  .join('; ');
+---
+
+{interactive ? (
+  <!-- Interactive Mode: Use Preact Island with hydration -->
+  <CharacterSpriteIsland
+    client:visible
+    type={type}
+    name={name}
+    initialState={state}
+    flip={flip}
+    className={className}
+    id={id}
+    autoIdle={true}
+  />
+) : modifiedSvgContent ? (
+  <!-- Static Mode: Inline SVG directly -->
+  <div
+    id={id}
+    class={containerClasses}
+    style={styleString}
+    role="img"
+    aria-label={`${name} character sprite`}
+    data-state={state}
+    data-type={type}
+    data-name={name}
+    set:html={modifiedSvgContent}
+  />
+) : (
+  <!-- Error Fallback -->
+  <div
+    id={id}
+    class={`${containerClasses} has-error`}
+    style={`${styleString}; color: var(--damage, #ef4444)`}
+    role="img"
+    aria-label={`Failed to load ${name}`}
+  >
+    <span style="font-size: 0.75rem">⚠ {name}</span>
+  </div>
+)}
+
+<style>
+  /* Base character sprite container */
+  .character-sprite {
+    position: relative;
+    contain: layout style;
+  }
+
+  /* Ensure SVG fills container */
+  .character-sprite :global(svg) {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  /* Error state styling */
+  .character-sprite.has-error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 60px;
+    min-height: 90px;
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 4px;
+  }
+
+  /* Loading state styling */
+  .character-sprite.is-loading {
+    background-color: rgba(0, 0, 0, 0.05);
+    border-radius: 4px;
+  }
+
+  /* Animation indicator class (for debugging) */
+  .character-sprite.is-animating {
+    outline: 2px solid var(--rarity-legendary, #f97316);
+    outline-offset: 2px;
+  }
+
+  /* Remove animation outline in production */
+  :not(.debug) .character-sprite.is-animating {
+    outline: none;
+  }
+</style>

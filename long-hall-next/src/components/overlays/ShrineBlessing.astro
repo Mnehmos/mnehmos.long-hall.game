@@ -1,0 +1,483 @@
+---
+/**
+ * ShrineBlessing.astro - Overlay component for selecting blessings at shrine rooms
+ * Task ID: C2.6.3
+ * 
+ * Displays a mystical shrine interface with selectable blessing options.
+ * Features blue/purple sacred theme with particle effects and glowing animations.
+ * 
+ * @example
+ * <ShrineBlessing options={[
+ *   { id: 'heal', name: 'Divine Restoration', description: 'Restore all HP', icon: '❤️' },
+ *   { id: 'buff', name: 'Warrior Spirit', description: '+2 Attack for this run', icon: '⚔️' },
+ *   { id: 'gold', name: 'Fortune\'s Favor', description: 'Find 50% more gold', icon: '💰' }
+ * ]}>
+ *   <Button slot="option-0" variant="primary">Choose</Button>
+ *   <Button slot="option-1" variant="primary">Choose</Button>
+ *   <Button slot="option-2" variant="primary">Choose</Button>
+ *   <Button variant="secondary">Leave Shrine</Button>
+ * </ShrineBlessing>
+ */
+
+interface BlessingOption {
+  id: string;
+  name: string;
+  description: string;
+  icon?: string;
+}
+
+interface Props {
+  options: BlessingOption[];
+  class?: string;
+}
+
+const { options, class: className = '' } = Astro.props;
+
+const overlayClasses = [
+  'shrine-overlay',
+  className,
+].filter(Boolean).join(' ');
+---
+
+<div class={overlayClasses} role="dialog" aria-modal="true" aria-labelledby="shrine-title">
+  <!-- Mystical particle effects -->
+  <div class="particles-container" aria-hidden="true">
+    {Array.from({ length: 30 }).map((_, i) => (
+      <span 
+        class="particle" 
+        style={`
+          --delay: ${Math.random() * 5}s;
+          --x: ${Math.random() * 100}%;
+          --y: ${Math.random() * 100}%;
+          --duration: ${3 + Math.random() * 4}s;
+          --size: ${2 + Math.random() * 4}px;
+          --opacity: ${0.3 + Math.random() * 0.5};
+        `}
+      />
+    ))}
+  </div>
+  
+  <div class="shrine-modal">
+    <!-- Header with shrine icons -->
+    <div class="shrine-header">
+      <span class="shrine-icon">⛩️</span>
+      <h1 id="shrine-title" class="title">Shrine of Blessings</h1>
+      <span class="shrine-icon">⛩️</span>
+    </div>
+    
+    <p class="subtitle">Choose your blessing wisely...</p>
+    
+    <!-- Blessing Options List -->
+    <div class="options-list">
+      {options.map((option, index) => (
+        <div class="blessing-option" data-id={option.id}>
+          <span class="blessing-icon">{option.icon || '✨'}</span>
+          <div class="blessing-info">
+            <h3 class="blessing-name">{option.name}</h3>
+            <p class="blessing-description">{option.description}</p>
+          </div>
+          <div class="blessing-action">
+            <slot name={`option-${index}`} />
+          </div>
+        </div>
+      ))}
+    </div>
+    
+    <!-- Action Buttons Slot (for skip/leave) -->
+    <div class="actions">
+      <slot />
+    </div>
+  </div>
+</div>
+
+<style>
+  /* === OVERLAY BACKDROP === */
+  .shrine-overlay {
+    /* Positioning - Full viewport overlay */
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    
+    /* Layout - Center modal */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+    /* Mystical blue/purple gradient backdrop */
+    background: linear-gradient(
+      160deg,
+      rgba(15, 10, 35, 0.95),
+      rgba(20, 15, 45, 0.92),
+      rgba(10, 20, 40, 0.95)
+    );
+    
+    /* Overflow for particles */
+    overflow: hidden;
+    
+    /* Entrance animation */
+    animation: fade-in var(--transition-slow) ease-out forwards;
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* === MYSTICAL PARTICLE EFFECTS === */
+  .particles-container {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+
+  .particle {
+    position: absolute;
+    left: var(--x);
+    top: var(--y);
+    width: var(--size);
+    height: var(--size);
+    background: radial-gradient(circle, 
+      rgba(139, 92, 246, var(--opacity)),
+      rgba(59, 130, 246, calc(var(--opacity) * 0.5)) 50%,
+      transparent 100%
+    );
+    border-radius: 50%;
+    animation: 
+      float-particle var(--duration) ease-in-out var(--delay) infinite,
+      pulse-particle 2s ease-in-out var(--delay) infinite;
+  }
+
+  @keyframes float-particle {
+    0%, 100% {
+      transform: translate(0, 0) scale(1);
+    }
+    25% {
+      transform: translate(20px, -30px) scale(1.2);
+    }
+    50% {
+      transform: translate(-10px, -50px) scale(0.8);
+    }
+    75% {
+      transform: translate(-30px, -20px) scale(1.1);
+    }
+  }
+
+  @keyframes pulse-particle {
+    0%, 100% {
+      opacity: var(--opacity);
+    }
+    50% {
+      opacity: calc(var(--opacity) * 1.5);
+    }
+  }
+
+  /* === MODAL CONTAINER === */
+  .shrine-modal {
+    /* Sizing */
+    width: 90%;
+    max-width: 520px;
+    max-height: 90vh;
+    overflow-y: auto;
+    
+    /* Appearance - Mystical parchment with glowing border */
+    background: linear-gradient(
+      180deg,
+      var(--bg-card),
+      rgba(255, 253, 249, 0.95)
+    );
+    border: 2px solid var(--buff);
+    border-radius: var(--radius-lg);
+    box-shadow: 
+      var(--shadow-lg),
+      0 0 60px rgba(59, 130, 246, 0.25),
+      0 0 100px rgba(139, 92, 246, 0.15),
+      inset 0 1px 0 rgba(255, 255, 255, 0.2);
+    
+    /* Layout */
+    padding: var(--space-6);
+    text-align: center;
+    
+    /* Entrance animation */
+    animation: shrine-entrance var(--transition-slow) ease-out forwards;
+    
+    /* Position above particles */
+    position: relative;
+    z-index: 1;
+  }
+
+  @keyframes shrine-entrance {
+    from {
+      opacity: 0;
+      transform: translateY(-20px) scale(0.95);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  /* === HEADER WITH SHRINE ICONS === */
+  .shrine-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-4);
+    margin-bottom: var(--space-2);
+  }
+
+  .shrine-icon {
+    font-size: 1.75rem;
+    animation: shrine-float 3s ease-in-out infinite;
+    filter: drop-shadow(0 0 10px rgba(139, 92, 246, 0.5));
+  }
+
+  .shrine-icon:last-child {
+    animation-delay: 1.5s;
+  }
+
+  @keyframes shrine-float {
+    0%, 100% {
+      transform: translateY(0) rotate(-3deg);
+    }
+    50% {
+      transform: translateY(-5px) rotate(3deg);
+    }
+  }
+
+  /* === TITLE === */
+  .title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--buff);
+    text-shadow: 
+      0 2px 15px rgba(59, 130, 246, 0.4),
+      0 0 40px rgba(139, 92, 246, 0.3);
+    letter-spacing: 0.05em;
+    animation: title-glow 3s ease-in-out infinite alternate;
+  }
+
+  @keyframes title-glow {
+    from {
+      text-shadow: 
+        0 2px 15px rgba(59, 130, 246, 0.4),
+        0 0 40px rgba(139, 92, 246, 0.3);
+    }
+    to {
+      text-shadow: 
+        0 2px 25px rgba(59, 130, 246, 0.6),
+        0 0 60px rgba(139, 92, 246, 0.5);
+    }
+  }
+
+  /* === SUBTITLE === */
+  .subtitle {
+    margin: var(--space-2) 0 var(--space-6);
+    font-family: var(--font-body);
+    font-size: 1rem;
+    font-style: italic;
+    color: var(--text-muted);
+  }
+
+  /* === BLESSING OPTIONS LIST === */
+  .options-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    margin-bottom: var(--space-6);
+  }
+
+  /* === INDIVIDUAL BLESSING OPTION === */
+  .blessing-option {
+    display: flex;
+    align-items: center;
+    gap: var(--space-4);
+    padding: var(--space-4);
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    text-align: left;
+    cursor: pointer;
+    transition: 
+      transform var(--transition-fast),
+      border-color var(--transition-fast),
+      box-shadow var(--transition-fast),
+      background-color var(--transition-fast);
+    
+    /* Staggered entrance animation */
+    animation: option-appear 0.4s ease-out backwards;
+  }
+
+  .blessing-option:nth-child(1) { animation-delay: 0.2s; }
+  .blessing-option:nth-child(2) { animation-delay: 0.35s; }
+  .blessing-option:nth-child(3) { animation-delay: 0.5s; }
+  .blessing-option:nth-child(4) { animation-delay: 0.65s; }
+  .blessing-option:nth-child(5) { animation-delay: 0.8s; }
+
+  @keyframes option-appear {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  .blessing-option:hover {
+    transform: translateY(-2px) scale(1.01);
+    border-color: var(--buff);
+    box-shadow: 
+      0 4px 20px rgba(59, 130, 246, 0.2),
+      0 0 30px rgba(139, 92, 246, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    background-color: var(--bg-card);
+  }
+
+  .blessing-option:active {
+    transform: scale(0.99);
+  }
+
+  /* === BLESSING ICON === */
+  .blessing-icon {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.75rem;
+    background: linear-gradient(
+      135deg,
+      rgba(59, 130, 246, 0.15),
+      rgba(139, 92, 246, 0.1)
+    );
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: var(--radius-md);
+    filter: drop-shadow(0 2px 8px rgba(59, 130, 246, 0.2));
+    transition: 
+      transform var(--transition-fast),
+      filter var(--transition-fast);
+  }
+
+  .blessing-option:hover .blessing-icon {
+    transform: scale(1.1) rotate(5deg);
+    filter: drop-shadow(0 4px 15px rgba(59, 130, 246, 0.4));
+  }
+
+  /* === BLESSING INFO === */
+  .blessing-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .blessing-name {
+    margin: 0 0 var(--space-1);
+    font-family: var(--font-display);
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--buff);
+    line-height: 1.2;
+    transition: color var(--transition-fast);
+  }
+
+  .blessing-option:hover .blessing-name {
+    color: #2563eb; /* Slightly brighter blue on hover */
+  }
+
+  .blessing-description {
+    margin: 0;
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    line-height: 1.4;
+  }
+
+  /* === BLESSING ACTION (Button slot) === */
+  .blessing-action {
+    flex-shrink: 0;
+  }
+
+  /* Hide empty blessing action slots */
+  .blessing-action:empty {
+    display: none;
+  }
+
+  /* === ACTION BUTTONS (Leave shrine, etc.) === */
+  .actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+
+  /* Responsive: horizontal on larger screens */
+  @media (min-width: 400px) {
+    .actions {
+      flex-direction: row;
+      justify-content: center;
+    }
+  }
+
+  /* Hide actions when empty (no slot content) */
+  .actions:empty {
+    display: none;
+  }
+
+  /* === DARK MODE ADJUSTMENTS === */
+  :global(.dark) .shrine-overlay {
+    background: linear-gradient(
+      160deg,
+      rgba(8, 5, 20, 0.98),
+      rgba(12, 8, 28, 0.96),
+      rgba(5, 12, 25, 0.98)
+    );
+  }
+
+  :global(.dark) .shrine-modal {
+    background: linear-gradient(
+      180deg,
+      var(--bg-card),
+      rgba(41, 37, 36, 0.98)
+    );
+    box-shadow: 
+      var(--shadow-lg),
+      0 0 80px rgba(59, 130, 246, 0.2),
+      0 0 120px rgba(139, 92, 246, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
+  :global(.dark) .blessing-option {
+    background-color: rgba(0, 0, 0, 0.3);
+    border-color: var(--border-light);
+  }
+
+  :global(.dark) .blessing-option:hover {
+    background-color: rgba(59, 130, 246, 0.1);
+    border-color: var(--buff);
+  }
+
+  :global(.dark) .blessing-icon {
+    background: linear-gradient(
+      135deg,
+      rgba(59, 130, 246, 0.2),
+      rgba(139, 92, 246, 0.15)
+    );
+    border-color: rgba(59, 130, 246, 0.4);
+  }
+
+  :global(.dark) .particle {
+    background: radial-gradient(circle, 
+      rgba(139, 92, 246, calc(var(--opacity) * 1.3)),
+      rgba(59, 130, 246, calc(var(--opacity) * 0.7)) 50%,
+      transparent 100%
+    );
+  }
+</style>

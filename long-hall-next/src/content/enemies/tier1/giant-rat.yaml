@@ -1,0 +1,11 @@
+id: giant_rat
+name: "Giant Rat"
+hp: 6
+maxHp: 6
+power: 1
+damage: "1d4"
+ac: 10
+xp: 10
+tags:
+  - vermin
+  - beast

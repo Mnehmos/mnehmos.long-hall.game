@@ -1,0 +1,11 @@
+id: magic_missile
+name: "Magic Missile"
+role: wizard
+description: "Auto-hit 3d4+3 force damage"
+cooldownType: turns
+cooldownValue: 2
+effect:
+  type: damage
+  target: enemy
+  dice: "3d4"
+  modifier: 3

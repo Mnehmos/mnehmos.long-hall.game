@@ -1,0 +1,10 @@
+role: fighter
+hitDie: 10
+startingSkills:
+  strength: 2
+  attack: 2
+  defense: 1
+  magic: 0
+  ranged: 0
+  faith: 0
+  agility: 1

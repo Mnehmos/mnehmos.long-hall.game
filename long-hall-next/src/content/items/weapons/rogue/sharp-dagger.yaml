@@ -1,0 +1,12 @@
+id: rogue_dagger_common
+name: Sharp Dagger
+type: weapon
+rarity: common
+cost: 12
+baseStats:
+  attackBonus: 1
+  damageBonus: 1
+tags:
+  - rogue
+  - dagger
+  - weapon

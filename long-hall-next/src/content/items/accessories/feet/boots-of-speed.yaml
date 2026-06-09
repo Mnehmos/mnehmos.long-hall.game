@@ -1,0 +1,10 @@
+id: boots_rare
+name: Boots of Speed
+type: feet
+rarity: rare
+cost: 65
+baseStats:
+  attackBonus: 1
+  maxHpBonus: 6
+tags:
+  - accessory

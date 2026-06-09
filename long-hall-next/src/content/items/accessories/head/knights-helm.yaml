@@ -1,0 +1,9 @@
+id: helm_rare
+name: "Knight's Helm"
+type: head
+rarity: rare
+cost: 70
+baseStats:
+  acBonus: 3
+tags:
+  - accessory

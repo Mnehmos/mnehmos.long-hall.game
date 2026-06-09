@@ -1,0 +1,9 @@
+id: legs_common
+name: Leather Leggings
+type: legs
+rarity: common
+cost: 14
+baseStats:
+  acBonus: 1
+tags:
+  - accessory

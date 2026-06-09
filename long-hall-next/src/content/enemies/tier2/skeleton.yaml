@@ -1,0 +1,11 @@
+id: skeleton
+name: "Skeleton Warrior"
+hp: 12
+maxHp: 12
+power: 3
+damage: "1d6+1"
+ac: 10
+xp: 30
+tags:
+  - undead
+  - skeleton

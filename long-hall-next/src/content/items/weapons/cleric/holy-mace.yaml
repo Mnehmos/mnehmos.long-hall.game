@@ -1,0 +1,12 @@
+id: cleric_mace_common
+name: Holy Mace
+type: weapon
+rarity: common
+cost: 15
+baseStats:
+  attackBonus: 1
+  damageBonus: 1
+tags:
+  - cleric
+  - mace
+  - weapon

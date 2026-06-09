@@ -1,0 +1,11 @@
+id: slime
+name: "Green Slime"
+hp: 12
+maxHp: 12
+power: 2
+damage: "1d6"
+ac: 10
+xp: 20
+tags:
+  - slime
+  - ooze

@@ -1,0 +1,11 @@
+id: wizard_robe_legendary
+name: Robe of the Arcane
+type: chest
+rarity: legendary
+cost: 300
+baseStats:
+  attackBonus: 4
+  maxHpBonus: 10
+tags:
+  - wizard
+  - armor

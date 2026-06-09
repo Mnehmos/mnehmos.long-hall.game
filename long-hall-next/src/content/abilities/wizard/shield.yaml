@@ -1,0 +1,10 @@
+id: shield
+name: "Shield"
+role: wizard
+description: "+5 AC until next turn"
+cooldownType: combat
+cooldownValue: 1
+effect:
+  type: buff
+  target: self
+  modifier: 5

@@ -1,0 +1,11 @@
+id: cleric_armor_epic
+name: Blessed Plate
+type: chest
+rarity: epic
+cost: 175
+baseStats:
+  acBonus: 3
+  maxHpBonus: 9
+tags:
+  - cleric
+  - armor

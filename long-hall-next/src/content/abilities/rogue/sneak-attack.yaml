@@ -1,0 +1,10 @@
+id: sneak_attack
+name: "Sneak Attack"
+role: rogue
+description: "+2d6 damage (Requires Hidden)"
+cooldownType: combat
+cooldownValue: 1
+effect:
+  type: damage
+  target: enemy
+  dice: "2d6"

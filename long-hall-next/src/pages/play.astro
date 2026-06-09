@@ -1,0 +1,79 @@
+---
+/**
+ * /play - Main Game Page
+ * 
+ * The core gameplay interface with reactive islands.
+ * GameEngine provides the context, GameUI uses it.
+ */
+
+import Layout from '../layouts/Layout.astro';
+import GameEngine from '../islands/GameEngine';
+
+// Generate seed from URL params or timestamp
+const url = Astro.url;
+const seedParam = url.searchParams.get('seed');
+const seed = seedParam || Date.now().toString();
+---
+
+<Layout title="The Long Hall | Play">
+  <main class="game-container">
+    <header class="game-header">
+      <h1>The Long Hall</h1>
+      <div class="game-meta">
+        <span class="seed-info">Seed: {seed.slice(0, 8)}...</span>
+      </div>
+    </header>
+    
+    <!-- Game engine with UI -->
+    <div class="game-wrapper">
+      <GameEngine client:load initialSeed={seed} autoStart={true}>
+        <div class="game-placeholder">
+          <p>Loading game...</p>
+        </div>
+      </GameEngine>
+    </div>
+  </main>
+  
+  <style>
+    .game-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem;
+      color: white;
+    }
+    
+    .game-header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    
+    h1 {
+      font-family: var(--font-display);
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--gold, #fbbf24), var(--copper, #b87333));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    
+    .game-meta {
+      font-size: 0.75rem;
+      color: var(--text-muted, #9ca3af);
+    }
+    
+    .game-wrapper {
+      min-height: 400px;
+    }
+    
+    .game-placeholder {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 300px;
+      background: var(--surface-2, #25294a);
+      border-radius: var(--radius-lg, 0.75rem);
+      color: var(--text-muted, #9ca3af);
+    }
+  </style>
+</Layout>

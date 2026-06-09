@@ -1,0 +1,144 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Room Generation Snapshots > should generate consistent combat room 1`] = `
+{
+  "enemies": [],
+  "id": "room-5",
+  "loot": [],
+  "themeId": "dungeon_start",
+  "type": "shrine",
+}
+`;
+
+exports[`Room Generation Snapshots > should generate consistent elite room 1`] = `
+{
+  "enemies": [
+    {
+      "ac": 12,
+      "damage": "1d4",
+      "hp": 13,
+      "id": "rat_swarm-0",
+      "maxHp": 13,
+      "name": "Elite Rat Swarm",
+      "power": 1,
+      "xp": 16,
+    },
+  ],
+  "id": "room-7",
+  "loot": [],
+  "themeId": "dungeon_start",
+  "type": "elite",
+}
+`;
+
+exports[`Room Generation Snapshots > should generate consistent intermission room 1`] = `
+{
+  "availableRecruits": [
+    {
+      "cost": 25,
+      "description": "A thief with quick reflexes. (Level 1)",
+      "id": "recruit_rogue",
+      "level": 1,
+      "name": "Shadow",
+      "role": "rogue",
+    },
+    {
+      "cost": 45,
+      "description": "A prodigy of magical talent. (Level 1)",
+      "id": "recruit_wizard2",
+      "level": 1,
+      "name": "Merlin Jr.",
+      "role": "wizard",
+    },
+  ],
+  "bossRoom": {
+    "enemies": [
+      {
+        "ac": 13,
+        "damage": "1d8+2",
+        "hp": 33,
+        "id": "orc-boss",
+        "maxHp": 33,
+        "name": "Orc Berserker (BOSS)",
+        "power": 7,
+        "xp": 153,
+      },
+      {
+        "ac": 10,
+        "damage": "1d4",
+        "hp": 9,
+        "id": "rat_swarm-minion-0",
+        "maxHp": 9,
+        "name": "Rat Swarm",
+        "power": 1,
+        "xp": 12,
+      },
+    ],
+    "id": "boss-room-10",
+    "loot": [
+      {
+        "baseStats": {
+          "acBonus": 4,
+          "maxHpBonus": 4,
+        },
+        "cost": 135,
+        "id": "legs_epic",
+        "name": "Dragon Greaves",
+        "rarity": "epic",
+        "type": "legs",
+      },
+    ],
+    "themeId": "dungeon_start",
+    "type": "boss",
+  },
+  "enemies": [],
+  "id": "room-10",
+  "loot": [],
+  "shopItems": [
+    {
+      "baseStats": {
+        "acBonus": 3,
+      },
+      "cost": 70,
+      "id": "helm_rare",
+      "name": "Knight's Helm",
+      "rarity": "rare",
+      "type": "head",
+    },
+    {
+      "baseStats": {
+        "attackBonus": 4,
+        "damageBonus": 4,
+      },
+      "cost": 140,
+      "id": "fighter_sword_epic",
+      "name": "Dragonslayer",
+      "rarity": "epic",
+      "type": "weapon",
+    },
+    {
+      "baseStats": {
+        "acBonus": 2,
+      },
+      "cost": 35,
+      "id": "shield_uncommon",
+      "name": "Iron Shield",
+      "rarity": "uncommon",
+      "type": "shield",
+    },
+    {
+      "baseStats": {
+        "attackBonus": 8,
+        "damageBonus": 6,
+      },
+      "cost": 550,
+      "id": "wizard_staff_godly",
+      "name": "Cosmic Conduit",
+      "rarity": "godly",
+      "type": "weapon",
+    },
+  ],
+  "themeId": "dungeon_start",
+  "type": "intermission",
+}
+`;

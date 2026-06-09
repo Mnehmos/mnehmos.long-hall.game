@@ -1,0 +1,11 @@
+id: cultist
+name: "Dark Cultist"
+hp: 10
+maxHp: 10
+power: 3
+damage: "1d8"
+ac: 10
+xp: 30
+tags:
+  - humanoid
+  - magic

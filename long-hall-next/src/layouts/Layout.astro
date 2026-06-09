@@ -1,0 +1,116 @@
+---
+export interface Props {
+  title?: string;
+  description?: string;
+  canonical?: string;
+  noindex?: boolean;
+}
+
+const {
+  title = "The Long Hall - A Roguelike Dungeon Crawler",
+  description = "Explore procedurally generated dungeons, battle monsters, collect loot, and test your strategic skills in this browser-based roguelike adventure.",
+  canonical = Astro.url.href,
+  noindex = false,
+} = Astro.props;
+
+const siteName = "The Long Hall";
+const siteUrl = import.meta.env.SITE || "https://longhall.game";
+const ogImage = `${siteUrl}/og-image.png`;
+
+// JSON-LD structured data for the game
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": siteName,
+  "description": description,
+  "url": siteUrl,
+  "applicationCategory": "Game",
+  "genre": "Roguelike",
+  "operatingSystem": "Any",
+  "browserRequirements": "Requires JavaScript. Modern browser recommended.",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "USD"
+  }
+};
+---
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <!-- Primary Meta Tags -->
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="title" content={title} />
+    <meta name="description" content={description} />
+    <meta name="keywords" content="roguelike, dungeon crawler, rpg, browser game, strategy, turn-based, fantasy, adventure, procedural generation" />
+    <meta name="author" content="Long Hall Games" />
+    <meta name="robots" content={noindex ? "noindex, nofollow" : "index, follow"} />
+    <meta name="generator" content={Astro.generator} />
+    <link rel="canonical" href={canonical} />
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="The Long Hall - A roguelike dungeon crawler game" />
+    <meta property="og:site_name" content={siteName} />
+    <meta property="og:locale" content="en_US" />
+
+    <!-- Twitter -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content={canonical} />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
+    <meta name="twitter:image:alt" content="The Long Hall - A roguelike dungeon crawler game" />
+    <meta name="twitter:site" content="@longhallgame" />
+    <meta name="twitter:creator" content="@longhallgame" />
+
+    <!-- App-specific Meta Tags -->
+    <meta name="application-name" content={siteName} />
+    <meta name="theme-color" content="#1c1917" />
+    <meta name="color-scheme" content="dark" />
+
+    <!-- Favicon and Icons -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- iOS Web App Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content={siteName} />
+
+    <!-- Prevent iOS text size adjustment and phone number detection -->
+    <meta name="format-detection" content="telephone=no" />
+
+    <!-- Google Fonts - Display (Space Grotesk) and Body (Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json" set:html={JSON.stringify(jsonLd)} />
+
+    <title>{title}</title>
+  </head>
+  <body class="min-h-screen bg-parchment text-primary font-body antialiased safe-area-padding">
+    <slot />
+  </body>
+</html>
+
+<style is:global>
+  @import "../styles/global.css";
+</style>

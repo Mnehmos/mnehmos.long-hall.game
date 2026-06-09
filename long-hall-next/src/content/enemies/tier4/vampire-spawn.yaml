@@ -1,0 +1,11 @@
+id: vampire_spawn
+name: "Vampire Spawn"
+hp: 28
+maxHp: 28
+power: 7
+damage: "1d10+3"
+ac: 10
+xp: 70
+tags:
+  - undead
+  - vampire

@@ -1,0 +1,12 @@
+id: cleric_mace_epic
+name: Judgment
+type: weapon
+rarity: epic
+cost: 145
+baseStats:
+  attackBonus: 4
+  damageBonus: 4
+tags:
+  - cleric
+  - mace
+  - weapon

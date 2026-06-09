@@ -1,0 +1,10 @@
+id: ghoul
+name: "Ghoul"
+hp: 16
+maxHp: 16
+power: 5
+damage: "1d8+1"
+ac: 10
+xp: 50
+tags:
+  - undead

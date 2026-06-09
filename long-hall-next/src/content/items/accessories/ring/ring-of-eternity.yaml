@@ -1,0 +1,11 @@
+id: ring_legendary
+name: Ring of Eternity
+type: ring
+rarity: legendary
+cost: 340
+baseStats:
+  attackBonus: 2
+  damageBonus: 4
+  maxHpBonus: 10
+tags:
+  - accessory

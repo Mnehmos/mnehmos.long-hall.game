@@ -1,0 +1,11 @@
+id: fighter_armor_epic
+name: Dragon Scale
+type: chest
+rarity: epic
+cost: 180
+baseStats:
+  acBonus: 4
+  maxHpBonus: 6
+tags:
+  - fighter
+  - armor

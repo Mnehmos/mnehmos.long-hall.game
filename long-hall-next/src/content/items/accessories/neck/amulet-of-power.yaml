@@ -1,0 +1,10 @@
+id: neck_rare
+name: Amulet of Power
+type: neck
+rarity: rare
+cost: 78
+baseStats:
+  attackBonus: 2
+  damageBonus: 3
+tags:
+  - accessory

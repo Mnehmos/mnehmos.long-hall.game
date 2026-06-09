@@ -1,0 +1,11 @@
+id: second_wind
+name: "Second Wind"
+role: fighter
+description: "Heal 1d10+level HP"
+cooldownType: rest
+cooldownValue: 1
+effect:
+  type: heal
+  target: self
+  dice: "1d10"
+  modifier: 0

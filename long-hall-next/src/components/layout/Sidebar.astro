@@ -1,0 +1,143 @@
+---
+/**
+ * Sidebar.astro - Party member sidebar display
+ * Task ID: C2.2.2
+ * 
+ * Displays a vertical list of party member panels (HeroPanel components).
+ * Fixed width sidebar with scrollable content area.
+ * 
+ * @slot default - Container for HeroPanel components
+ * 
+ * @example
+ * <Sidebar>
+ *   <HeroPanel hero={party.members[0]} selected={true} />
+ *   <HeroPanel hero={party.members[1]} selected={false} />
+ *   <HeroPanel hero={party.members[2]} selected={false} />
+ * </Sidebar>
+ */
+
+interface Props {
+  class?: string;
+}
+
+const { class: className = '' } = Astro.props;
+
+const classes = ['sidebar', className].filter(Boolean).join(' ');
+---
+
+<aside class={classes}>
+  <h3 class="sidebar-title">Party</h3>
+  <div class="party-list">
+    <slot />
+  </div>
+</aside>
+
+<style>
+  .sidebar {
+    /* Layout */
+    display: flex;
+    flex-direction: column;
+    
+    /* Sizing - Fixed width */
+    width: 280px;
+    min-width: 280px;
+    max-width: 280px;
+    height: 100%;
+    
+    /* Appearance */
+    background-color: var(--bg-card);
+    border-right: 1px solid var(--border-light);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* === TITLE === */
+  .sidebar-title {
+    /* Layout */
+    flex-shrink: 0;
+    padding: var(--space-3) var(--space-4);
+    margin: 0;
+    
+    /* Typography */
+    font-family: var(--font-display);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    
+    /* Appearance */
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  /* === PARTY LIST === */
+  .party-list {
+    /* Layout */
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-3);
+    
+    /* Spacing */
+    padding: var(--space-3);
+    
+    /* Scrollable */
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  /* === SCROLLBAR STYLING === */
+  .party-list::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .party-list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .party-list::-webkit-scrollbar-thumb {
+    background-color: var(--border-light);
+    border-radius: var(--radius-lg);
+  }
+
+  .party-list::-webkit-scrollbar-thumb:hover {
+    background-color: var(--text-muted);
+  }
+
+  /* Firefox scrollbar */
+  .party-list {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-light) transparent;
+  }
+
+  /* === RESPONSIVE: Mobile adjustments === */
+  @media (max-width: 768px) {
+    .sidebar {
+      /* Could become horizontal or collapsible on mobile */
+      /* For now, reduce width slightly */
+      width: 240px;
+      min-width: 240px;
+      max-width: 240px;
+    }
+  }
+
+  @media (max-width: 640px) {
+    .sidebar {
+      /* Full width on small mobile */
+      width: 100%;
+      min-width: 100%;
+      max-width: 100%;
+      height: auto;
+      max-height: 200px;
+      border-right: none;
+      border-bottom: 1px solid var(--border-light);
+    }
+
+    .party-list {
+      /* Horizontal scroll on mobile */
+      flex-direction: row;
+      overflow-x: auto;
+      overflow-y: hidden;
+      gap: var(--space-2);
+    }
+  }
+</style>

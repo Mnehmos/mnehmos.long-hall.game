@@ -1,0 +1,9 @@
+id: helm_uncommon
+name: Steel Helm
+type: head
+rarity: uncommon
+cost: 35
+baseStats:
+  acBonus: 2
+tags:
+  - accessory

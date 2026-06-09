@@ -1,0 +1,13 @@
+id: demon_lord
+name: "Demon Lord"
+hp: 100
+maxHp: 100
+power: 13
+damage: "3d10+8"
+ac: 10
+xp: 130
+tags:
+  - fiend
+  - demon
+  - boss
+isBoss: true

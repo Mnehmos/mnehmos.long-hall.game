@@ -1,0 +1,10 @@
+id: ring_uncommon
+name: Ring of Power
+type: ring
+rarity: uncommon
+cost: 40
+baseStats:
+  damageBonus: 1
+  maxHpBonus: 4
+tags:
+  - accessory

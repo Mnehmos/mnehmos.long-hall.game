@@ -1,0 +1,10 @@
+id: wizard_robe_common
+name: Apprentice Robe
+type: chest
+rarity: common
+cost: 15
+baseStats:
+  maxHpBonus: 2
+tags:
+  - wizard
+  - armor

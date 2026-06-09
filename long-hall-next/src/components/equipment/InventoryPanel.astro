@@ -1,0 +1,183 @@
+---
+/**
+ * InventoryPanel.astro - Player inventory display with grid layout
+ * Task ID: C2.4.3
+ * 
+ * Displays all items in the player's inventory in a responsive grid.
+ * Uses ItemCard component for each item in compact mode.
+ * Supports slots for custom click/select handlers per item.
+ * 
+ * @example
+ * <InventoryPanel items={inventory.items} />
+ * 
+ * @example With custom item actions
+ * <InventoryPanel items={inventory.items}>
+ *   <button slot="default" onclick="selectItem(item.id)">Select</button>
+ * </InventoryPanel>
+ */
+
+import type { Item } from '@engine/types';
+import ItemCard from './ItemCard.astro';
+
+interface Props {
+  items: Item[];
+  class?: string;
+}
+
+const { 
+  items, 
+  class: className = '' 
+} = Astro.props;
+
+const classes = ['inventory-panel', className].filter(Boolean).join(' ');
+---
+
+<div class={classes}>
+  <header class="inventory-header">
+    <h3 class="inventory-title">Inventory</h3>
+    <span class="item-count">{items.length} items</span>
+  </header>
+  
+  <div class="inventory-grid">
+    {items.length > 0 ? (
+      items.map((item) => (
+        <div class="inventory-item" data-item-id={item.id}>
+          <ItemCard item={item} compact={true} />
+          <div class="item-actions">
+            <slot />
+          </div>
+        </div>
+      ))
+    ) : (
+      <div class="empty-inventory">
+        <span class="empty-icon">📦</span>
+        <span class="empty-message">No items in inventory</span>
+      </div>
+    )}
+  </div>
+</div>
+
+<style>
+  /* === INVENTORY PANEL CONTAINER === */
+  .inventory-panel {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-4);
+    padding: var(--space-4);
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-sm);
+  }
+
+  /* === INVENTORY HEADER === */
+  .inventory-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-bottom: var(--space-3);
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .inventory-title {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .item-count {
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    padding: var(--space-1) var(--space-2);
+    background-color: var(--bg-card);
+    border-radius: var(--radius-sm);
+  }
+
+  /* === INVENTORY GRID === */
+  .inventory-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-3);
+    max-height: 400px;
+    overflow-y: auto;
+    padding-right: var(--space-2);
+  }
+
+  /* Responsive: 3 columns on larger screens */
+  @media (min-width: 768px) {
+    .inventory-grid {
+      grid-template-columns: repeat(3, 1fr);
+    }
+  }
+
+  /* Custom scrollbar styling */
+  .inventory-grid::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .inventory-grid::-webkit-scrollbar-track {
+    background: var(--bg-card);
+    border-radius: var(--radius-sm);
+  }
+
+  .inventory-grid::-webkit-scrollbar-thumb {
+    background: var(--border-light);
+    border-radius: var(--radius-sm);
+  }
+
+  .inventory-grid::-webkit-scrollbar-thumb:hover {
+    background: var(--text-muted);
+  }
+
+  /* === INVENTORY ITEM WRAPPER === */
+  .inventory-item {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    transition: transform var(--transition-fast);
+  }
+
+  .inventory-item:hover {
+    transform: translateY(-2px);
+  }
+
+  /* === ITEM ACTIONS SLOT === */
+  .item-actions {
+    display: flex;
+    gap: var(--space-2);
+    justify-content: center;
+  }
+
+  .item-actions:empty {
+    display: none;
+  }
+
+  /* === EMPTY STATE === */
+  .empty-inventory {
+    grid-column: 1 / -1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: var(--space-8) var(--space-4);
+    color: var(--text-muted);
+    text-align: center;
+  }
+
+  .empty-icon {
+    font-size: 2rem;
+    opacity: 0.5;
+  }
+
+  .empty-message {
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-style: italic;
+  }
+</style>

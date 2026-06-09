@@ -1,0 +1,10 @@
+id: volley
+name: "Volley"
+role: ranger
+description: "Attack all enemies with ranged damage"
+cooldownType: rest
+cooldownValue: 1
+effect:
+  type: special
+  target: all_enemies
+  dice: "1d6"

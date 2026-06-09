@@ -1,0 +1,11 @@
+id: ranger_bow_common
+name: Short Bow
+type: weapon
+rarity: common
+cost: 14
+baseStats:
+  attackBonus: 2
+tags:
+  - ranger
+  - bow
+  - weapon

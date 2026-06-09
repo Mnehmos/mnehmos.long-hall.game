@@ -1,0 +1,10 @@
+id: frost_giant
+name: "Frost Giant"
+hp: 55
+maxHp: 55
+power: 9
+damage: "3d6+4"
+ac: 10
+xp: 90
+tags:
+  - giant

@@ -1,0 +1,11 @@
+id: wizard_staff_common
+name: Oak Staff
+type: weapon
+rarity: common
+cost: 12
+baseStats:
+  attackBonus: 2
+tags:
+  - wizard
+  - staff
+  - weapon

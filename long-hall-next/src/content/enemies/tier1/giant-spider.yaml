@@ -1,0 +1,11 @@
+id: giant_spider
+name: "Giant Spider"
+hp: 10
+maxHp: 10
+power: 2
+damage: "1d6"
+ac: 10
+xp: 20
+tags:
+  - vermin
+  - beast

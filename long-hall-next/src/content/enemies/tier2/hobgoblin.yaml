@@ -1,0 +1,11 @@
+id: hobgoblin
+name: "Hobgoblin"
+hp: 14
+maxHp: 14
+power: 3
+damage: "1d8"
+ac: 10
+xp: 30
+tags:
+  - humanoid
+  - goblin

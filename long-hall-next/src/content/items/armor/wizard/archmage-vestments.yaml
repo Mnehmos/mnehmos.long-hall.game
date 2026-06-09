@@ -1,0 +1,11 @@
+id: wizard_robe_rare
+name: Archmage Vestments
+type: chest
+rarity: rare
+cost: 75
+baseStats:
+  attackBonus: 2
+  maxHpBonus: 6
+tags:
+  - wizard
+  - armor

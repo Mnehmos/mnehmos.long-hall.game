@@ -1,0 +1,12 @@
+id: beholder
+name: "Beholder"
+hp: 75
+maxHp: 75
+power: 11
+damage: "2d10+5"
+ac: 10
+xp: 110
+tags:
+  - aberration
+  - boss
+isBoss: true
