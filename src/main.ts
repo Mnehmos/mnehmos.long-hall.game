@@ -1,9 +1,10 @@
-import { createInitialRunState, loadGameState, saveGameState, clearGameState } from './engine/state';
+import { createInitialRunState, loadGameState, saveGameState, clearGameState, migrateSave } from './engine/state';
 import { gameReducer } from './engine/reducer';
 import { renderGame, setCachedHighScores } from './ui/render';
 import type { Action } from './engine/types';
 import { apiClient, type LeaderboardCategory } from './api/client';
 import { renderLeaderboard } from './ui/leaderboard';
+import { esc, tooltipToHtml } from './ui/escape';
 
 // State - load from localStorage or create new
 let state = loadGameState() || createInitialRunState(Date.now().toString());
@@ -16,7 +17,23 @@ const app = document.getElementById('app');
 
 async function start() {
     await initAuth();
-    
+
+    // Pull the cloud save if it's ahead of what's in localStorage. Nothing ever
+    // called loadGame before, so signing in on a second device started you over.
+    try {
+        const token = await getToken();
+        if (token) {
+            const remote = migrateSave(await apiClient.loadGame(token));
+            if (remote && remote.depth > state.depth) {
+                state = remote;
+                saveGameState(state);
+                console.log('Restored cloud save at depth', remote.depth);
+            }
+        }
+    } catch (e) {
+        console.warn('Failed to load cloud save:', e);
+    }
+
     // Fetch and cache high scores for the sidebar panel
     try {
         const scores = await apiClient.getHighScores();
@@ -24,7 +41,7 @@ async function start() {
     } catch (e) {
         console.warn('Failed to load high scores:', e);
     }
-    
+
     update();
 }
 
@@ -76,10 +93,6 @@ function dispatch(action: Action) {
 function attachEvents() {
   document.getElementById('btn-advance')?.addEventListener('click', () => {
     dispatch({ type: 'ADVANCE_ROOM' });
-  });
-
-  document.getElementById('btn-resolve')?.addEventListener('click', () => {
-    dispatch({ type: 'RESOLVE_ROOM' });
   });
 
   document.getElementById('btn-rest')?.addEventListener('click', () => {
@@ -233,10 +246,11 @@ function attachEvents() {
   // Buy item from shop
   document.querySelectorAll('.btn-buy').forEach(btn => {
       btn.addEventListener('click', (e) => {
+          // The price is looked up from the room's shop in the reducer; it is
+          // deliberately NOT read out of the DOM any more.
           const itemId = (e.target as HTMLElement).getAttribute('data-item');
-          const itemCost = parseInt((e.target as HTMLElement).closest('.shop-item')?.querySelector('.item-cost')?.textContent?.replace(/[^\d]/g, '') || '0');
-          if (itemId && itemCost) {
-              dispatch({ type: 'BUY_ITEM', itemId, cost: itemCost });
+          if (itemId) {
+              dispatch({ type: 'BUY_ITEM', itemId });
           }
       });
   });
@@ -263,10 +277,13 @@ document.addEventListener('click', (e) => {
        
        const overlay = document.createElement('div');
        overlay.className = 'mobile-tooltip-overlay';
+       // `title` and `label` are read back OUT of the DOM, so they arrive here
+       // already decoded. Re-escape before injecting as HTML -- otherwise this
+       // handler would undo the escaping render.ts applied on the way in.
        overlay.innerHTML = `
            <div class="mobile-tooltip">
-               <div class="mobile-tooltip-title">${label}</div>
-               <div class="mobile-tooltip-content">${title.replace(/\n/g, '<br>')}</div>
+               <div class="mobile-tooltip-title">${esc(label)}</div>
+               <div class="mobile-tooltip-content">${tooltipToHtml(title)}</div>
                <button class="mobile-tooltip-close">Close</button>
            </div>
        `;
@@ -320,15 +337,45 @@ async function showLeaderboard(category: LeaderboardCategory | 'weapons' = 'scor
     });
 }
 
-// Sync saves
-async function syncSave() {
-    if (!state.gameOver) {
-       const token = await getToken();
-       if (token) {
-           apiClient.saveGame(token, state);
-       }
-    }
+/**
+ * Push the save to the cloud, at most once every SYNC_INTERVAL_MS.
+ *
+ * `dispatch` fires on every click, so an unthrottled sync meant one POST per
+ * attack. localStorage still saves synchronously on every action, so a crash
+ * between syncs loses nothing locally.
+ */
+const SYNC_INTERVAL_MS = 10_000;
+let syncTimer: ReturnType<typeof setTimeout> | null = null;
+let syncInFlight = false;
+
+function syncSave() {
+    if (state.gameOver || syncTimer) return;
+    syncTimer = setTimeout(async () => {
+        syncTimer = null;
+        if (syncInFlight || state.gameOver) return;
+        syncInFlight = true;
+        try {
+            const token = await getToken();
+            if (token) await apiClient.saveGame(token, state);
+        } catch (e) {
+            console.warn('Cloud sync failed:', e);
+        } finally {
+            syncInFlight = false;
+        }
+    }, SYNC_INTERVAL_MS);
 }
+
+// Flush any pending sync when the tab goes away, so progress isn't stranded
+// behind the throttle window.
+window.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden' && syncTimer) {
+        clearTimeout(syncTimer);
+        syncTimer = null;
+        Promise.resolve(getToken()).then(token => {
+            if (token) apiClient.saveGame(token, state);
+        }).catch(() => { /* best effort */ });
+    }
+});
 
 
 // Start

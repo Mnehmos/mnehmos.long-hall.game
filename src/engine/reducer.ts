@@ -1,23 +1,19 @@
-import type { RunState, Action, EquipmentSlot, Item, Actor } from './types';
+import type {
+    RunState, Action, EquipmentSlot, Item, Actor, PartyState, InventoryState, Enemy,
+} from './types';
 import { createInitialRunState, createActor } from './state';
 import { SeededRNG } from '../core/rng';
-import { resolveRoom } from './resolveRoom';
-import { performLongRest, performShortRest } from './rest';
+import { performShortRest } from './rest';
 import { hashWithSeed } from '../core/hash';
-import { ITEMS, RECRUITS, getDropForEnemy } from '../content/tables';
-import { generateRoom, calculateEscapeDC } from './generateRoom';
+import { RECRUITS, getDropForEnemy } from '../content/tables';
+import { calculateEscapeDC } from './generateRoom';
 import { roll } from '../core/dice';
 import { getAbilityById } from '../content/abilities';
 import { resolveEnemyTurn } from './combatHelpers';
-
-// Helper to cap history array to prevent memory bloat
-// UI only shows last 20 entries, keeping 100 for reasonable scroll-back
-const MAX_HISTORY_LENGTH = 100;
-function cappedHistory(history: string[]): string[] {
-    return history.length > MAX_HISTORY_LENGTH
-        ? history.slice(-MAX_HISTORY_LENGTH)
-        : history;
-}
+import { cappedHistory } from './history';
+import { REST_COOLDOWN, XP_THRESHOLDS, MAX_PARTY_SIZE } from './constants';
+import { enchantItem, applyMaxHpDelta, totalMaxHpBonus } from './enchant';
+import { enterRoom } from './enterRoom';
 
 // Helper to update weapon mastery stats
 function updateWeaponStats(
@@ -74,117 +70,151 @@ function updateActorWeapon(actor: Actor, updatedWeapon: Item): Actor {
     };
 }
 
-// Helper to increment encounter count on all equipped weapons when entering combat
-function incrementWeaponEncounters(members: Actor[]): Actor[] {
-    return members.map(member => {
-        const weapon = member.equipment.main_hand;
-        if (!weapon) return member;
+/**
+ * Grant the spoils for one defeated enemy: gold, a possible item drop, and XP
+ * split across the living party (with level-ups).
+ *
+ * ATTACK and USE_ABILITY both call this. They used to have separate reward
+ * paths -- ability kills paid `power * 2` gold, dropped no items, and awarded
+ * no XP at all, so finishing an enemy with a spell was strictly worse than
+ * hitting it with a stick.
+ */
+function awardKill(
+    party: PartyState,
+    inventory: InventoryState,
+    enemy: Enemy,
+    rng: SeededRNG,
+    history: string[]
+): { party: PartyState; inventory: InventoryState } {
+    const goldDrop = enemy.power * 3 + rng.int(0, Math.max(0, enemy.power * 2 - 1));
+    let nextInventory = inventory;
 
-        const stats = weapon.stats || { kills: 0, damageDealt: 0, highestHit: 0, criticalHits: 0, encountersUsed: 0 };
-        const updatedWeapon: Item = {
-            ...weapon,
-            stats: {
-                ...stats,
-                encountersUsed: stats.encountersUsed + 1
+    const droppedItem = getDropForEnemy(enemy.power, () => rng.float());
+    if (droppedItem) {
+        nextInventory = { ...inventory, items: [...inventory.items, droppedItem] };
+        history.push(`🎁 ${enemy.name} dropped ${droppedItem.name}!`);
+    }
+
+    const xpGain = enemy.power * 15;
+    const aliveCount = Math.max(1, party.members.filter(m => m.isAlive).length);
+    const xpPerMember = Math.floor(xpGain / aliveCount);
+
+    history.push(`${enemy.name} defeated! +${goldDrop} gold, +${xpGain} XP`);
+
+    const members = party.members.map(m => {
+        if (!m.isAlive) return m;
+
+        const newXp = m.xp + xpPerMember;
+        let newLevel = m.level;
+        let newMaxHp = m.hp.max;
+        let newCurrentHp = m.hp.current;
+        const newHitDice = { ...m.hitDice };
+        let newStatPoints = m.statPoints || 0;
+
+        while (newLevel < XP_THRESHOLDS.length - 1 && newXp >= XP_THRESHOLDS[newLevel]) {
+            newLevel++;
+            newStatPoints++;
+            const hitDieRoll = roll('1d8', rng).total;
+            const hpGain = Math.max(1, hitDieRoll + Math.floor(newLevel / 2));
+            newMaxHp += hpGain;
+            newCurrentHp += hpGain;
+            if (newLevel % 2 === 0) {
+                newHitDice.max += 1;
+                newHitDice.current += 1;
             }
-        };
+            history.push(`🎉 ${m.name} leveled up to ${newLevel}! +${hpGain} HP (rolled ${hitDieRoll}), +1 Stat Point!`);
+        }
 
         return {
-            ...member,
-            equipment: {
-                ...member.equipment,
-                main_hand: updatedWeapon
-            }
+            ...m,
+            xp: newXp,
+            level: newLevel,
+            hp: { current: newCurrentHp, max: newMaxHp },
+            hitDice: newHitDice,
+            statPoints: newStatPoints,
         };
     });
+
+    return {
+        party: { ...party, members, gold: party.gold + goldDrop },
+        inventory: nextInventory,
+    };
+}
+
+/**
+ * A room interaction (praying, disarming) is only legal once its guards are
+ * dead. Guarded shrines and hazards carry enemies, and the UI hides the button
+ * while they live -- but the reducer has to enforce it too.
+ */
+function canInteractWithRoom(state: RunState, type: 'hazard' | 'shrine'): boolean {
+    const room = state.currentRoom;
+    if (!room || room.type !== type) return false;
+    return !room.enemies.some(e => e.hp > 0);
+}
+
+/**
+ * Apply trap damage to the front-most LIVING party member.
+ *
+ * This used to always hit `members[0]`. Once the original hero died, every
+ * trap re-killed the corpse and flagged game over while the rest of the party
+ * was still standing.
+ */
+function applyTrapDamage(state: RunState, damage: number, prefix: string): RunState {
+    const victimIndex = state.party.members.findIndex(m => m.isAlive);
+    if (victimIndex === -1) return state;
+
+    const victim = state.party.members[victimIndex];
+    const newHp = Math.max(0, victim.hp.current - damage);
+    const died = newHp <= 0;
+
+    const members = state.party.members.map((m, i) =>
+        i === victimIndex
+            ? { ...m, hp: { ...m.hp, current: newHp }, isAlive: !died }
+            : m
+    );
+
+    const history = [...state.history, `${prefix} Trap deals ${damage} damage to ${victim.name}!`];
+    if (died) history.push(`☠️ ${victim.name} has fallen!`);
+
+    const allDead = members.every(m => !m.isAlive);
+    if (allDead) history.push('The entire party has fallen! Game Over.');
+
+    return {
+        ...state,
+        party: { ...state.party, members },
+        roomResolved: true,
+        gameOver: allDead,
+        history: cappedHistory(history),
+    };
+}
+
+/**
+ * Derive the RNG for a single reducer step.
+ *
+ * Every randomised action draws from `hash(seed, cursor)` and the cursor
+ * advances by one per dispatch, so a run is fully determined by its seed plus
+ * its action sequence. Before this, combat used bare `Math.random()`, which
+ * meant the "seeded run" was cosmetic and server-side replay was impossible.
+ */
+function actionRng(seed: string, cursor: number): SeededRNG {
+    return new SeededRNG(hashWithSeed(`${seed}#${cursor}`, cursor));
 }
 
 export function gameReducer(state: RunState, action: Action): RunState {
+  // Advance the cursor before dispatching so every return path carries it
+  // forward via the `...state` spread.
+  const rngCursor = (state.rngCursor ?? 0) + 1;
+  const rng = actionRng(state.seed, rngCursor);
+  return runAction({ ...state, rngCursor }, action, rng);
+}
+
+function runAction(state: RunState, action: Action, rng: SeededRNG): RunState {
   switch (action.type) {
     case 'START_RUN':
       return createInitialRunState(action.seed);
 
-    case 'ADVANCE_ROOM': {
-        const newDepth = state.depth + 1;
-        const rng = new SeededRNG(hashWithSeed(state.seed, newDepth));
-        
-        // Remove dead party members before advancing (they're gone forever)
-        const survivingMembers = state.party.members.filter(m => m.isAlive);
-        
-        // Generate the room immediately and store it
-        const room = generateRoom({ ...state, depth: newDepth, party: { ...state.party, members: survivingMembers } }, rng);
-        
-        // Increment weapon encounter counts if entering combat
-        // Check if room has enemies (combat, elite, or guarded shrine/hazard)
-        const isCombat = (room.type === 'combat' || room.type === 'elite') || 
-                        ((room.type === 'shrine' || room.type === 'hazard') && room.enemies && room.enemies.length > 0);
-        const updatedMembers = isCombat
-            ? incrementWeaponEncounters(survivingMembers)
-            : survivingMembers;
-
-        // Build history
-        const newHistory = [...state.history];
-        const deadNames = state.party.members.filter(m => !m.isAlive).map(m => m.name);
-        if (deadNames.length > 0) {
-            newHistory.push(`☠️ ${deadNames.join(', ')} left behind forever...`);
-        }
-        newHistory.push(`Entered room ${newDepth}: ${room.type.toUpperCase()}`);
-
-        // Roll initiative for combat
-        let combatTurn: 'player' | 'enemy' | null = isCombat ? 'player' : null;
-        if (isCombat && room.enemies.length > 0) {
-            // Roll initiative: party uses highest agility member, enemies use highest power
-            const partyAgility = Math.max(...updatedMembers.filter(m => m.isAlive).map(m => m.skills?.agility || 0), 0);
-            const enemyPower = Math.max(...room.enemies.map(e => e.power), 0);
-
-            const partyInit = roll('1d20').total + partyAgility;
-            const enemyInit = roll('1d20').total + Math.floor(enemyPower / 2);
-
-            newHistory.push(`⚔️ Initiative: Party ${partyInit} vs Enemies ${enemyInit}`);
-
-            if (enemyInit > partyInit) {
-                combatTurn = 'enemy';
-                newHistory.push(`Enemies act first!`);
-            } else {
-                newHistory.push(`Party acts first!`);
-            }
-            newHistory.push('━━━ ROUND 1 ━━━');
-        }
-
-        let nextState: RunState = {
-          ...state,
-          depth: newDepth,
-          currentRoom: room,
-          roomResolved: room.type !== 'combat' && room.type !== 'elite' && room.type !== 'hazard' && room.type !== 'shrine' && room.type !== 'trader',
-          combatTurn,
-          combatRound: isCombat ? 1 : 0,
-          actedThisRound: [], // Reset for new combat
-          extraActions: 0, // Reset extra actions on room enter
-          victory: false, // Reset victory flag on room enter
-          party: { ...state.party, members: updatedMembers },
-          history: cappedHistory(newHistory),
-        };
-
-        // Long rest at segment boundaries
-        if (newDepth > 0 && newDepth % 10 === 0) {
-             nextState = performLongRest(nextState, rng);
-        }
-
-        // If enemies won initiative, resolve their turn immediately
-        if (combatTurn === 'enemy') {
-            nextState = resolveEnemyTurn(nextState);
-        }
-
-        return nextState;
-    }
-
-    case 'RESOLVE_ROOM': {
-        const nextState = resolveRoom(state, action);
-        return {
-            ...nextState,
-            roomResolved: true
-        };
-    }
+    case 'ADVANCE_ROOM':
+        return enterRoom(state, state.depth + 1, rng);
 
     case 'TAKE_SHORT_REST': {
         return performShortRest(state, action.actorIdsToHeal);
@@ -248,12 +278,15 @@ export function gameReducer(state: RunState, action: Action): RunState {
             }
         });
 
-        const attackRoll = roll('1d20').total;
+        const attackRoll = roll('1d20', rng).total;
         const hit = (attackRoll + totalAttackBonus) >= target.ac;
         
         let newHistory = [...state.history];
         let newEnemies = [...room.enemies];
-        let newParty = { ...state.party };
+        // Clone the members array too. `{ ...state.party }` shares the same
+        // array reference, so the index assignments below used to write
+        // straight back into the caller's state and make the reducer impure.
+        let newParty = { ...state.party, members: [...state.party.members] };
         let newInventory = state.inventory; // Track inventory changes from dropped items
         let roomResolved = false;
 
@@ -274,13 +307,13 @@ export function gameReducer(state: RunState, action: Action): RunState {
         if (hit) {
             // Damage roll: 1d8 + skill + weapon
             // Note: Weapon damage die should ideally come from item.baseStats.damageDie, but using fixed 1d8 for now as simplified.
-            const damageRoll = roll('1d8');
+            const damageRoll = roll('1d8', rng);
             let damage = Math.max(1, damageRoll.total + totalDamageBonus);
             const isCritical = attackRoll === 20; // Natural 20 is a critical hit
 
             // Check for Champion Strike (Empowered)
             if (attacker.statuses?.includes('champion_strike')) {
-                 const bonusDice = roll('2d6'); // Match the ability dice
+                 const bonusDice = roll('2d6', rng); // Match the ability dice
                  damage += bonusDice.total;
                  newHistory.push(`${attacker.name} consumes Champion Strike! +${bonusDice.total} damage.`);
                  
@@ -314,86 +347,34 @@ export function gameReducer(state: RunState, action: Action): RunState {
 
             // Check if dead
             if (isKill) {
-                // Per-enemy loot: gold based on power
-                const goldDrop = target.power * 3 + Math.floor(Math.random() * (target.power * 2));
-                newParty.gold += goldDrop;
-                
-                // Item drop chance based on enemy power tier
-                const droppedItem = getDropForEnemy(target.power, Math.random);
-                if (droppedItem) {
-                    newInventory = {
-                        ...newInventory,
-                        items: [...newInventory.items, droppedItem]
-                    };
-                    newHistory.push(`🎁 ${target.name} dropped ${droppedItem.name}!`);
-                }
-                
-                // Award XP to alive party members
-                const xpGain = target.power * 15; // XP = enemy power * 15
-                const aliveMembers = newParty.members.filter(m => m.isAlive);
-                const xpPerMember = Math.floor(xpGain / aliveMembers.length);
-                
-                newHistory.push(`${target.name} defeated! +${goldDrop} gold, +${xpGain} XP`);
-                
-                // Distribute XP and check for level-ups
-                const XP_THRESHOLDS = [0, 50, 150, 300, 500, 800, 1200, 2000, 3000]; 
-                
-                newParty.members = newParty.members.map(m => {
-                    if (!m.isAlive) return m;
-                    
-                    // Reveal from stealth if attacking
-                    let newStatuses = m.statuses || [];
-                    if (m.id === action.attackerId && newStatuses.includes('hidden')) {
-                         newStatuses = newStatuses.filter(s => s !== 'hidden');
-                         newHistory.push(`${m.name} reveals themselves from the shadows!`);
-                    }
-                    
-                    const newXp = m.xp + xpPerMember;
-                    let newLevel = m.level;
-                    let newMaxHp = m.hp.max;
-                    let newCurrentHp = m.hp.current;
-                    let newHitDice = { ...m.hitDice };
-                    let newStatPoints = m.statPoints || 0;
-                    
-                    // Check for level up
-                    while (newLevel < XP_THRESHOLDS.length - 1 && newXp >= XP_THRESHOLDS[newLevel]) {
-                        newLevel++;
-                        newStatPoints++; // Gain 1 stat point per level
-                        newHistory.push(`${m.name} leveled up to ${newLevel}! +1 Stat Point!`);
-
-                        // Roll hit dice for HP: 1d8 + level bonus (min 1)
-                        const hitDieRoll = roll('1d8').total;
-                        const hpGain = Math.max(1, hitDieRoll + Math.floor(newLevel / 2));
-                        newMaxHp += hpGain;
-                        newCurrentHp += hpGain; // Heal on level up
-                        // Gain extra hit dice every 2 levels
-                        if (newLevel % 2 === 0) {
-                            newHitDice.max += 1;
-                            newHitDice.current += 1;
-                        }
-                        newHistory.push(`🎉 ${m.name} leveled up to ${newLevel}! +${hpGain} HP (rolled ${hitDieRoll}), +1 ATK, +1 DMG`);
-                    }
-                    return {
-                        ...m,
-                        xp: newXp,
-                        level: newLevel,
-                        hp: { current: newCurrentHp, max: newMaxHp },
-                        hitDice: newHitDice,
-                        statPoints: newStatPoints,
-                        statuses: newStatuses
-                    };
-                });
-                
+                const rewards = awardKill(newParty, newInventory, target, rng, newHistory);
+                newParty = { ...rewards.party, members: [...rewards.party.members] };
+                newInventory = rewards.inventory;
                 newEnemies = newEnemies.filter(e => e.hp > 0);
             }
         } else {
             newHistory.push(`${attacker.name} attacks ${target.name}: [${attackRoll}+${totalAttackBonus}=${attackRoll+totalAttackBonus} vs AC ${target.ac}] MISS!`);
         }
-        
+
+        // Attacking always breaks stealth, hit or miss. This used to live inside
+        // the `isKill` branch, so a rogue who never landed a killing blow stayed
+        // hidden -- and hidden members are skipped as enemy targets, making them
+        // permanently untargetable.
+        {
+            const aIndex = newParty.members.findIndex(m => m.id === action.attackerId);
+            if (aIndex !== -1 && newParty.members[aIndex].statuses?.includes('hidden')) {
+                newParty.members[aIndex] = {
+                    ...newParty.members[aIndex],
+                    statuses: newParty.members[aIndex].statuses.filter(s => s !== 'hidden'),
+                };
+                newHistory.push(`${newParty.members[aIndex].name} reveals themselves from the shadows!`);
+            }
+        }
+
         // Check victory
         if (newEnemies.length === 0) {
             // Calculate gold reward (5-15 gold, more for bosses)
-            const goldReward = state.inBossRoom ? Math.floor(20 + Math.random() * 30) : Math.floor(5 + Math.random() * 11);
+            const goldReward = state.inBossRoom ? rng.int(20, 49) : rng.int(5, 15);
             newHistory.push(`Victory! All enemies defeated. +${goldReward} gold.`);
             
             // Only auto-resolve combat/elite rooms. Shrines/Hazards allow interaction after combat.
@@ -491,44 +472,51 @@ export function gameReducer(state: RunState, action: Action): RunState {
 
         // Enemy turn (if combat continues)
         if (combatTurn === 'enemy' && newEnemies.length > 0) {
-            return resolveEnemyTurn(nextState);
+            return resolveEnemyTurn(nextState, rng);
         }
 
         return nextState;
     }
 
     case 'BUY_ITEM': {
-        // Validation: has gold?
-        if (state.party.gold < action.cost) {
+        // The item must be on THIS room's shelf. Previously the price came in
+        // on the action (scraped out of the DOM by the click handler) and the
+        // item could fall back to the global ITEMS table, so the shop was
+        // effectively "name your own price for anything in the game".
+        const room = state.currentRoom;
+        const item = room?.shopItems?.find(i => i.id === action.itemId);
+        if (!item) {
             return {
-                ...state, 
-                history: cappedHistory([...state.history, "Not enough gold to buy item."])
+                ...state,
+                history: cappedHistory([...state.history, 'That item is not for sale here.'])
             };
         }
-        
-        // Find Item from room's shop first, fallback to ITEMS
-        const room = state.currentRoom;
-        const item = room?.shopItems?.find(i => i.id === action.itemId) || ITEMS.find(i => i.id === action.itemId);
-        if (!item) return state;
-        
-        // Remove from room's shop items
-        const newRoom = room && room.shopItems ? {
-            ...room,
-            shopItems: room.shopItems.filter(i => i.id !== action.itemId)
-        } : room;
+
+        const cost = item.cost;
+        if (state.party.gold < cost) {
+            return {
+                ...state,
+                history: cappedHistory([...state.history, `Not enough gold. ${item.name} costs ${cost}g.`])
+            };
+        }
+
+        const newRoom = {
+            ...room!,
+            shopItems: room!.shopItems!.filter(i => i.id !== action.itemId)
+        };
 
         return {
             ...state,
             currentRoom: newRoom,
             party: {
                 ...state.party,
-                gold: state.party.gold - action.cost
+                gold: state.party.gold - cost
             },
             inventory: {
                 ...state.inventory,
                 items: [...state.inventory.items, item]
             },
-            history: cappedHistory([...state.history, `Bought ${item.name}`])
+            history: cappedHistory([...state.history, `Bought ${item.name} for ${cost}g`])
         };
     }
 
@@ -625,21 +613,12 @@ export function gameReducer(state: RunState, action: Action): RunState {
          
         const newParty = { ...state.party };
         newParty.members = [...state.party.members];
-        
-        // Calculate HP Difference
-        const oldMaxHpBonus = (oldItem?.baseStats?.maxHpBonus || 0) + (oldItem?.enchantment?.effect?.maxHpBonus || 0);
-        const newMaxHpBonus = (item.baseStats.maxHpBonus || 0) + (item.enchantment?.effect?.maxHpBonus || 0);
-        const hpDiff = newMaxHpBonus - oldMaxHpBonus;
 
-        newParty.members[actorIndex] = {
-            ...actor,
-            equipment: newEquipment,
-            hp: {
-                ...actor.hp,
-                max: actor.hp.max + hpDiff,
-                current: actor.hp.current + hpDiff
-            }
-        };
+        const hpDiff = totalMaxHpBonus(item) - totalMaxHpBonus(oldItem);
+        newParty.members[actorIndex] = applyMaxHpDelta(
+            { ...actor, equipment: newEquipment },
+            hpDiff
+        );
 
         return {
             ...state,
@@ -668,20 +647,12 @@ export function gameReducer(state: RunState, action: Action): RunState {
         
         const newParty = { ...state.party };
         newParty.members = [...state.party.members];
-        
-        // Calculate HP Difference (Negative)
-        const removedMaxHpBonus = (item.baseStats.maxHpBonus || 0) + (item.enchantment?.effect?.maxHpBonus || 0);
-        
-        newParty.members[actorIndex] = {
-            ...actor,
-            equipment: newEquipment,
-            hp: {
-                ...actor.hp,
-                max: actor.hp.max - removedMaxHpBonus,
-                current: Math.max(1, actor.hp.current - removedMaxHpBonus) // Don't kill on unequip? Or allow it? simplified: min 1
-            }
-        };
-        
+
+        newParty.members[actorIndex] = applyMaxHpDelta(
+            { ...actor, equipment: newEquipment },
+            -totalMaxHpBonus(item)
+        );
+
         return {
             ...state,
             party: newParty,
@@ -691,19 +662,19 @@ export function gameReducer(state: RunState, action: Action): RunState {
     }
 
     case 'DISARM_TRAP': {
-        if (!state.currentRoom || state.currentRoom.type !== 'hazard') return state;
-        
+        if (!canInteractWithRoom(state, 'hazard')) return state;
+
         // Check for rogue in party (trap bonus)
         const hasRogue = state.party.members.some(m => m.isAlive && m.role === 'rogue');
         const rogueBonus = hasRogue ? 5 : 0; // +5 bonus with rogue
-        
+
         // Roll dexterity check (d20 + 2 + rogue bonus vs DC 12)
-        const baseRoll = roll('1d20').total;
+        const baseRoll = roll('1d20', rng).total;
         const disarmRoll = baseRoll + 2 + rogueBonus;
         const success = disarmRoll >= 12;
-        
+
         if (success) {
-            const goldReward = Math.floor(5 + Math.random() * 11); // 5-15 gold
+            const goldReward = rng.int(5, 15);
             const bonusMsg = hasRogue ? ' (Rogue +5 bonus!)' : '';
             return {
                 ...state,
@@ -715,74 +686,39 @@ export function gameReducer(state: RunState, action: Action): RunState {
                 },
                 history: cappedHistory([...state.history, `Trap disarmed! (Rolled ${baseRoll}+${2 + rogueBonus}=${disarmRoll} vs DC 12)${bonusMsg}. +${goldReward} gold.`])
             };
-        } else {
-            // Failed disarm triggers the trap
-            const damage = roll('1d6').total;
-            const hero = state.party.members[0];
-            const newHp = Math.max(0, hero.hp.current - damage);
-            
-            let nextState: RunState = {
-                ...state,
-                party: {
-                    ...state.party,
-                    members: state.party.members.map((m, i) => 
-                        i === 0 ? { ...m, hp: { ...m.hp, current: newHp } } : m
-                    )
-                },
-                roomResolved: true,
-                history: cappedHistory([...state.history, `Failed to disarm! (Rolled ${disarmRoll}). Trap deals ${damage} damage!`])
-            };
-            
-            if (newHp <= 0) {
-                nextState = { ...nextState, gameOver: true, history: cappedHistory([...nextState.history, 'Hero has fallen! Game Over.']) };
-            }
-            
-            return nextState;
         }
+
+        // Failed disarm triggers the trap
+        return applyTrapDamage(
+            state,
+            roll('1d6', rng).total,
+            `Failed to disarm! (Rolled ${disarmRoll}).`
+        );
     }
-    
+
     case 'TRIGGER_TRAP': {
-        if (!state.currentRoom || state.currentRoom.type !== 'hazard') return state;
-        
-        // Just take the damage
-        const damage = roll('2d6').total;
-        const hero = state.party.members[0];
-        const newHp = Math.max(0, hero.hp.current - damage);
-        
-        let nextState: RunState = {
-            ...state,
-            party: {
-                ...state.party,
-                members: state.party.members.map((m, i) => 
-                    i === 0 ? { ...m, hp: { ...m.hp, current: newHp } } : m
-                )
-            },
-            roomResolved: true,
-            history: cappedHistory([...state.history, `Triggered the trap! Takes ${damage} damage!`])
-        };
-        
-        if (newHp <= 0) {
-            nextState = { ...nextState, gameOver: true, history: cappedHistory([...nextState.history, 'Hero has fallen! Game Over.']) };
-        }
-        
-        return nextState;
+        if (!canInteractWithRoom(state, 'hazard')) return state;
+        return applyTrapDamage(state, roll('2d6', rng).total, 'Triggered the trap!');
     }
-    
+
     case 'PRAY_AT_SHRINE': {
         const isBossShrine = !!state.pendingBossReward;
-        if (!state.currentRoom || (state.currentRoom.type !== 'shrine' && !isBossShrine)) return state;
-        
+        if (!isBossShrine && !canInteractWithRoom(state, 'shrine')) return state;
+        if (state.roomResolved && !isBossShrine) return state; // Already prayed here
+
         // Check for cleric in party (shrine bonus)
         const hasCleric = state.party.members.some(m => m.isAlive && m.role === 'cleric');
         const clericBonus = hasCleric ? 1.5 : 1; // 50% bonus with cleric
-        
-        const hero = state.party.members[0];
-        let newParty = { ...state.party };
+
+        const healTarget = state.party.members.findIndex(m => m.isAlive);
+        const hero = healTarget === -1 ? state.party.members[0] : state.party.members[healTarget];
+
+        let newParty = { ...state.party, members: [...state.party.members] };
         let newShortRests = state.shortRestsRemaining;
-        
-        // Build list of useful boons
+
+        // Boons are closures that mutate the locals above and return a log line.
         const boons: { type: string; apply: () => string }[] = [];
-        
+
         // Heal if not at full HP (cleric boosts heal amount)
         if (!isBossShrine && hero.hp.current < hero.hp.max) {
             boons.push({
@@ -791,15 +727,25 @@ export function gameReducer(state: RunState, action: Action): RunState {
                     const baseHeal = Math.floor(hero.hp.max * 0.5);
                     const healAmount = Math.floor(baseHeal * clericBonus);
                     const newHp = Math.min(hero.hp.max, hero.hp.current + healAmount);
-                    newParty.members = state.party.members.map((m, i) => 
-                        i === 0 ? { ...m, hp: { ...m.hp, current: newHp } } : m
+                    newParty.members = newParty.members.map((m, i) =>
+                        i === healTarget ? { ...m, hp: { ...m.hp, current: newHp } } : m
                     );
                     const bonusMsg = hasCleric ? ' (Cleric +50%)' : '';
-                    return `The shrine glows warmly. Healed for ${healAmount} HP!${bonusMsg}`;
+                    return `The shrine glows warmly. ${hero.name} healed for ${healAmount} HP!${bonusMsg}`;
+                }
+            });
+
+            boons.push({
+                type: 'fullheal',
+                apply: () => {
+                    newParty.members = newParty.members.map(m =>
+                        m.isAlive ? { ...m, hp: { ...m.hp, current: m.hp.max } } : m
+                    );
+                    return `Divine energy surges through the party. Fully healed!`;
                 }
             });
         }
-        
+
         // Restore rest if not at max
         if (!isBossShrine && state.shortRestsRemaining < 2) {
             boons.push({
@@ -810,308 +756,93 @@ export function gameReducer(state: RunState, action: Action): RunState {
                 }
             });
         }
-        
+
         // Gold is always useful
         if (!isBossShrine) {
-           boons.push({
-            type: 'gold',
-            apply: () => {
-                const goldBonus = 15 + Math.floor(Math.random() * 16); // 15-30 gold
-                newParty.gold = state.party.gold + goldBonus;
-                return `Golden light showers upon you. +${goldBonus} gold!`;
-            }
-           });
-        }
-        
-        // Full heal if damaged
-        if (!isBossShrine && hero.hp.current < hero.hp.max) {
             boons.push({
-                type: 'fullheal',
+                type: 'gold',
                 apply: () => {
-                    newParty.members = state.party.members.map((m, i) => 
-                        i === 0 ? { ...m, hp: { ...m.hp, current: m.hp.max } } : m
-                    );
-                    return `Divine energy surges through you. Fully healed!`;
+                    const goldBonus = rng.int(15, 30);
+                    newParty.gold = state.party.gold + goldBonus;
+                    return `Golden light showers upon you. +${goldBonus} gold!`;
                 }
             });
         }
-        
-        // ENCHANT EQUIPMENT - the core run differentiator!
-        // Find all equipped items in party
-        const equippedItems: { member: typeof hero; item: Item; slot: EquipmentSlot }[] = [];
+
+        // ENCHANT EQUIPMENT - the core run differentiator.
+        const equippedItems: { memberId: string; item: Item; slot: EquipmentSlot }[] = [];
         for (const member of state.party.members) {
-            Object.entries(member.equipment).forEach(([slot, item]) => {
-                if (item) equippedItems.push({ member, item: item as Item, slot: slot as EquipmentSlot });
-            });
+            if (!member.isAlive) continue;
+            (Object.entries(member.equipment) as [EquipmentSlot, Item | undefined][])
+                .forEach(([slot, item]) => {
+                    if (item) equippedItems.push({ memberId: member.id, item, slot });
+                });
         }
 
-        // Enchantment suffix tables by tier and type (6 Tiers: Common to Godly)
-        const WEAPON_SUFFIXES: Record<number, string[]> = {
-            1: ['of Striking', 'of the Blade', 'of Sharpness'],
-            2: ['of Might', 'of Slaying', 'of the Warrior'],
-            3: ['of Fury', 'of Destruction', 'of the Champion'],
-            4: ['of Annihilation', 'of the Titan', 'of Doom'],
-            5: ['of Legends', 'of the Godslayer', 'of Ruin'],
-            6: ['of the Apocalypse', 'of Oblivion', 'Worldender']
-        };
-        const ARMOR_SUFFIXES: Record<number, string[]> = {
-            1: ['of Protection', 'of Warding', 'of the Guard'],
-            2: ['of Defense', 'of the Sentinel', 'of Resilience'],
-            3: ['of Fortitude', 'of the Bulwark', 'of Endurance'],
-            4: ['of Invincibility', 'of the Immortal', 'of Iron Will'],
-            5: ['of Eternity', 'of the Divine', 'Godshield'],
-            6: ['of the Divine Aegis', 'of Immortality', 'Cosmic Bulwark']
-        };
-        const JEWELRY_SUFFIXES: Record<number, string[]> = {
-            1: ['of Minor Power', 'of the Apprentice', 'of Focus'],
-            2: ['of Enhancement', 'of the Adept', 'of Clarity'],
-            3: ['of Mastery', 'of the Sage', 'of Potency'],
-            4: ['of Supremacy', 'of the Archmage', 'of Domination'],
-            5: ['of Omnipotence', 'of the Infinite', 'Godstone'],
-            6: ['of the Gods', 'of Cosmic Power', 'Starbound']
-        };
-        const UTILITY_SUFFIXES: Record<number, string[]> = {
-            1: ['of Fortune', 'of Luck', 'of the Traveler'],
-            2: ['of Swiftness', 'of Haste', 'of the Runner'],
-            3: ['of Prosperity', 'of Riches', 'of the Merchant'],
-            4: ['of the Windwalker', 'of Agility', 'of the Scout'],
-            5: ['of the Midas Touch', 'of Avarice', 'of Treasure'],
-            6: ['of the Cosmic Wanderer', 'of Infinite Fortune', 'Starstrider']
-        };
+        // Room 0 (the starting shrine) always blesses the hero's weapon so the
+        // opening of a run reads the same way every time.
+        const startingWeaponSlot = state.depth === 0 && hero.equipment.main_hand
+            ? { memberId: hero.id, item: hero.equipment.main_hand, slot: 'main_hand' as EquipmentSlot }
+            : null;
 
-        if (equippedItems.length > 0) {
+        const enchantTarget = startingWeaponSlot
+            ?? (equippedItems.length > 0 ? rng.pick(equippedItems) : null);
+
+        if (enchantTarget) {
             boons.push({
                 type: 'enchant',
                 apply: () => {
-                    // Pick random equipped item
-                    const target = equippedItems[Math.floor(Math.random() * equippedItems.length)];
-
-                    // Roll tier (weighted by Faith)
-                    const faith = target.member.skills?.faith || 0;
-                    const faithBonus = faith * 5; // +5% chance per faith point for better tiers
-
-                    // If item already enchanted, 50% chance to upgrade tier instead
-                    const existingTier = target.item.enchantment?.tier || 0;
-                    const isUpgrade = existingTier > 0 && Math.random() < 0.5;
-
-                    let tierRoll = isBossShrine 
-                         ? 60 + (Math.random() * 35) + faithBonus // Force Lesser+ (60-95), rarely Epic
-                         : Math.random() * 100 + faithBonus;
-                    
-                    // Soft cap: Prevent Legendary (Tier 5, >98) at low depths (< 10)
-                    if (state.depth < 10 && tierRoll > 95) {
-                        tierRoll = 95; // Cap at max Epic
-                    }
-                    let baseTier: 1 | 2 | 3 | 4 | 5 | 6;
-                    let tierName: string;
-                    if (tierRoll < 40) { baseTier = 1; tierName = 'Common'; }
-                    else if (tierRoll < 65) { baseTier = 2; tierName = 'Uncommon'; }
-                    else if (tierRoll < 82) { baseTier = 3; tierName = 'Rare'; }
-                    else if (tierRoll < 93) { baseTier = 4; tierName = 'Epic'; }
-                    else if (tierRoll < 99) { baseTier = 5; tierName = 'Legendary'; }
-                    else { baseTier = 6; tierName = 'Godly'; }
-
-                    // If upgrading, ensure new tier is at least +1 (capped at 6)
-                    const tier = isUpgrade
-                        ? Math.min(6, Math.max(baseTier, existingTier + 1)) as 1 | 2 | 3 | 4 | 5 | 6
-                        : baseTier;
-                    if (tier > baseTier) {
-                        tierName = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary', 'Godly'][tier - 1];
-                    }
-
-                    // Generate enchantment based on slot
-                    const bonusValue = tier + Math.floor(Math.random() * tier); // tier to tier*2
-
-                    // Pick suffix based on item slot type and utility check
-                    let suffixTable = JEWELRY_SUFFIXES;
-                    const isUtilityCheck = ['ring1', 'ring2', 'neck'].includes(target.slot) && Math.random() < 0.15;
-                    if (isUtilityCheck) {
-                        suffixTable = UTILITY_SUFFIXES;
-                    } else if (target.slot === 'main_hand' || target.slot === 'off_hand') {
-                        suffixTable = target.item.type === 'shield' ? ARMOR_SUFFIXES : WEAPON_SUFFIXES;
-                    } else if (['chest', 'legs', 'head', 'feet'].includes(target.slot)) {
-                        suffixTable = ARMOR_SUFFIXES;
-                    }
-                    const suffix = suffixTable[tier][Math.floor(Math.random() * suffixTable[tier].length)];
-
-                    // Create enchantment effect based on slot type
-                    const effect: { 
-                        attackBonus?: number; damageBonus?: number; acBonus?: number; maxHpBonus?: number;
-                        escapeBonus?: number; lootBonus?: number; goldBonus?: number;
-                    } = {};
-
-                    // 15% chance for utility enchantment on jewelry
-                    const isUtility = ['ring1', 'ring2', 'neck'].includes(target.slot) && Math.random() < 0.15;
-                    
-                    if (isUtility) {
-                        // Utility enchantment - escape, loot, or gold
-                        const utilRoll = Math.random();
-                        if (utilRoll < 0.33) {
-                            effect.escapeBonus = tier * 3; // +3% to +18% escape
-                        } else if (utilRoll < 0.66) {
-                            effect.lootBonus = tier * 2; // +2% to +12% loot
-                        } else {
-                            effect.goldBonus = tier * 5; // +5% to +30% gold
-                        }
-                    } else if (target.slot === 'main_hand' || target.slot === 'off_hand') {
-                        // Weapon/Shield
-                        if (target.item.type === 'shield') {
-                             effect.acBonus = bonusValue;
-                             if (tier >= 3) effect.maxHpBonus = tier;
-                        } else {
-                             effect.attackBonus = Math.floor(bonusValue / 2) || 1;
-                             effect.damageBonus = bonusValue;
-                        }
-                    } else if (['chest', 'legs', 'head', 'feet'].includes(target.slot)) {
-                        // Armor - Defense only
-                        effect.acBonus = bonusValue;
-                        if (tier >= 3) effect.maxHpBonus = tier * 2;
-                    } else {
-                        // Jewelry (neck, rings) - Offensive only
-                        if (Math.random() < 0.5) {
-                            effect.attackBonus = bonusValue;
-                        } else {
-                            effect.damageBonus = bonusValue;
-                        }
-                    }
-
-                    // MERGE / STACK LOGIC
-                    // If upgrading, stack the stats on top of existing ones
-                    if (isUpgrade && target.item.enchantment) {
-                        const oldEffect = target.item.enchantment.effect;
-                        
-                        // Add new bonuses to old bonuses
-                        if (effect.attackBonus) effect.attackBonus = (oldEffect.attackBonus || 0) + effect.attackBonus;
-                        if (effect.damageBonus) effect.damageBonus = (oldEffect.damageBonus || 0) + effect.damageBonus;
-                        if (effect.acBonus) effect.acBonus = (oldEffect.acBonus || 0) + effect.acBonus;
-                        if (effect.maxHpBonus) effect.maxHpBonus = (oldEffect.maxHpBonus || 0) + effect.maxHpBonus;
-                        
-                        // Keep the highest tier for coloring purposes, or upgrades tier
-                        // Use calculated 'tier' from above which is already max(old+1, new)
-                    }
-
-                    // Get base item name (remove old suffix if upgrading)
-                    // Use customName if player renamed the item, otherwise use original name
-                    const originalBaseName = target.item.enchantment
-                        ? target.item.name.replace(/ of .*$/, '').replace(/ God.*$/, '')
-                        : target.item.name;
-                    // For stacked blessings, we keep the new suffix as the "primary" name descriptor
-                    // but the stats are stacked.
-                    
-                    const displayBaseName = target.item.customName || originalBaseName;
-
-                    // Add to item history
-                    const itemHistory = [...(target.item.history || [])];
-                    if (isUpgrade && target.item.enchantment) {
-                         // Describe stacking
-                         itemHistory.push(`Stacked with ${tierName} enchantment (Total Tier ${tier})`);
-                    } else if (isUpgrade) {
-                        itemHistory.push(`Upgraded to ${tierName} at shrine`);
-                    } else {
-                        itemHistory.push(`Blessed with ${tierName} enchantment`);
-                    }
-                    while (itemHistory.length > 10) itemHistory.shift();
-
-                    // Apply enchantment to item
-                    const enchantedItem: Item = {
-                        ...target.item,
-                        name: `${originalBaseName} ${suffix}`,
-                        enchantment: { tier, name: suffix, effect, description: `${tierName} Boon` },
-                        history: itemHistory
-                    };
-
-                    // Update party member's equipment
-                    newParty.members = state.party.members.map(m => {
-                        if (m.id !== target.member.id) return m;
-                        const newEquipment = { ...m.equipment };
-                        newEquipment[target.slot] = enchantedItem;
-                        return { ...m, equipment: newEquipment };
+                    const owner = newParty.members.find(m => m.id === enchantTarget.memberId);
+                    const result = enchantItem(enchantTarget.item, enchantTarget.slot, rng, {
+                        faith: owner?.skills?.faith || 0,
+                        guaranteedStrong: isBossShrine,
+                        depth: state.depth,
+                        forceWeapon: !!startingWeaponSlot,
                     });
 
-                    const upgradeText = isUpgrade ? ' (UPGRADED!)' : '';
-                    return `✨ ${tierName} Boon${upgradeText}! ${target.member.name}'s ${displayBaseName} becomes ${enchantedItem.customName || enchantedItem.name}! (+${bonusValue} power)`;
+                    newParty.members = newParty.members.map(m => {
+                        if (m.id !== enchantTarget.memberId) return m;
+                        const withItem = {
+                            ...m,
+                            equipment: { ...m.equipment, [enchantTarget.slot]: result.item },
+                        };
+                        // Enchantments that grant max HP have to move the
+                        // wearer's HP pool, or unequipping later would subtract
+                        // HP that was never added.
+                        return applyMaxHpDelta(withItem, result.maxHpDelta);
+                    });
+
+                    const before = enchantTarget.item.customName || enchantTarget.item.name;
+                    const after = result.item.customName || result.item.name;
+                    const upgradeText = result.isUpgrade ? ' (STACKED!)' : '';
+                    const icon = startingWeaponSlot ? '⚔️' : '✨';
+                    return `${icon} ${result.tierName} Boon${upgradeText}! ${owner?.name ?? 'The party'}'s ${before} becomes ${after}! (+${result.bonusValue} power)`;
                 }
             });
         }
-        
-        // Pick a boon - Room 0 (starting shrine) always enchants the WEAPON specifically
-        let chosenBoon;
-        if (state.depth === 0) {
-            // Starting shrine ONLY enchants the main weapon
-            const hero = state.party.members[0];
-            const weapon = hero.equipment.main_hand;
-            
-            if (weapon) {
-                // Create a special weapon-only enchant boon
-                chosenBoon = {
-                    type: 'enchant_weapon',
-                    apply: () => {
-                        // Same enchantment logic but forced to main_hand weapon
-                        const faith = hero.skills?.faith || 0;
-                        const faithBonus = faith * 5;
-                        const existingTier = weapon.enchantment?.tier || 0;
-                        const isUpgrade = existingTier > 0 && Math.random() < 0.5;
 
-                        const tierRoll = Math.random() * 100 + faithBonus;
-                        let baseTier: 1 | 2 | 3 | 4 | 5 | 6;
-                        let tierName: string;
-                        if (tierRoll < 40) { baseTier = 1; tierName = 'Common'; }
-                        else if (tierRoll < 65) { baseTier = 2; tierName = 'Uncommon'; }
-                        else if (tierRoll < 82) { baseTier = 3; tierName = 'Rare'; }
-                        else if (tierRoll < 93) { baseTier = 4; tierName = 'Epic'; }
-                        else if (tierRoll < 99) { baseTier = 5; tierName = 'Legendary'; }
-                        else { baseTier = 6; tierName = 'Godly'; }
-
-                        const tier = isUpgrade
-                            ? Math.min(6, Math.max(baseTier, existingTier + 1)) as 1 | 2 | 3 | 4 | 5 | 6
-                            : baseTier;
-                        if (tier > baseTier) {
-                            tierName = ['Common', 'Uncommon', 'Rare', 'Epic', 'Legendary', 'Godly'][tier - 1];
-                        }
-
-                        const bonusValue = tier + Math.floor(Math.random() * tier);
-                        const suffix = WEAPON_SUFFIXES[tier][Math.floor(Math.random() * WEAPON_SUFFIXES[tier].length)];
-
-                        const effect = {
-                            attackBonus: Math.floor(bonusValue / 2) || 1,
-                            damageBonus: bonusValue
-                        };
-
-                        const originalBaseName = weapon.enchantment
-                            ? weapon.name.replace(/ of .*$/, '').replace(/ God.*$/, '')
-                            : weapon.name;
-                        const displayBaseName = weapon.customName || originalBaseName;
-
-                        const itemHistory = [...(weapon.history || [])];
-                        itemHistory.push(`Blessed with ${tierName} enchantment at starting shrine`);
-                        while (itemHistory.length > 10) itemHistory.shift();
-
-                        const enchantedItem: Item = {
-                            ...weapon,
-                            name: `${originalBaseName} ${suffix}`,
-                            enchantment: { tier, name: suffix, effect, description: `${tierName} Boon` },
-                            history: itemHistory
-                        };
-
-                        // Update hero's equipment
-                        newParty.members = state.party.members.map((m, i) => {
-                            if (i !== 0) return m;
-                            return { ...m, equipment: { ...m.equipment, main_hand: enchantedItem } };
-                        });
-
-                        const upgradeText = isUpgrade ? ' (UPGRADED!)' : '';
-                        return `⚔️ ${tierName} Weapon Blessing${upgradeText}! Your ${displayBaseName} becomes ${enchantedItem.customName || enchantedItem.name}! (+${bonusValue} power)`;
-                    }
-                };
-            } else {
-                // No weapon? Fall back to gold
-                chosenBoon = boons.find(b => b.type === 'gold') || boons[0];
-            }
-        } else {
-            chosenBoon = boons[Math.floor(Math.random() * boons.length)];
+        // A boss shrine offers ONLY the enchantment, so a party with nothing
+        // equipped would previously leave `boons` empty and crash on
+        // `chosenBoon.apply()`. Fall back to gold rather than throwing.
+        if (boons.length === 0) {
+            boons.push({
+                type: 'gold',
+                apply: () => {
+                    const goldBonus = rng.int(40, 80);
+                    newParty.gold = state.party.gold + goldBonus;
+                    return `The shrine finds nothing to bless, and offers coin instead. +${goldBonus} gold!`;
+                }
+            });
         }
+
+        // The starting shrine and boss shrines always take the enchant branch;
+        // ordinary shrines pick at random.
+        const chosenBoon = (startingWeaponSlot || isBossShrine)
+            ? (boons.find(b => b.type === 'enchant') ?? boons[0])
+            : rng.pick(boons);
+
         const boonMessage = chosenBoon.apply();
-        
+
         return {
             ...state,
             party: newParty,
@@ -1167,17 +898,20 @@ export function gameReducer(state: RunState, action: Action): RunState {
             };
         }
 
-        // Check party size (max 4)
-        if (state.party.members.length >= 4) {
+        // Check party size
+        if (state.party.members.length >= MAX_PARTY_SIZE) {
             return {
                 ...state,
-                history: cappedHistory([...state.history, 'Party is full! Max 4 members.'])
+                history: cappedHistory([...state.history, `Party is full! Max ${MAX_PARTY_SIZE} members.`])
             };
         }
 
-        // Create new party member at recruit's scaled level with starter equipment
+        // Create new party member at recruit's scaled level with starter equipment.
+        // The id is salted with the depth so a member hired after someone died
+        // can't collide with an existing id (which would make ATTACK and
+        // EQUIP_ITEM target the wrong actor).
         const newMember = createActor(
-            `party-${state.party.members.length + 1}`,
+            `party-${state.depth}-${state.party.members.length + 1}-${rng.int(1000, 9999)}`,
             recruit.name,
             recruit.role,
             recruit.level || 1, // Use recruit's scaled level (defaults to 1 if missing)
@@ -1218,90 +952,27 @@ export function gameReducer(state: RunState, action: Action): RunState {
         const { dc, breakdown } = calculateEscapeDC(state.depth, enemyCount, isElite, partyAgility, hasRogue);
 
         // Roll escape check
-        const escapeRoll = roll('1d20').total;
+        const escapeRoll = roll('1d20', rng).total;
         const success = escapeRoll >= dc;
 
-        let newHistory = [...state.history];
-        let newParty = { ...state.party };
-
         if (success) {
-            newHistory.push(`🏃 Escape attempt: [${escapeRoll} vs DC ${dc}] SUCCESS! (${breakdown})`);
-            
-            // Advance to next room - generate new room
-            const rng = new SeededRNG(hashWithSeed(state.seed + 'retreat', state.depth));
-            const newDepth = state.depth + 1;
-            const newRoom = generateRoom({ ...state, depth: newDepth }, rng);
-            
-            return {
-                ...state,
-                depth: newDepth,
-                currentRoom: newRoom,
-                roomResolved: newRoom.type !== 'combat' && newRoom.type !== 'elite' && newRoom.type !== 'hazard' && newRoom.type !== 'shrine' && newRoom.type !== 'trader',
-                combatTurn: (newRoom.type === 'combat' || newRoom.type === 'elite') ? 'player' : null,
-                combatRound: (newRoom.type === 'combat' || newRoom.type === 'elite') ? 1 : 0,
-                extraActions: 0, // Reset extra actions on room enter
-                history: cappedHistory([...newHistory, `Entered room ${newDepth}: ${newRoom.type.toUpperCase()}`])
-            };
-        } else {
-            // Failed - enemies get free attacks
-            newHistory.push(`🏃 Escape attempt: [${escapeRoll} vs DC ${dc}] FAILED! Enemies attack! (${breakdown})`);
-
-            // All alive enemies attack once
-            for (const enemy of room.enemies.filter(e => e.hp > 0)) {
-                const aliveMembersForAttack = newParty.members.filter(m => m.isAlive);
-                if (aliveMembersForAttack.length === 0) break;
-
-                const targetMember = aliveMembersForAttack[Math.floor(Math.random() * aliveMembersForAttack.length)];
-                const targetIndex = newParty.members.findIndex(m => m.id === targetMember.id);
-                
-                const enemyAttackRoll = roll('1d20').total;
-                // Calculate AC from defense skill + equipped items (including enchantments)
-                let memberAC = 10 + (targetMember.skills?.defense || 0);
-                Object.values(targetMember.equipment).forEach(item => {
-                    if (!item) return;
-                    memberAC += (item.baseStats.acBonus || 0);
-                    if (item.enchantment?.effect) {
-                        memberAC += (item.enchantment.effect.acBonus || 0);
-                    }
-                });
-                const enemyHit = (enemyAttackRoll + enemy.power) >= memberAC;
-                
-                if (enemyHit) {
-                    const enemyDamageRoll = roll(enemy.damage);
-                    const newHp = Math.max(0, targetMember.hp.current - enemyDamageRoll.total);
-                    const isNowDead = newHp <= 0;
-                    
-                    newParty.members = newParty.members.map((m, i) => 
-                        i === targetIndex ? { ...m, hp: { ...m.hp, current: newHp }, isAlive: !isNowDead } : m
-                    );
-                    
-                    newHistory.push(`💥 ${enemy.name} attacks ${targetMember.name}: HIT! ${enemyDamageRoll.total} damage!`);
-                    if (isNowDead) {
-                        newHistory.push(`☠️ ${targetMember.name} has fallen!`);
-                    }
-                } else {
-                    newHistory.push(`💨 ${enemy.name} attacks ${targetMember.name}: MISS!`);
-                }
-            }
-            
-            // Check game over
-            const allDead = newParty.members.every(m => !m.isAlive);
-            if (allDead) {
-                return {
-                    ...state,
-                    party: newParty,
-                    gameOver: true,
-                    history: cappedHistory([...newHistory, 'The entire party has fallen! Game Over.'])
-                };
-            }
-            
-            // Stay in combat, player turn
-            return {
-                ...state,
-                party: newParty,
-                history: cappedHistory(newHistory)
-            };
+            // Escaping funnels through the same entry path as advancing, so the
+            // two can't drift. Notably it derives the room from (seed, depth),
+            // which means fleeing no longer rerolls the room's contents.
+            return enterRoom(state, state.depth + 1, rng, [
+                `🏃 Escape attempt: [${escapeRoll} vs DC ${dc}] SUCCESS! (${breakdown})`,
+            ]);
         }
+
+        // Failed - the enemies get a free round of attacks.
+        const failState: RunState = {
+            ...state,
+            history: cappedHistory([
+                ...state.history,
+                `🏃 Escape attempt: [${escapeRoll} vs DC ${dc}] FAILED! Enemies attack! (${breakdown})`,
+            ]),
+        };
+        return resolveEnemyTurn(failState, rng);
     }
 
     case 'USE_ABILITY': {
@@ -1329,8 +1000,10 @@ export function gameReducer(state: RunState, action: Action): RunState {
 
         let newHistory = [...state.history];
         let newEnemies = [...room.enemies];
-        let newParty = { ...state.party };
-        
+        // Clone members: the index assignments below would otherwise write
+        // through into the caller's state.
+        let newParty = { ...state.party, members: [...state.party.members] };
+
         // Calculate Bonuses based on Skills (Simplified for now, can be expanded)
         const skills = actor.skills || { strength: 0, attack: 0, defense: 0, magic: 0, ranged: 0, faith: 0 };
         let powerBonus = 0;
@@ -1380,7 +1053,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
                  // AOE
                  newEnemies = newEnemies.map(e => {
                      if (e.hp <= 0) return e;
-                     const dmg = roll(abilityDef.effect.dice || '1d6').total + powerBonus;
+                     const dmg = roll(abilityDef.effect.dice || '1d6', rng).total + powerBonus;
                      return { ...e, hp: Math.max(0, e.hp - dmg) };
                  });
                  newHistory.push(`${actor.name} uses ${abilityDef.name}! AOE Damage!`);
@@ -1391,7 +1064,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
                      const target = room.enemies[targetIndex];
                      // Attack Roll if it's an attack, or auto-hit for some spells?
                      // Let's do attack roll for EVERYTHING offensive to keep it consistent with skills
-                      const attackRoll = roll('1d20').total + accuracyBonus;
+                      const attackRoll = roll('1d20', rng).total + accuracyBonus;
                       if (attackRoll >= target.ac) {
                           let dmg = 0;
                           
@@ -1407,14 +1080,14 @@ export function gameReducer(state: RunState, action: Action): RunState {
                                    else if (name.includes('bow') || name.includes('cross')) weaponDice = '1d8';
                                    else if (name.includes('staff')) weaponDice = '1d6';
                                }
-                               dmg += roll(weaponDice).total;
+                               dmg += roll(weaponDice, rng).total;
                           }
                           
                           // Ability Bonus Dice
                           if (abilityDef.effect.dice) {
-                              dmg += roll(abilityDef.effect.dice).total;
+                              dmg += roll(abilityDef.effect.dice, rng).total;
                           } else if (!abilityDef.effect.useWeaponDamage) {
-                              dmg += roll('1d6').total; // Fallback
+                              dmg += roll('1d6', rng).total; // Fallback
                           }
                           
                           dmg += powerBonus;
@@ -1432,7 +1105,7 @@ export function gameReducer(state: RunState, action: Action): RunState {
              if (targetIndex !== -1) {
                  const target = newParty.members[targetIndex];
                  // Heal = dice + level + faith bonus
-                 const heal = roll(abilityDef.effect.dice || '1d4').total + actor.level + powerBonus;
+                 const heal = roll(abilityDef.effect.dice || '1d4', rng).total + actor.level + powerBonus;
                  const newHp = Math.min(target.hp.max, target.hp.current + heal);
                  newParty.members[targetIndex] = { ...target, hp: { ...target.hp, current: newHp } };
                  newHistory.push(`${actor.name} heals ${target.name} for ${heal} HP.`);
@@ -1464,17 +1137,13 @@ export function gameReducer(state: RunState, action: Action): RunState {
         let extraActionsGranted = 0;
         if (abilityDef.id === 'action_surge') {
             usedAction = false;
-            usedAction = false;
-            // combatTurn handled at end
-            extraActionsGranted = 1;
             extraActionsGranted = 1;
             newHistory.push(`${actor.name} surges with energy (Action Surge)! Take another action!`);
         }
 
-        // Set cooldown
-        // For 'rest' cooldown abilities, use a large number (999) to indicate "until rest"
-        // For 'turns' cooldown, use the defined value
-        const cooldownToSet = abilityDef.cooldownType === 'rest' ? 999 : abilityDef.cooldownValue;
+        // Set cooldown. 'rest' abilities park at the REST_COOLDOWN sentinel
+        // until a short/long rest clears them.
+        const cooldownToSet = abilityDef.cooldownType === 'rest' ? REST_COOLDOWN : abilityDef.cooldownValue;
 
         // We need to update the actor in the NEW party array
         const finalActorIndex = newParty.members.findIndex(m => m.id === actor.id);
@@ -1501,26 +1170,26 @@ export function gameReducer(state: RunState, action: Action): RunState {
              }
         }
 
-        // Check deaths
+        // Award spoils for anything that died this turn, using the same reward
+        // table as a plain attack.
+        let newInventory = state.inventory;
         newEnemies.forEach((e, i) => {
-             if (e.hp <= 0 && room.enemies[i].hp > 0) {
-                 // Died this turn
-                  const goldDrop = e.power * 2;
-                  newParty.gold += goldDrop;
-                  newHistory.push(`${e.name} defeated! +${goldDrop} Gold`);
-             }
-         });
-         
-        const aliveEnemies = newEnemies.filter(e => e.hp > 0);
-        if (aliveEnemies.length === 0 && room.enemies.length > 0) {
-            newHistory.push("Victory! All enemies defeated.");
-            // Don't auto-resolve shrines or hazards - let player interact with them
-            if (room.type === 'shrine' || room.type === 'hazard') {
-                roomResolved = false;
-            } else {
-                roomResolved = true;
+            if (e.hp <= 0 && room.enemies[i].hp > 0) {
+                const rewards = awardKill(newParty, newInventory, e, rng, newHistory);
+                newParty = { ...rewards.party, members: [...rewards.party.members] };
+                newInventory = rewards.inventory;
             }
-            // combatTurn handled at end by roomResolved check
+        });
+
+        const aliveEnemies = newEnemies.filter(e => e.hp > 0);
+        let justWon = false;
+        if (aliveEnemies.length === 0 && room.enemies.length > 0) {
+            const goldReward = state.inBossRoom ? rng.int(20, 49) : rng.int(5, 15);
+            newParty = { ...newParty, gold: newParty.gold + goldReward };
+            newHistory.push(`Victory! All enemies defeated. +${goldReward} gold.`);
+            justWon = true;
+            // Don't auto-resolve shrines or hazards - let player interact with them
+            roomResolved = !(room.type === 'shrine' || room.type === 'hazard');
         }
 
         // Turn Tracking Logic (Match ATTACK handler behavior)
@@ -1544,30 +1213,31 @@ export function gameReducer(state: RunState, action: Action): RunState {
         const allActed = aliveMemberIds.every(id => newActedThisRound.includes(id));
         
         let nextCombatTurn: 'player' | 'enemy' | null = 'player';
-        
-        if (roomResolved) {
+
+        if (justWon) {
+             // Combat is over even in a guarded shrine/hazard, where the room
+             // itself stays unresolved so the player can still interact.
              nextCombatTurn = null;
-        } else {
-             // If all acted and no extra actions remain, switch to enemy
-             if (allActed && newExtraActions === 0) {
-                 nextCombatTurn = 'enemy';
-             }
-             // If Action Surge was used (extraActionsGranted > 0), we DEFINITELY stay on player turn (already set default 'player')
+        } else if (allActed && newExtraActions === 0) {
+             // If Action Surge was used, extraActions keeps us on the player turn.
+             nextCombatTurn = 'enemy';
         }
 
-        let nextState = {
+        let nextState: RunState = {
             ...state,
             history: cappedHistory(newHistory),
             party: newParty,
+            inventory: newInventory,
             currentRoom: { ...room, enemies: aliveEnemies },
             roomResolved,
+            victory: justWon,
             combatTurn: nextCombatTurn,
             actedThisRound: nextCombatTurn === 'enemy' ? [] : newActedThisRound,
             extraActions: newExtraActions
         };
 
         if (nextCombatTurn === 'enemy') {
-            return resolveEnemyTurn(nextState);
+            return resolveEnemyTurn(nextState, rng);
         }
         return nextState;
     }

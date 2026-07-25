@@ -109,6 +109,7 @@ export function createInitialRunState(seed: string): RunState {
 
   return {
     seed,
+    rngCursor: 0,
     depth: 0,
     themeId: "dungeon_start",
     shortRestsRemaining: 2,
@@ -146,38 +147,53 @@ export function saveGameState(state: RunState): void {
   }
 }
 
+/**
+ * Bring a persisted save up to the current shape.
+ *
+ * Saves predate several fields, and the old code compensated with two
+ * heuristic "repair" passes that sniffed the combat log for the word
+ * "Victory!" to guess whether a guarded room had been softlocked. Those bugs
+ * are fixed at the source now (see enterRoom), so migration is just filling in
+ * missing fields.
+ */
+export function migrateSave(raw: unknown): RunState | null {
+  if (!raw || typeof raw !== "object") return null;
+  const state = raw as Partial<RunState>;
+
+  // A save without these is not recoverable.
+  if (typeof state.seed !== "string" || !state.party?.members?.length) return null;
+
+  const migrated: RunState = {
+    ...(state as RunState),
+    rngCursor: typeof state.rngCursor === "number" ? state.rngCursor : 0,
+    depth: state.depth ?? 0,
+    mutations: state.mutations ?? [],
+    history: Array.isArray(state.history) ? state.history : [],
+    actedThisRound: state.actedThisRound ?? [],
+    extraActions: state.extraActions ?? 0,
+    combatRound: state.combatRound ?? 0,
+    inBossRoom: state.inBossRoom ?? false,
+    parentIntermission: state.parentIntermission ?? null,
+    shrineBoon: state.shrineBoon ?? null,
+    inventory: state.inventory ?? { items: [], consumables: [] },
+  };
+
+  // A room that still has living enemies must be on someone's turn, or the
+  // player would have no legal move.
+  const enemiesAlive = migrated.currentRoom?.enemies?.some(e => e.hp > 0) ?? false;
+  if (enemiesAlive && !migrated.combatTurn && !migrated.gameOver) {
+    migrated.combatTurn = "player";
+  }
+
+  return migrated;
+}
+
 // Load game state from localStorage
 export function loadGameState(): RunState | null {
   try {
     const saved = localStorage.getItem(SAVE_KEY);
     if (saved) {
-      const state = JSON.parse(saved) as RunState;
-      
-      // FIX: If in guarded room with no combat turn (bug fix), force player turn
-      if (state.currentRoom && 
-          (state.currentRoom.type === 'shrine' || state.currentRoom.type === 'hazard') &&
-          state.currentRoom.enemies && 
-          state.currentRoom.enemies.length > 0 &&
-          !state.combatTurn && 
-          !state.roomResolved) {
-          
-          console.log('Repaired broken guarded room state: Forcing player turn');
-          state.combatTurn = 'player';
-      }
-      
-      // FIX: If in guarded room that was auto-resolved by combat victory (bug), un-resolve it
-      if (state.currentRoom && 
-          (state.currentRoom.type === 'shrine' || state.currentRoom.type === 'hazard') &&
-          state.roomResolved && 
-          state.currentRoom.enemies && // Was a guarded room
-          state.history.some(h => h.includes('Victory!')) && // Combat finished
-          !state.history.some(h => h.includes('blessing') || h.includes('neutralized') || h.includes('triggered'))) { // But no interaction
-          
-          console.log('Repaired premature room resolution: Enabling interaction');
-          state.roomResolved = false;
-      }
-      
-      return state;
+      return migrateSave(JSON.parse(saved));
     }
   } catch (e) {
     console.warn("Failed to load game state:", e);

@@ -128,6 +128,17 @@ export interface Enchantment {
   effect: ItemStats;
 }
 
+/** Bonuses an enchantment can grant. Shared by Item.enchantment. */
+export interface EnchantEffect {
+  attackBonus?: number;
+  damageBonus?: number;
+  acBonus?: number;
+  maxHpBonus?: number;
+  escapeBonus?: number;
+  lootBonus?: number;
+  goldBonus?: number;
+}
+
 export interface Item {
   id: string;
   name: string;
@@ -145,15 +156,7 @@ export interface Item {
     tier: 1 | 2 | 3 | 4 | 5 | 6; // Common to Godly
     name: string;
     description: string;
-    effect: {
-      attackBonus?: number;
-      damageBonus?: number;
-      acBonus?: number;
-      maxHpBonus?: number;
-      escapeBonus?: number;
-      lootBonus?: number;
-      goldBonus?: number;
-    };
+    effect: EnchantEffect;
   };
   // Mastery Stats - tracked during combat
   stats?: {
@@ -179,6 +182,13 @@ export interface InventoryState {
 
 export interface RunState {
   seed: string;
+  /**
+   * Monotonic counter of reducer steps. Combined with `seed` it derives the
+   * RNG for each action, which is what makes a run fully reproducible: the
+   * same seed plus the same action sequence always yields the same run.
+   * Never decrement or reuse a value -- that would replay old rolls.
+   */
+  rngCursor: number;
   depth: number; // rooms cleared. Starts at 0.
   // segmentIndex is derived: Math.floor(depth / 10)
   // roomInSegment is derived: (depth % 10) + 1
@@ -212,18 +222,16 @@ export type Action =
   | { type: 'START_RUN'; seed: string }
   | { type: 'ADVANCE_ROOM' }
   | { type: 'TAKE_SHORT_REST'; actorIdsToHeal: string[] }
-  | { type: 'RESOLVE_ROOM' }
   | { type: 'ATTACK'; attackerId: string; targetId: string }
   | { type: 'DISARM_TRAP' }
   | { type: 'TRIGGER_TRAP' }
   | { type: 'PRAY_AT_SHRINE' }
   | { type: 'DISMISS_POPUP' }
-  | { type: 'BUY_ITEM'; itemId: string; cost: number } 
+  | { type: 'BUY_ITEM'; itemId: string } 
   | { type: 'SELL_ITEM'; itemId: string } 
   | { type: 'EQUIP_ITEM'; actorId: string; itemId: string; slot?: EquipmentSlot }
   | { type: 'HIRE_RECRUIT'; recruitId: string }
   | { type: 'ESCAPE' }
-  | { type: 'PRAY_AT_BOSS_SHRINE' }
   | { type: 'RENAME_ITEM'; itemId: string; newName: string }
   | { type: 'UNEQUIP_ITEM'; actorId: string; slot: EquipmentSlot }
   | { type: 'USE_ABILITY'; actorId: string; abilityId: string; targetId?: string }

@@ -1,4 +1,5 @@
 import type { ScoreEntry, WeaponEntry, LeaderboardCategory } from '../api/client';
+import { esc } from './escape';
 
 // Leaderboard category definitions
 export const CATEGORIES = [
@@ -35,7 +36,7 @@ export function renderLeaderboard(
         return `
           <tr>
             <td class="rank ${rankClass}">${i + 1}</td>
-            <td class="player-name">${s.display_name || 'Anonymous'}</td>
+            <td class="player-name">${esc(s.display_name || 'Anonymous')}</td>
             <td class="stat-value">${formatValue(value, category.id)}</td>
           </tr>
         `;
@@ -49,9 +50,9 @@ export function renderLeaderboard(
         return `
           <tr>
             <td class="rank ${rankClass}">${i + 1}</td>
-            <td class="weapon-name rarity-${w.rarity}">${w.name}</td>
-            <td class="stat-value">${w.kills}</td>
-            <td class="player-name">${w.owner}</td>
+            <td class="weapon-name rarity-${esc(w.rarity)}">${esc(w.name)}</td>
+            <td class="stat-value">${esc(w.kills)}</td>
+            <td class="player-name">${esc(w.owner)}</td>
           </tr>
         `;
       }).join('');

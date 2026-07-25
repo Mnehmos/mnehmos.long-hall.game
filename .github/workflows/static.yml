@@ -30,6 +30,11 @@ jobs:
           cache: "npm"
       - name: Install dependencies
         run: npm ci
+      # Gate the deploy on the suite. The engine bugs this suite now covers
+      # (RNG collapse, XSS escaping, save-format drift) all shipped to
+      # production once already.
+      - name: Test
+        run: npm test -- --run
       - name: Build
         run: npm run build
         env:

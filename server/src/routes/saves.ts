@@ -1,14 +1,17 @@
 import { Router } from 'express';
 import { pool } from '../db/index.js';
 import { generateSaveHash } from '../utils/hash.js';
-import { requireAuth } from '@clerk/express';
+import { rateLimit } from '../middleware/rateLimit.js';
 
 const router = Router();
 
+// Auth is applied by the parent router (see index.ts).
+const saveLimit = rateLimit({ windowMs: 60_000, max: 30, keyPrefix: 'saves' });
+
 // GET /api/saves - Get latest save
-router.get('/', async (req, res) => {
+router.get('/', saveLimit, async (req, res) => {
   const { userId } = req.auth;
-  
+
   if (!userId) {
      res.status(401).json({ error: 'Unauthorized' });
      return;
@@ -33,7 +36,7 @@ router.get('/', async (req, res) => {
 });
 
 // POST /api/saves - Create/Update save
-router.post('/', async (req, res) => {
+router.post('/', saveLimit, async (req, res) => {
   const { userId } = req.auth;
   const { data } = req.body;
 
@@ -42,8 +45,11 @@ router.post('/', async (req, res) => {
      return;
   }
 
-  if (!data) {
-     res.status(400).json({ error: 'Missing save data' });
+  // The client sends { data: <RunState> }. Reject anything that isn't at least
+  // shaped like a run, so we don't persist arbitrary JSON under a user id.
+  if (!data || typeof data !== 'object' || Array.isArray(data)
+      || typeof data.seed !== 'string' || !data.party) {
+     res.status(400).json({ error: 'Missing or malformed save data' });
      return;
   }
 

@@ -2,9 +2,9 @@ import type { RunState, Item } from '../engine/types';
 import { clerk } from '../auth';
 import { getAbilityById } from '../content/abilities';
 import { getEnemyArt, getHeroArt, renderHpBar, renderStatBar, EQUIPMENT_ICONS } from '../content/art';
-import { ITEMS } from '../content/tables';
 import { calculateEscapeDC } from '../engine/generateRoom';
 import type { ScoreEntry } from '../api/client';
+import { esc, escAttr } from './escape';
 
 // UI State (not game state - just for navigation)
 let cachedHighScores: ScoreEntry[] = [];
@@ -27,7 +27,7 @@ function renderHighScoresPanel(): string {
       html += `
         <li class="highscore-entry">
           <span class="highscore-rank ${rankClass}">#${i + 1}</span>
-          <span class="highscore-name">${displayName}</span>
+          <span class="highscore-name">${esc(displayName)}</span>
           <span class="highscore-score">${score.score}</span>
         </li>`;
     });
@@ -73,10 +73,11 @@ function formatItemHistory(item: Item): string {
 }
 
 function renderShopSection(state: RunState): string {
-    // Use room's pre-generated shop items or fallback to random
-    const room = state.currentRoom;
-    const forSale = room?.shopItems || [...ITEMS].sort(() => Math.random() - 0.5).slice(0, 4);
-    
+    // Only ever show what the room actually stocks. The old fallback invented a
+    // random shelf at render time, which meant the displayed stock changed on
+    // every repaint and never matched what BUY_ITEM would accept.
+    const forSale = state.currentRoom?.shopItems ?? [];
+
     if (forSale.length === 0) {
         return `<div class="shop-section"><h4>🛒 Shop</h4><p>Sold out!</p></div>`;
     }
@@ -93,11 +94,11 @@ function renderShopSection(state: RunState): string {
         
         html += `
         <div class="shop-item ${rarity} ${disabled}">
-            <div class="item-name">${item.name}</div>
-            <div class="item-slot">${item.type.toUpperCase()}</div>
-            <div class="item-stats">${formatItemStats(item)}</div>
+            <div class="item-name">${esc(item.name)}</div>
+            <div class="item-slot">${esc(item.type.toUpperCase())}</div>
+            <div class="item-stats">${esc(formatItemStats(item))}</div>
             <div class="item-cost">💰 ${cost} gold</div>
-            <button class="btn-buy" data-item="${item.id}" ${disabled}>Buy</button>
+            <button class="btn-buy" data-item="${esc(item.id)}" ${disabled}>Buy</button>
         </div>`;
     }
     
@@ -125,11 +126,11 @@ function renderRecruitSection(state: RunState): string {
 
         html += `
         <div class="recruit-card ${disabled}">
-            <div class="recruit-name">${recruit.name}</div>
-            <div class="recruit-role">${recruit.role.toUpperCase()} <span class="recruit-level">Lv.${recruit.level}</span></div>
-            <div class="recruit-desc">${recruit.description}</div>
+            <div class="recruit-name">${esc(recruit.name)}</div>
+            <div class="recruit-role">${esc(recruit.role.toUpperCase())} <span class="recruit-level">Lv.${esc(recruit.level)}</span></div>
+            <div class="recruit-desc">${esc(recruit.description)}</div>
             <div class="recruit-cost">💰 ${recruit.cost} gold</div>
-            <button class="btn-hire" data-recruit="${recruit.id}" ${disabled}>Hire</button>
+            <button class="btn-hire" data-recruit="${esc(recruit.id)}" ${disabled}>Hire</button>
         </div>`;
     }
 
@@ -190,7 +191,7 @@ function renderSidebar(state: RunState): string {
 
         html += `
         <div class="sidebar-member ${deadClass}" data-party-index="${index}" style="${hpColor}">
-            <div class="sidebar-name">${member.name} <span style="float:right">${member.isAlive ? 'Lv.'+member.level : 'DEAD'}</span></div>
+            <div class="sidebar-name">${esc(member.name)} <span style="float:right">${member.isAlive ? 'Lv.'+member.level : 'DEAD'}</span></div>
             <div class="sidebar-status-ascii">
  HP [${hpBar}]
  XP [${xpBar}]
@@ -230,7 +231,7 @@ export function renderGame(state: RunState): string {
              <button id="btn-leaderboard" class="btn-sm">🏆 High Scores</button>
              <div class="auth-controls">
             ${clerk.user 
-                ? `<span class="user-tag">👤 ${clerk.user.firstName}</span> <button id="btn-logout" class="btn-sm">Logout</button>`
+                ? `<span class="user-tag">👤 ${esc(clerk.user.firstName)}</span> <button id="btn-logout" class="btn-sm">Logout</button>`
                 : `<button id="btn-login" class="btn-sm btn-primary">Login / Sign Up</button>`
             }
          </div>
@@ -336,13 +337,13 @@ export function renderGame(state: RunState): string {
               const statusText = member.statuses?.includes('hidden') ? ' <span class="status-hidden">(Hidden)</span>' : '';
               const actedText = hasActed && !hasExtraActions ? ' <span class="status-acted">(Done)</span>' : '';
               const surgeText = hasActed && hasExtraActions ? ' <span class="status-surge">(Surging!)</span>' : '';
-              html += `<div class="member-name">${member.name} (${member.role})${statusText}${actedText}${surgeText}</div>`;
+              html += `<div class="member-name">${esc(member.name)} (${esc(member.role)})${statusText}${actedText}${surgeText}</div>`;
 
               // Attack buttons - disabled if already acted (unless extra actions available)
               html += `<div class="member-targets">`;
               room.enemies.forEach((e) => {
                   const disabled = canAct ? '' : 'disabled';
-                  html += `<button class="btn-attack" data-attacker="${member.id}" data-target="${e.id}" ${disabled}>⚔️ Attack ${e.name}</button>`;
+                  html += `<button class="btn-attack" data-attacker="${esc(member.id)}" data-target="${esc(e.id)}" ${disabled}>⚔️ Attack ${esc(e.name)}</button>`;
               });
               html += `</div>`;
 
@@ -372,16 +373,16 @@ export function renderGame(state: RunState): string {
                       // For abilities that target enemies, show enemy selector
                       if (ability.effect.target === 'enemy') {
                           room.enemies.forEach((e) => {
-                              html += `<button class="${btnClass}" data-actor="${member.id}" data-ability="${ability.id}" data-target="${e.id}" ${disabled} title="${ability.description}">✨ ${ability.name}${cooldownText}${extraText} → ${e.name}</button>`;
+                              html += `<button class="${btnClass}" data-actor="${esc(member.id)}" data-ability="${esc(ability.id)}" data-target="${esc(e.id)}" ${disabled} title="${escAttr(ability.description)}">✨ ${esc(ability.name)}${cooldownText}${extraText} → ${esc(e.name)}</button>`;
                           });
                       } else if (ability.effect.target === 'ally') {
                           // For ally-targeting abilities (like heals), show party member selector
                           state.party.members.filter(m => m.isAlive).forEach((ally) => {
                               const hpInfo = ally.hp.current < ally.hp.max ? ` (${ally.hp.current}/${ally.hp.max})` : '';
-                              html += `<button class="${btnClass}" data-actor="${member.id}" data-ability="${ability.id}" data-target="${ally.id}" ${disabled} title="${ability.description}">✨ ${ability.name}${cooldownText} → ${ally.name}${hpInfo}</button>`;
+                              html += `<button class="${btnClass}" data-actor="${esc(member.id)}" data-ability="${esc(ability.id)}" data-target="${esc(ally.id)}" ${disabled} title="${escAttr(ability.description)}">✨ ${esc(ability.name)}${cooldownText} → ${esc(ally.name)}${hpInfo}</button>`;
                           });
                       } else {
-                          html += `<button class="${btnClass}" data-actor="${member.id}" data-ability="${ability.id}" ${disabled} title="${ability.description}">✨ ${ability.name}${cooldownText}${extraText}</button>`;
+                          html += `<button class="${btnClass}" data-actor="${esc(member.id)}" data-ability="${esc(ability.id)}" ${disabled} title="${escAttr(ability.description)}">✨ ${esc(ability.name)}${cooldownText}${extraText}</button>`;
                       }
                   }
                   html += `</div>`;
@@ -546,10 +547,10 @@ export function renderGame(state: RunState): string {
         const val = skills[key];
         let btn = '';
         if ((member.statPoints || 0) > 0) {
-            btn = `<button class="btn-stat-up" data-actor="${member.id}" data-stat="${key}" title="Spend Stat Point">+</button>`;
+            btn = `<button class="btn-stat-up" data-actor="${esc(member.id)}" data-stat="${esc(key)}" title="Spend Stat Point">+</button>`;
         }
         const tooltip = skillDescriptions[key];
-        skillsHtml += `<div class="skill-item" title="${tooltip}"><span class="skill-label">${shortNames[key]}</span> <span class="skill-val">${val}</span> ${btn}</div>`;
+        skillsHtml += `<div class="skill-item" title="${escAttr(tooltip)}"><span class="skill-label">${shortNames[key]}</span> <span class="skill-val">${val}</span> ${btn}</div>`;
     });
     skillsHtml += '</div>';
     
@@ -570,14 +571,14 @@ export function renderGame(state: RunState): string {
         let actionsBtn = '';
         if (item) {
              // Rename button
-             actionsBtn += `<button class="btn-icon btn-rename" data-rename="${item.id}" title="Rename Item">✎</button>`;
+             actionsBtn += `<button class="btn-icon btn-rename" data-rename="${esc(item.id)}" title="Rename Item">✎</button>`;
              // Unequip button
-             actionsBtn += `<button class="btn-icon btn-unequip" data-actor="${member.id}" data-slot="${slotKey}" title="Unequip Item">✕</button>`;
+             actionsBtn += `<button class="btn-icon btn-unequip" data-actor="${esc(member.id)}" data-slot="${esc(slotKey)}" title="Unequip Item">✕</button>`;
         }
 
-        return `<div class="equipment-slot ${itemClass}" title="${tooltip}">
+        return `<div class="equipment-slot ${itemClass}" title="${escAttr(tooltip)}">
             <pre class="slot-icon">${icon}</pre>
-            <span class="slot-label">${displayName}</span>
+            <span class="slot-label">${esc(displayName)}</span>
             <div class="slot-actions">${actionsBtn}</div>
         </div>`;
     };
@@ -586,8 +587,8 @@ export function renderGame(state: RunState): string {
     <div class="panel hero-panel ${member.role} ${aliveClass}">
       <div class="hero-header">
           <div class="hero-title-border">╔════════════════════╗</div>
-          <h3>${member.name} ${!member.isAlive ? '☠️' : ''}</h3>
-          <div class="member-level">Lv.${member.level} ${member.role.toUpperCase()}</div>
+          <h3>${esc(member.name)} ${!member.isAlive ? '☠️' : ''}</h3>
+          <div class="member-level">Lv.${esc(member.level)} ${esc(member.role.toUpperCase())}</div>
           <div class="hero-title-border">╚════════════════════╝</div>
       </div>
       <pre class="ascii-art">${getHeroArt(member.role)}</pre>
@@ -598,9 +599,9 @@ export function renderGame(state: RunState): string {
       </div>
 
       <div class="combat-stats-row">
-        <div class="c-stat" title="Attack Bonus: ${atkBreakdown}">${typeIcon} +${atkBonus}</div>
-        <div class="c-stat" title="Damage Bonus: ${dmgBreakdown}">💥 +${dmgBonus}</div>
-        <div class="c-stat" title="Armor Class: ${acBreakdown}">🛡️ ${ac}</div>
+        <div class="c-stat" title="${escAttr(atkBreakdown)}">${typeIcon} +${atkBonus}</div>
+        <div class="c-stat" title="${escAttr(dmgBreakdown)}">💥 +${dmgBonus}</div>
+        <div class="c-stat" title="${escAttr(acBreakdown)}">🛡️ ${ac}</div>
       </div>
       ${skillsHtml}
 
@@ -643,7 +644,7 @@ export function renderGame(state: RunState): string {
                 .filter(m => m.isAlive)
                 .map(m => {
                     // Special buttons for rings? For now just generic Equip which auto-slots
-                    let btns = `<button class="btn-equip-to" data-equip="${i.id}" data-actor="${m.id}">${m.name}</button>`;
+                    let btns = `<button class="btn-equip-to" data-equip="${esc(i.id)}" data-actor="${esc(m.id)}">${esc(m.name)}</button>`;
                     if (i.type === 'ring') {
                         // Optional: explicit buttons for Ring 1 / Ring 2?
                         // btns = `<button ... data-slot="ring1">R1</button> <button ... data-slot="ring2">R2</button>`;
@@ -655,9 +656,9 @@ export function renderGame(state: RunState): string {
               return `
               <li class="item-row">
                 <span class="item-info">
-                    <span class="item-name ${i.rarity}">${i.name}</span> 
-                    <span class="item-type-tag">${i.type}</span>
-                    <span class="item-stats-preview">${renderItemStats(i)}</span>
+                    <span class="item-name ${esc(i.rarity)}">${esc(i.customName || i.name)}</span> 
+                    <span class="item-type-tag">${esc(i.type)}</span>
+                    <span class="item-stats-preview">${esc(renderItemStats(i))}</span>
                 </span>
                 <div class="equip-buttons">
                   <span class="equip-label">Equip:</span>
@@ -675,7 +676,9 @@ export function renderGame(state: RunState): string {
   html += `</div>`; // End main-content
 
   // Activity Log (right side) - formatted with colors
-  const formatLogEntry = (text: string): string => {
+  const formatLogEntry = (raw: string): string => {
+    // Log lines embed item and character names, which are player-controlled.
+    const text = esc(raw);
     // Round separators
     if (text.includes('━━━ ROUND')) {
       return `<div class="log-round">⚔️ ${text} ⚔️</div>`;
@@ -753,7 +756,7 @@ function renderRoomContent(room: any, state: RunState): string {
             guardHtml += `
               <div class="enemy-card">
                 <pre class="ascii-art">${getEnemyArt(enemy.id)}</pre>
-                <div class="enemy-name">${enemy.name}</div>
+                <div class="enemy-name">${esc(enemy.name)}</div>
                 <div class="enemy-hp">${renderHpBar(enemy.hp, enemy.maxHp, 8)} ${enemy.hp}/${enemy.maxHp}</div>
               </div>
             `;
@@ -789,7 +792,7 @@ function renderRoomContent(room: any, state: RunState): string {
             enemyHtml += `
               <div class="enemy-card">
                 <pre class="ascii-art">${getEnemyArt(enemy.id)}</pre>
-                <div class="enemy-name">${enemy.name}</div>
+                <div class="enemy-name">${esc(enemy.name)}</div>
                 <div class="enemy-hp">${renderHpBar(enemy.hp, enemy.maxHp, 8)} ${enemy.hp}/${enemy.maxHp}</div>
               </div>
             `;
@@ -910,7 +913,7 @@ function renderRoomContent(room: any, state: RunState): string {
 
 function renderGameOver(state: RunState): string {
     // Get last 15 log entries for death recap
-    const deathLog = state.history.slice(-15).map(l => `<div class="death-log-entry">${l}</div>`).join('');
+    const deathLog = state.history.slice(-15).map(l => `<div class="death-log-entry">${esc(l)}</div>`).join('');
     
     return `
     <div class="overlay game-over-overlay">
@@ -980,7 +983,7 @@ function renderShrineBlessingPopup(state: RunState): string {
    ╚═══════════════════════════════════╝
         </pre>
         <div class="shrine-boon-message">
-          ${boonMessage}
+          ${esc(boonMessage)}
         </div>
         <button id="btn-continue" class="btn-continue">Continue →</button>
       </div>

@@ -1,6 +1,8 @@
 import type { RunState } from './types';
 import { SeededRNG } from '../core/rng';
 import { generateTheme } from './generateTheme';
+import { cappedHistory } from './history';
+import { REST_COOLDOWN } from './constants';
 
 export function performShortRest(state: RunState, actorIds: string[]): RunState {
     if (state.shortRestsRemaining <= 0) {
@@ -39,7 +41,7 @@ export function performShortRest(state: RunState, actorIds: string[]): RunState 
             updatedMember = {
                 ...updatedMember,
                 abilities: updatedMember.abilities.map(a =>
-                    a.currentCooldown >= 999 ? { ...a, currentCooldown: 0 } : a
+                    a.currentCooldown >= REST_COOLDOWN ? { ...a, currentCooldown: 0 } : a
                 )
             };
         }
@@ -51,7 +53,7 @@ export function performShortRest(state: RunState, actorIds: string[]): RunState 
         ...state,
         shortRestsRemaining: state.shortRestsRemaining - 1,
         party: { ...state.party, members: newMembers },
-        history: [...state.history, 'Party took a short rest. Rest abilities restored!']
+        history: cappedHistory([...state.history, 'Party took a short rest. Rest abilities restored!'])
     };
 }
 
@@ -99,6 +101,6 @@ export function performLongRest(state: RunState, rng: SeededRNG): RunState {
         mutations: mutations,
         themeId: nextTheme,
         party: { ...state.party, members: newMembers },
-        history: [...state.history, 'Party took a Long Rest. Theme changed.', ...mutations.length > (state.mutations?.length || 0) ? ['New Mutation Applied!'] : []]
+        history: cappedHistory([...state.history, 'Party took a Long Rest. Theme changed.', ...(mutations.length > (state.mutations?.length || 0) ? ['New Mutation Applied!'] : [])])
     };
 }

@@ -24,7 +24,9 @@ export function getDifficulty(depth: number): {
     acBonus: number;
     enemyCountBonus: number;
 } {
-    const segment = Math.floor((depth - 1) / 10) + 1; // 1-10 = segment 1, 11-20 = segment 2, etc.
+    // Clamp to 1: depth 0 would otherwise compute segment 0, which falls
+    // through the if-chain below to the boss-tier 9-13 power band.
+    const segment = Math.max(1, Math.floor((depth - 1) / 10) + 1);
     const roomInSegment = depth % 10 === 0 ? 10 : depth % 10;
 
     // Base multiplier increases per segment
@@ -277,17 +279,15 @@ export function generateRoom(state: RunState, rng?: SeededRNG): Room {
             : ['common', 'uncommon'];
         
         const lootPool = ITEMS.filter(i => rarityFilter.includes(i.rarity));
-        const shuffledLoot = [...lootPool].sort(() => rng.float() - 0.5);
-        
+
         // Guarded hazards: 2-3 items, unguarded: 1 item
         const lootCount = isGuardedRoom ? rng.int(2, 3) : 1;
-        room.loot = shuffledLoot.slice(0, lootCount);
+        room.loot = rng.sample(lootPool, lootCount);
     }
     
     // Generate shop items for trader and intermission rooms
     if (type === 'trader' || type === 'intermission') {
-        const shuffled = [...ITEMS].sort(() => rng.float() - 0.5);
-        room.shopItems = shuffled.slice(0, 4);
+        room.shopItems = rng.sample(ITEMS, 4);
     }
 
     // Generate available recruits for intermission rooms
@@ -304,8 +304,7 @@ export function generateRoom(state: RunState, rng?: SeededRNG): Room {
             description: `${r.description} (Level ${segment})`
         }));
         
-        const shuffledRecruits = [...scaledRecruits].sort(() => rng.float() - 0.5);
-        room.availableRecruits = shuffledRecruits.slice(0, 2);
+        room.availableRecruits = rng.sample(scaledRecruits, 2);
         
         // Generate optional BOSS ROOM challenge
         // Boss is 1.5x stronger with 1-2 minions
@@ -394,8 +393,7 @@ export function generateRoom(state: RunState, rng?: SeededRNG): Room {
         const rareLootPool = ITEMS.filter(i => 
             allowedRarities.includes(i.rarity)
         );
-        const shuffledBossLoot = [...rareLootPool].sort(() => rng.float() - 0.5);
-        bossRoom.loot = shuffledBossLoot.slice(0, rng.int(1, 2));
+        bossRoom.loot = rng.sample(rareLootPool, rng.int(1, 2));
         
         room.bossRoom = bossRoom;
     }

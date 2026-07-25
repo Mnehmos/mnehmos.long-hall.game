@@ -1,31 +1,36 @@
-import { RunState } from './types.js';
+import type { CleanRunData } from '../utils/sanitize.js';
 
-export function calculateScore(state: RunState): number {
+/**
+ * Score a run.
+ *
+ * Takes a CleanRunData, not a raw RunState: callers must run the payload
+ * through sanitizeRunData first so the inputs are already validated and
+ * clamped. The scoring itself is unchanged.
+ */
+export function calculateScore(run: CleanRunData): number {
   let score = 0;
 
   // 1. Depth points
-  score += state.depth * 100;
+  score += run.depth * 100;
 
   // 2. Gold
-  score += state.party.gold;
+  score += run.party.gold;
 
   // 3. XP / Levels
-  state.party.members.forEach(actor => {
+  run.party.members.forEach(actor => {
     score += actor.xp;
     score += (actor.level - 1) * 500;
   });
 
-  // 4. Inventory Value (optional, maybe just 10% of cost)
-  state.inventory.items.forEach(item => {
+  // 4. Inventory value (10% of cost)
+  run.inventory.items.forEach(item => {
     score += Math.floor(item.cost / 10);
   });
-  state.party.members.forEach(actor => {
-     Object.values(actor.equipment).forEach(item => {
-         if (item) score += Math.floor(item.cost / 10);
-     });
+  run.party.members.forEach(actor => {
+    Object.values(actor.equipment).forEach(item => {
+      score += Math.floor(item.cost / 10);
+    });
   });
 
-  // 5. Rooms Resolved (if tracked separately, but depth proxies this)
-  
   return Math.floor(score);
 }
