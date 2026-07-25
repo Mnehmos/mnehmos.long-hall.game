@@ -129,7 +129,7 @@ export function createInitialRunState(seed: string): RunState {
     combatTurn: null,
     combatRound: 0,
     actedThisRound: [],
-    extraActions: 0,
+    extraActions: {},
     gameOver: false,
     victory: false,
     shrineBoon: null,
@@ -170,7 +170,10 @@ export function migrateSave(raw: unknown): RunState | null {
     mutations: state.mutations ?? [],
     history: Array.isArray(state.history) ? state.history : [],
     actedThisRound: state.actedThisRound ?? [],
-    extraActions: state.extraActions ?? 0,
+    // Older saves stored a single global number here.
+    extraActions: (state.extraActions && typeof state.extraActions === 'object')
+      ? state.extraActions
+      : {},
     combatRound: state.combatRound ?? 0,
     inBossRoom: state.inBossRoom ?? false,
     parentIntermission: state.parentIntermission ?? null,

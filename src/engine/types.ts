@@ -26,6 +26,15 @@ export interface AbilityDef {
     attackBonus?: number; // For Aimed Shot
     damageBonus?: number; // For Aimed Shot
     useWeaponDamage?: boolean; // For physical attacks (Champion Strike) that add to weapon dmg
+    /**
+     * Skill that scales this ability. Defaults to the governing skill of the
+     * ability's role -- `damage` abilities used to hardcode `magic`, which
+     * meant a rogue's Sneak Attack and a cleric's Sacred Flame scaled off a
+     * stat those classes have none of.
+     */
+    scalesWith?: keyof Skills;
+    /** Skip the attack roll (Magic Missile advertises auto-hit). */
+    alwaysHits?: boolean;
   };
 }
 
@@ -45,6 +54,8 @@ export interface Enemy {
   damage: string; // dice expression like "1d6+2"
   ac: number;
   xp: number;
+  /** Active status effects (e.g. 'feared'). Consumed when the enemy acts. */
+  statuses?: string[];
 }
 
 // Recruit definition (for intermission rooms)
@@ -208,7 +219,12 @@ export interface RunState {
   combatTurn: 'player' | 'enemy' | null;
   combatRound: number; // Current round in combat
   actedThisRound: string[]; // IDs of party members who have acted this round
-  extraActions: number; // Extra actions granted (e.g., from Action Surge)
+  /**
+   * Extra actions granted (e.g. by Action Surge), keyed by the actor that
+   * earned them. This used to be a single global counter, so one fighter's
+   * surge could be spent by a DIFFERENT party member who had already acted.
+   */
+  extraActions: Record<string, number>;
   // Game end states
   gameOver: boolean;
   victory: boolean; // true if just won a combat (for popup)

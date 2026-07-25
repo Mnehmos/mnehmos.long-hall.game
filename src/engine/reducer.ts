@@ -8,10 +8,13 @@ import { hashWithSeed } from '../core/hash';
 import { RECRUITS, getDropForEnemy } from '../content/tables';
 import { calculateEscapeDC } from './generateRoom';
 import { roll } from '../core/dice';
-import { getAbilityById } from '../content/abilities';
+import { getAbilityById, isFreeAction } from '../content/abilities';
 import { resolveEnemyTurn } from './combatHelpers';
 import { cappedHistory } from './history';
-import { REST_COOLDOWN, XP_THRESHOLDS, MAX_PARTY_SIZE } from './constants';
+import {
+    REST_COOLDOWN, XP_THRESHOLDS, MAX_PARTY_SIZE,
+    STATUS, SHIELD_AC, ROLE_OFFENSE_SKILL, ROLE_ACCURACY_SKILL,
+} from './constants';
 import { enchantItem, applyMaxHpDelta, totalMaxHpBonus } from './enchant';
 import { enterRoom } from './enterRoom';
 
@@ -68,6 +71,70 @@ function updateActorWeapon(actor: Actor, updatedWeapon: Item): Actor {
             main_hand: updatedWeapon
         }
     };
+}
+
+/**
+ * The turn economy.
+ *
+ * Each living party member gets one action per round, tracked in
+ * `actedThisRound`. Action Surge grants its user an EXTRA action, banked in
+ * `extraActions[actorId]`.
+ *
+ * This used to be a single global `extraActions` counter, which meant the
+ * surge was a shared pool: if fighter A had already acted and fighter B then
+ * surged, A could immediately act again and spend B's extra action. The UI
+ * compounded it by showing "(Surging!)" on every member who had already acted.
+ */
+function grantExtraAction(
+    extraActions: Record<string, number>,
+    actorId: string,
+    amount: number
+): Record<string, number> {
+    return { ...extraActions, [actorId]: (extraActions[actorId] || 0) + amount };
+}
+
+/** True if this actor still has a move available this round. */
+export function canAct(
+    actorId: string,
+    actedThisRound: string[],
+    extraActions: Record<string, number>
+): boolean {
+    return !actedThisRound.includes(actorId) || (extraActions[actorId] || 0) > 0;
+}
+
+/**
+ * Consume one action for `actorId`: their normal action if unspent, otherwise
+ * one of their own banked extra actions.
+ */
+function spendAction(
+    extraActions: Record<string, number>,
+    actedThisRound: string[],
+    actorId: string
+): { extraActions: Record<string, number>; actedThisRound: string[]; usedExtra: boolean } {
+    if (!actedThisRound.includes(actorId)) {
+        return { extraActions, actedThisRound: [...actedThisRound, actorId], usedExtra: false };
+    }
+    const banked = extraActions[actorId] || 0;
+    if (banked > 0) {
+        const next = { ...extraActions };
+        if (banked === 1) delete next[actorId];
+        else next[actorId] = banked - 1;
+        return { extraActions: next, actedThisRound, usedExtra: true };
+    }
+    // Nothing left; caller should have blocked this.
+    return { extraActions, actedThisRound, usedExtra: false };
+}
+
+/** Whose turn is it once the current action resolves? */
+function nextTurnFor(
+    members: Actor[],
+    actedThisRound: string[],
+    extraActions: Record<string, number>
+): 'player' | 'enemy' {
+    const stillToMove = members.some(
+        m => m.isAlive && canAct(m.id, actedThisRound, extraActions)
+    );
+    return stillToMove ? 'player' : 'enemy';
 }
 
 /**
@@ -231,6 +298,13 @@ function runAction(state: RunState, action: Action, rng: SeededRNG): RunState {
         const target = room.enemies[targetIndex];
         const attacker = state.party.members.find(m => m.id === action.attackerId);
         if (!attacker || !attacker.isAlive) return state;
+
+        // Enforce the turn economy here, not just in the UI. Without this a
+        // member who had already acted could attack again by any route that
+        // dispatches the action.
+        if (!canAct(action.attackerId, state.actedThisRound || [], state.extraActions)) {
+            return state;
+        }
         
         // Calculate combat stats based on Skills
         // Determine weapon type (naive check for now)
@@ -290,42 +364,27 @@ function runAction(state: RunState, action: Action, rng: SeededRNG): RunState {
         let newInventory = state.inventory; // Track inventory changes from dropped items
         let roomResolved = false;
 
-        // Check if this attacker already acted and is using an extra action
-        const alreadyActed = (state.actedThisRound || []).includes(action.attackerId);
-        let newExtraActions = state.extraActions || 0;
-        let newActedThisRound = [...(state.actedThisRound || [])];
-
-        if (alreadyActed && newExtraActions > 0) {
-            // Using an extra action - consume it, don't add to actedThisRound again
-            newExtraActions -= 1;
-            newHistory.push(`(Using extra action! ${newExtraActions > 0 ? newExtraActions + ' remaining' : ''})`);
-        } else {
-            // Normal action - track this attacker
-            newActedThisRound.push(action.attackerId);
+        // Spend this attacker's own action -- their normal one if unspent,
+        // otherwise an extra action THEY banked. Extra actions are no longer a
+        // shared pool that any member who had already acted could dip into.
+        const spend = spendAction(
+            state.extraActions,
+            [...(state.actedThisRound || [])],
+            action.attackerId
+        );
+        let newExtraActions = spend.extraActions;
+        let newActedThisRound = spend.actedThisRound;
+        if (spend.usedExtra) {
+            const left = newExtraActions[action.attackerId] || 0;
+            newHistory.push(`(${attacker.name} spends an extra action!${left > 0 ? ` ${left} remaining` : ''})`);
         }
-        
+
         if (hit) {
             // Damage roll: 1d8 + skill + weapon
             // Note: Weapon damage die should ideally come from item.baseStats.damageDie, but using fixed 1d8 for now as simplified.
             const damageRoll = roll('1d8', rng);
             let damage = Math.max(1, damageRoll.total + totalDamageBonus);
             const isCritical = attackRoll === 20; // Natural 20 is a critical hit
-
-            // Check for Champion Strike (Empowered)
-            if (attacker.statuses?.includes('champion_strike')) {
-                 const bonusDice = roll('2d6', rng); // Match the ability dice
-                 damage += bonusDice.total;
-                 newHistory.push(`${attacker.name} consumes Champion Strike! +${bonusDice.total} damage.`);
-                 
-                 // Remove status
-                 const aIndex = newParty.members.findIndex(m => m.id === action.attackerId);
-                 if (aIndex !== -1) {
-                     newParty.members[aIndex] = {
-                         ...newParty.members[aIndex],
-                         statuses: attacker.statuses.filter(s => s !== 'champion_strike')
-                     };
-                 }
-            }
 
             newEnemies[targetIndex] = {
                 ...target,
@@ -437,24 +496,18 @@ function runAction(state: RunState, action: Action, rng: SeededRNG): RunState {
             };
         }
         
-        // Determine if all alive party members have acted
-        const aliveMemberIds = newParty.members.filter(m => m.isAlive).map(m => m.id);
-        const allActed = aliveMemberIds.every(id => newActedThisRound.includes(id));
+        // The player turn continues while anyone still has a move.
+        const combatTurn = nextTurnFor(newParty.members, newActedThisRound, newExtraActions);
 
-        // Default: stay on player turn until all have acted
-        let combatTurn: 'player' | 'enemy' | null = allActed ? 'enemy' : 'player';
-
-        // If there are extra actions remaining, stay on player turn
-        if (combatTurn === 'enemy' && newExtraActions > 0) {
-            combatTurn = 'player';
-            newHistory.push(`(Extra action available!)`);
-        }
-
-        // If still more party members to act, show who's next
-        if (combatTurn === 'player' && !allActed) {
-            const nextToAct = newParty.members.find(m => m.isAlive && !newActedThisRound.includes(m.id));
+        if (combatTurn === 'player') {
+            const nextToAct = newParty.members.find(
+                m => m.isAlive && canAct(m.id, newActedThisRound, newExtraActions)
+            );
             if (nextToAct) {
-                newHistory.push(`→ ${nextToAct.name}'s turn`);
+                const surging = newActedThisRound.includes(nextToAct.id);
+                newHistory.push(surging
+                    ? `→ ${nextToAct.name}'s extra action`
+                    : `→ ${nextToAct.name}'s turn`);
             }
         }
 
@@ -466,7 +519,7 @@ function runAction(state: RunState, action: Action, rng: SeededRNG): RunState {
             actedThisRound: combatTurn === 'enemy' ? [] : newActedThisRound, // Reset if going to enemy turn
             history: cappedHistory(newHistory),
             party: newParty,
-            extraActions: newExtraActions,
+            extraActions: combatTurn === 'enemy' ? {} : newExtraActions,
             inventory: newInventory
         };
 
@@ -992,6 +1045,13 @@ function runAction(state: RunState, action: Action, rng: SeededRNG): RunState {
         const abilityState = actor.abilities[abilityStateIndex];
         
         if (abilityState.currentCooldown > 0) return state; // Cooldown not ready
+
+        // Free actions (hiding, Action Surge) bypass the turn economy; everything
+        // else needs an available action.
+        if (!isFreeAction(abilityDef)
+            && !canAct(action.actorId, state.actedThisRound || [], state.extraActions)) {
+            return state;
+        }
         
         // Check stealth requirement
         if (['sneak_attack'].includes(action.abilityId)) {
@@ -1023,29 +1083,27 @@ function runAction(state: RunState, action: Action, rng: SeededRNG): RunState {
         });
 
         // Skill mapping based on ability type
-        if (abilityDef.effect.type === 'attack') {
-            // Weapon-based abilities
-            if (abilityDef.role === 'ranger') {
-                accuracyBonus = skills.ranged + equipAtkBonus;
-                powerBonus = skills.ranged + equipDmgBonus;
-            } else {
-                // Default to Melee (Fighter, etc)
-                accuracyBonus = skills.attack + equipAtkBonus;
-                powerBonus = skills.strength + equipDmgBonus;
-            }
+        // An ability scales off its own declared skill, else the governing
+        // skill of the class that owns it. Hardcoding `magic` for every
+        // `damage` ability meant only the wizard scaled: the rogue's Sneak
+        // Attack and the cleric's Sacred Flame both keyed off a stat those
+        // classes start with zero of.
+        const powerSkill = abilityDef.effect.scalesWith ?? ROLE_OFFENSE_SKILL[abilityDef.role];
+        const accuracySkill = abilityDef.effect.scalesWith ?? ROLE_ACCURACY_SKILL[abilityDef.role];
+
+        if (abilityDef.effect.type === 'attack' || abilityDef.effect.type === 'damage') {
+            powerBonus = (skills[powerSkill] || 0) + equipDmgBonus;
+            accuracyBonus = (skills[accuracySkill] || 0) + equipAtkBonus;
             if (abilityDef.effect.attackBonus) accuracyBonus += abilityDef.effect.attackBonus;
             if (abilityDef.effect.damageBonus) powerBonus += abilityDef.effect.damageBonus;
-        } else if (abilityDef.effect.type === 'damage') {
-            // Spells use magic skill + equipment
-            powerBonus = skills.magic + equipDmgBonus;
-            accuracyBonus = skills.magic + equipAtkBonus;
         } else if (abilityDef.effect.type === 'heal') {
             powerBonus = skills.faith; // Healing doesn't use equipment bonuses
         }
 
         let roomResolved = false;
-        // combatTurn is calculated at the end now
-        let usedAction = true;
+        // combatTurn is calculated at the end now.
+        // Free actions (Action Surge, hiding) don't consume the round's action.
+        let usedAction = !isFreeAction(abilityDef);
 
         if (abilityDef.effect.type === 'damage' || abilityDef.effect.type === 'attack') {
              // Offensive
@@ -1062,10 +1120,10 @@ function runAction(state: RunState, action: Action, rng: SeededRNG): RunState {
                  const targetIndex = room.enemies.findIndex(e => e.id === action.targetId);
                  if (targetIndex !== -1) {
                      const target = room.enemies[targetIndex];
-                     // Attack Roll if it's an attack, or auto-hit for some spells?
-                     // Let's do attack roll for EVERYTHING offensive to keep it consistent with skills
+                     // Offensive abilities roll to hit, except the ones that
+                     // advertise auto-hit (Magic Missile said so and rolled anyway).
                       const attackRoll = roll('1d20', rng).total + accuracyBonus;
-                      if (attackRoll >= target.ac) {
+                      if (abilityDef.effect.alwaysHits || attackRoll >= target.ac) {
                           let dmg = 0;
                           
                           // Weapon Damage Logic
@@ -1111,32 +1169,52 @@ function runAction(state: RunState, action: Action, rng: SeededRNG): RunState {
                  newHistory.push(`${actor.name} heals ${target.name} for ${heal} HP.`);
              }
         } else if (abilityDef.effect.type === 'buff') {
-             if (abilityDef.effect.status) {
+             const status = abilityDef.effect.status;
+             if (status) {
                 const targetId = action.targetId || actor.id;
                 const targetIndex = newParty.members.findIndex(m => m.id === targetId);
                 if (targetIndex !== -1) {
                     const target = newParty.members[targetIndex];
-                    if (!target.statuses?.includes(abilityDef.effect.status!)) {
+                    if (!target.statuses?.includes(status)) {
                         newParty.members[targetIndex] = {
                             ...target,
-                            statuses: [...(target.statuses || []), abilityDef.effect.status!]
+                            statuses: [...(target.statuses || []), status]
                         };
-                        newHistory.push(`${target.name} gains ${abilityDef.effect.status}!`);
-                        if (abilityDef.effect.status === 'hidden') {
-                             newHistory.push(`${target.name} slips into the shadows.`);
-                             // If hiding, maybe don't end turn? Or yes? Rogue Cunning Action is bonus action usually.
-                             // For now, Cunning Action -> Free Action?
-                             if (abilityDef.id === 'camouflage' || abilityDef.id === 'cunning_action') usedAction = false;
+                        if (status === STATUS.HIDDEN) {
+                            newHistory.push(`${target.name} slips into the shadows.`);
+                        } else if (status === STATUS.SHIELDED) {
+                            newHistory.push(`${target.name} raises a shimmering ward (+${SHIELD_AC} AC).`);
+                        } else if (status === STATUS.EVASIVE) {
+                            newHistory.push(`${target.name} braces to dodge the next blow.`);
+                        } else {
+                            newHistory.push(`${target.name} gains ${status}!`);
                         }
                     }
                 }
              }
+        } else if (abilityDef.effect.type === 'debuff') {
+             // Apply a status to the enemy side. Turn Undead is the only user:
+             // feared enemies skip their next attack.
+             const status = abilityDef.effect.status || STATUS.FEARED;
+             const single = abilityDef.effect.target !== 'all_enemies';
+             let affected = 0;
+
+             newEnemies = newEnemies.map(e => {
+                 if (e.hp <= 0) return e;
+                 if (single && e.id !== action.targetId) return e;
+                 if (e.statuses?.includes(status)) return e;
+                 affected++;
+                 return { ...e, statuses: [...(e.statuses || []), status] };
+             });
+
+             newHistory.push(affected > 0
+                 ? `${actor.name} uses ${abilityDef.name}! ${affected} enem${affected === 1 ? 'y is' : 'ies are'} ${status}.`
+                 : `${actor.name} uses ${abilityDef.name}, but it finds no purchase.`);
         }
 
-        // Action Surge special case - grants an extra action
+        // Action Surge grants its user an extra action.
         let extraActionsGranted = 0;
         if (abilityDef.id === 'action_surge') {
-            usedAction = false;
             extraActionsGranted = 1;
             newHistory.push(`${actor.name} surges with energy (Action Surge)! Take another action!`);
         }
@@ -1192,36 +1270,24 @@ function runAction(state: RunState, action: Action, rng: SeededRNG): RunState {
             roomResolved = !(room.type === 'shrine' || room.type === 'hazard');
         }
 
-        // Turn Tracking Logic (Match ATTACK handler behavior)
-        const alreadyActed = (state.actedThisRound || []).includes(action.actorId);
-        let newExtraActions = state.extraActions + extraActionsGranted;
+        // Turn tracking. Extra actions belong to the actor that earned them.
+        let newExtraActions = { ...state.extraActions };
         let newActedThisRound = [...(state.actedThisRound || [])];
 
-        if (usedAction) {
-             if (alreadyActed && state.extraActions > 0 && extraActionsGranted === 0) {
-                 // Consumed an existing extra action
-                 newExtraActions = (state.extraActions - 1) + extraActionsGranted; // Recalc based on original state
-                 newHistory.push(`(Using extra action!)`);
-             } else if (extraActionsGranted === 0) {
-                 // Normal action consumption (if no surge granted)
-                 if (!alreadyActed) newActedThisRound.push(action.actorId);
-             }
+        if (extraActionsGranted > 0) {
+            newExtraActions = grantExtraAction(newExtraActions, action.actorId, extraActionsGranted);
+        } else if (usedAction) {
+            const spend = spendAction(newExtraActions, newActedThisRound, action.actorId);
+            newExtraActions = spend.extraActions;
+            newActedThisRound = spend.actedThisRound;
+            if (spend.usedExtra) newHistory.push(`(${actor.name} spends an extra action!)`);
         }
-        
-        // Determine Next Turn
-        const aliveMemberIds = newParty.members.filter(m => m.isAlive).map(m => m.id);
-        const allActed = aliveMemberIds.every(id => newActedThisRound.includes(id));
-        
-        let nextCombatTurn: 'player' | 'enemy' | null = 'player';
 
-        if (justWon) {
-             // Combat is over even in a guarded shrine/hazard, where the room
-             // itself stays unresolved so the player can still interact.
-             nextCombatTurn = null;
-        } else if (allActed && newExtraActions === 0) {
-             // If Action Surge was used, extraActions keeps us on the player turn.
-             nextCombatTurn = 'enemy';
-        }
+        const nextCombatTurn = justWon
+            // Combat is over even in a guarded shrine/hazard, where the room
+            // itself stays unresolved so the player can still interact.
+            ? null
+            : nextTurnFor(newParty.members, newActedThisRound, newExtraActions);
 
         let nextState: RunState = {
             ...state,
@@ -1233,7 +1299,7 @@ function runAction(state: RunState, action: Action, rng: SeededRNG): RunState {
             victory: justWon,
             combatTurn: nextCombatTurn,
             actedThisRound: nextCombatTurn === 'enemy' ? [] : newActedThisRound,
-            extraActions: newExtraActions
+            extraActions: nextCombatTurn === 'enemy' ? {} : newExtraActions
         };
 
         if (nextCombatTurn === 'enemy') {

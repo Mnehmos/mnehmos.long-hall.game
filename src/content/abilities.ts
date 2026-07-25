@@ -57,8 +57,8 @@ const WIZARD_ABILITIES: AbilityDef[] = [
         effect: {
             type: 'damage',
             target: 'enemy',
-            dice: '3d4',
-            modifier: 3
+            dice: '3d4+3',
+            alwaysHits: true
         }
     },
     {
@@ -78,13 +78,13 @@ const WIZARD_ABILITIES: AbilityDef[] = [
         id: 'shield',
         name: 'Shield',
         role: 'wizard',
-        description: '+5 AC until next turn',
+        description: '+5 AC until your next turn',
         cooldownType: 'combat',
         cooldownValue: 1,
         effect: {
             type: 'buff',
             target: 'self',
-            modifier: 5
+            status: 'shielded'
         }
     }
 ];
@@ -115,7 +115,8 @@ const CLERIC_ABILITIES: AbilityDef[] = [
         effect: {
             type: 'damage',
             target: 'enemy',
-            dice: '1d8'
+            dice: '1d8',
+            scalesWith: 'faith'
         }
     },
     {
@@ -144,31 +145,34 @@ const ROGUE_ABILITIES: AbilityDef[] = [
         effect: {
             type: 'damage',
             target: 'enemy',
-            dice: '2d6'
+            dice: '2d6',
+            scalesWith: 'ranged'
         }
     },
     {
         id: 'cunning_action',
         name: 'Cunning Action',
         role: 'rogue',
-        description: 'Hide - Become untargetable',
+        description: 'Hide - become untargetable (free action)',
         cooldownType: 'turns',
-        cooldownValue: 0, // Always available
+        cooldownValue: 2,
         effect: {
-            type: 'special',
-            target: 'self'
+            type: 'buff',
+            target: 'self',
+            status: 'hidden'
         }
     },
     {
         id: 'evasion',
         name: 'Evasion',
         role: 'rogue',
-        description: 'Dodge one attack completely',
+        description: 'Dodge the next attack against you completely',
         cooldownType: 'rest',
         cooldownValue: 1,
         effect: {
-            type: 'special',
-            target: 'self'
+            type: 'buff',
+            target: 'self',
+            status: 'evasive'
         }
     }
 ];
@@ -197,7 +201,7 @@ const RANGER_ABILITIES: AbilityDef[] = [
         cooldownType: 'rest',
         cooldownValue: 1,
         effect: {
-            type: 'special', // Handled in reducer as AOE
+            type: 'attack',
             target: 'all_enemies',
             dice: '1d6'
         }
@@ -241,4 +245,17 @@ export function getAbilitiesForRole(role: Role): AbilityDef[] {
 // Get a specific ability by ID
 export function getAbilityById(id: string): AbilityDef | undefined {
     return ALL_ABILITIES.find(a => a.id === id);
+}
+
+/**
+ * Abilities that don't consume the actor's action for the round.
+ *
+ * Single source of truth: the reducer decides whether to spend an action and
+ * the UI decides whether to enable the button. They used to answer this
+ * question separately -- the UI from a hardcoded list of ids, the reducer from
+ * the effect shape -- which is how Cunning Action ended up clickable but inert.
+ */
+export function isFreeAction(ability: AbilityDef): boolean {
+    if (ability.id === 'action_surge') return true;
+    return ability.effect.type === 'buff' && ability.effect.status === 'hidden';
 }

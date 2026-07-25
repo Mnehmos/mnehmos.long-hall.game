@@ -2,7 +2,7 @@ import { roll } from '../core/dice';
 import type { RunState } from './types';
 import type { SeededRNG } from '../core/rng';
 import { cappedHistory } from './history';
-import { REST_COOLDOWN } from './constants';
+import { REST_COOLDOWN, STATUS, SHIELD_AC } from './constants';
 
 // Helper to resolve enemy turn
 export function resolveEnemyTurn(state: RunState, rng: SeededRNG): RunState {
@@ -13,13 +13,30 @@ export function resolveEnemyTurn(state: RunState, rng: SeededRNG): RunState {
     let nextState = { ...state };
     let newHistory = [...nextState.history];
 
-    for (const enemy of livingEnemies) {
+    // Enemies that were feared (Turn Undead) skip this turn, and the status
+    // clears so they act again next round.
+    const remainingEnemies = livingEnemies.map(e => {
+        if (!e.statuses?.includes(STATUS.FEARED)) return e;
+        newHistory.push(`${e.name} cowers, too afraid to act!`);
+        return { ...e, statuses: e.statuses.filter(s => s !== STATUS.FEARED) };
+    });
+    const attackers = livingEnemies.filter(e => !e.statuses?.includes(STATUS.FEARED));
+
+    nextState = {
+        ...nextState,
+        currentRoom: {
+            ...room,
+            enemies: room.enemies.map(e => remainingEnemies.find(r => r.id === e.id) ?? e),
+        },
+    };
+
+    for (const enemy of attackers) {
         // Target a random ALIVE party member. Hidden members are skipped, but
         // only while someone else can be hit -- otherwise the enemies would
         // simply never act and combat would stall forever.
         const alive = nextState.party.members.filter(m => m.isAlive);
         if (alive.length === 0) break;
-        const visible = alive.filter(m => !m.statuses?.includes('hidden'));
+        const visible = alive.filter(m => !m.statuses?.includes(STATUS.HIDDEN));
         const targetPool = visible.length > 0 ? visible : alive;
 
         const targetMember = rng.pick(targetPool);
@@ -34,18 +51,38 @@ export function resolveEnemyTurn(state: RunState, rng: SeededRNG): RunState {
                 memberAC += (item.enchantment.effect.acBonus || 0);
             }
         });
+        // Wizard's Shield.
+        if (targetMember.statuses?.includes(STATUS.SHIELDED)) memberAC += SHIELD_AC;
 
         const enemyAttackRoll = roll('1d20', rng).total;
-        const enemyHit = (enemyAttackRoll + enemy.power) >= memberAC;
+        let enemyHit = (enemyAttackRoll + enemy.power) >= memberAC;
+
+        // Rogue's Evasion negates one incoming hit, then clears.
+        if (enemyHit && targetMember.statuses?.includes(STATUS.EVASIVE)) {
+            enemyHit = false;
+            nextState = {
+                ...nextState,
+                party: {
+                    ...nextState.party,
+                    members: nextState.party.members.map((m, i) =>
+                        i === targetIndex
+                            ? { ...m, statuses: m.statuses.filter(s => s !== STATUS.EVASIVE) }
+                            : m
+                    ),
+                },
+            };
+            newHistory.push(`${targetMember.name} evades ${enemy.name}'s attack entirely!`);
+            continue;
+        }
 
         if (enemyHit) {
             const enemyDamageRoll = roll(enemy.damage, rng);
             const newHp = Math.max(0, targetMember.hp.current - enemyDamageRoll.total);
             const isNowDead = newHp <= 0;
 
-            const newMembers = nextState.party.members.map((m, i) => 
-                i === targetIndex ? { 
-                    ...m, 
+            const newMembers = nextState.party.members.map((m, i) =>
+                i === targetIndex ? {
+                    ...m,
                     hp: { ...m.hp, current: newHp },
                     isAlive: !isNowDead
                 } : m
@@ -57,7 +94,7 @@ export function resolveEnemyTurn(state: RunState, rng: SeededRNG): RunState {
             };
 
             newHistory.push(`${enemy.name} attacks ${targetMember.name}: [${enemyAttackRoll}+${enemy.power}=${enemyAttackRoll+enemy.power} vs AC ${memberAC}] HIT! ${enemyDamageRoll.total} damage!`);
-            
+
             if (isNowDead) {
                 newHistory.push(`${targetMember.name} has fallen!`);
             }
@@ -83,9 +120,14 @@ export function resolveEnemyTurn(state: RunState, rng: SeededRNG): RunState {
     // REST_COOLDOWN entries are sentinels, not turn counts -- ticking them down
     // would let a once-per-rest ability come back on its own after 999 rounds.
     const membersWithCooldowns = nextState.party.members.map(m => {
-        if (!m.abilities) return m;
-        return {
+        const next = {
             ...m,
+            // Shield lasts "until your next turn", which starts now.
+            statuses: (m.statuses || []).filter(s => s !== STATUS.SHIELDED),
+        };
+        if (!m.abilities) return next;
+        return {
+            ...next,
             abilities: m.abilities.map(a => ({
                 ...a,
                 currentCooldown: a.currentCooldown >= REST_COOLDOWN

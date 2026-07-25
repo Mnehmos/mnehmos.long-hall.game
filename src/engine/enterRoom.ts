@@ -107,7 +107,7 @@ export function enterRoom(
         combatTurn,
         combatRound: isCombat ? 1 : 0,
         actedThisRound: [],
-        extraActions: 0,
+        extraActions: {},
         victory: false,
         shrineBoon: null,
         // Leaving a boss chamber by any route clears the return link, so the

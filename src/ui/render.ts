@@ -1,6 +1,7 @@
 import type { RunState, Item } from '../engine/types';
 import { clerk } from '../auth';
-import { getAbilityById } from '../content/abilities';
+import { getAbilityById, isFreeAction } from '../content/abilities';
+import { REST_COOLDOWN } from '../engine/constants';
 import { getEnemyArt, getHeroArt, renderHpBar, renderStatBar, EQUIPMENT_ICONS } from '../content/art';
 import { calculateEscapeDC } from '../engine/generateRoom';
 import type { ScoreEntry } from '../api/client';
@@ -324,20 +325,30 @@ export function renderGame(state: RunState): string {
           const aliveMembers = state.party.members.filter(m => m.isAlive);
           const actedThisRound = state.actedThisRound || [];
 
-          // Check if there are extra actions available (from Action Surge)
-          const hasExtraActions = (state.extraActions || 0) > 0;
+          const extraActions = state.extraActions || {};
 
           for (const member of aliveMembers) {
               const hasActed = actedThisRound.includes(member.id);
-              // If extra actions available, acted members can act again
-              const canAct = !hasActed || hasExtraActions;
-              const actedClass = (hasActed && !hasExtraActions) ? 'acted' : '';
+              // Extra actions belong to the member who earned them. This used
+              // to read a single global counter, so one fighter's Action Surge
+              // lit up "(Surging!)" on every member who had already acted --
+              // and let them spend it.
+              const ownExtras = extraActions[member.id] || 0;
+              const canAct = !hasActed || ownExtras > 0;
+              const actedClass = canAct ? '' : 'acted';
 
               html += `<div class="member-actions ${actedClass}">`;
-              const statusText = member.statuses?.includes('hidden') ? ' <span class="status-hidden">(Hidden)</span>' : '';
-              const actedText = hasActed && !hasExtraActions ? ' <span class="status-acted">(Done)</span>' : '';
-              const surgeText = hasActed && hasExtraActions ? ' <span class="status-surge">(Surging!)</span>' : '';
-              html += `<div class="member-name">${esc(member.name)} (${esc(member.role)})${statusText}${actedText}${surgeText}</div>`;
+              const statusBadges = (member.statuses || []).map(s => {
+                  if (s === 'hidden') return ' <span class="status-hidden">(Hidden)</span>';
+                  if (s === 'shielded') return ' <span class="status-shielded">(Shielded)</span>';
+                  if (s === 'evasive') return ' <span class="status-evasive">(Evasive)</span>';
+                  return ` <span class="status-generic">(${esc(s)})</span>`;
+              }).join('');
+              const actedText = !canAct ? ' <span class="status-acted">(Done)</span>' : '';
+              const surgeText = hasActed && ownExtras > 0
+                  ? ` <span class="status-surge">(Surging! ${ownExtras})</span>`
+                  : '';
+              html += `<div class="member-name">${esc(member.name)} (${esc(member.role)})${statusBadges}${actedText}${surgeText}</div>`;
 
               // Attack buttons - disabled if already acted (unless extra actions available)
               html += `<div class="member-targets">`;
@@ -355,18 +366,21 @@ export function renderGame(state: RunState): string {
                       if (!ability) continue;
 
                       const isReady = abilityState.currentCooldown === 0;
-                      // Action Surge can be used even after acting (it grants extra action)
-                      const isFreeAction = ability.id === 'action_surge' || ability.id === 'cunning_action' || ability.id === 'camouflage';
-                      // Check if usable: ready AND (can act OR is a free action)
-                      let isUsable = isReady && (canAct || isFreeAction);
+                      // Free actions (Action Surge, hiding) stay usable after acting.
+                      let isUsable = isReady && (canAct || isFreeAction(ability));
                       let extraText = '';
                       if (ability.id === 'sneak_attack' && !member.statuses?.includes('hidden')) {
                            isUsable = false;
                            extraText = ' (Needs Hidden)';
                       }
+                      if (ability.effect.status && member.statuses?.includes(ability.effect.status)) {
+                           isUsable = false;
+                           extraText = ' (Active)';
+                      }
 
-                      // Show "Rest" for rest-cooldown abilities (999), otherwise show turn count
-                      const cooldownText = isReady ? '' : (abilityState.currentCooldown >= 999 ? ' (Rest)' : ` (${abilityState.currentCooldown})`);
+                      const cooldownText = isReady
+                          ? ''
+                          : (abilityState.currentCooldown >= REST_COOLDOWN ? ' (Rest)' : ` (${abilityState.currentCooldown})`);
                       const disabled = isUsable ? '' : 'disabled';
                       const btnClass = isUsable ? 'btn-ability' : 'btn-ability cooldown';
 
